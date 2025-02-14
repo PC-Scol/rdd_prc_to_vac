@@ -92,13 +92,13 @@ Dans un premier temps, le programme génère six fichiers en sortie:
  
 	6. Vérifier la présence des VACS pour module CHC pour l'ensemble des étudiants dans la base pivot (dans la table apprenant_chc).
  
- 	7. Passer script script_suppression_chc_superflus pour supprimer les éléments fils sous une EVAL
+ 	7. Passer script script_suppression_chc_superflus;sql pour supprimer les éléments fils sous une EVAL
   
 	8. Passer les audits des modules CHC et COC
 
 	9. Faire une injection normale des CHC
 
-	10.Passer script script_coc_mcc.sql pour eviter probleme conteneur COC et probleme calcul des MCC
+	10. Passer script script_coc_mcc.sql pour eviter probleme conteneur COC et probleme calcul des MCC
 			
     	11.Faire le calcul des MCC et les injecter
 
