@@ -47,22 +47,22 @@ Dans un premier temps, le programme génère six fichiers en sortie:
                 - LISTES_VET : pour toutes les versions d'étapes presente dans votre fichier FIC_NAME_FILTRE ( à ajouter dans rdd_vac.ini) 
                 (CONSEIL : -> Verifier espace disque si le nombre de vet est important)
 
-        - le critère COD_OBJ correspond soit un version d'étape si le critère COD_TYP_OBJ est égale à VET , soit un code composante si le critère COD_TYP_OBJ est égale à CMP
+   		- le critère COD_OBJ correspond soit un version d'étape si le critère COD_TYP_OBJ est égale à VET , soit un code composante si le critère COD_TYP_OBJ est égale à CMP
 
-        - le critère COD_VRS_OBJ correspond soit un code version d'étape si le critère COD_TYP_OBJ est égale à VET 
+       		- le critère COD_VRS_OBJ correspond soit un code version d'étape si le critère COD_TYP_OBJ est égale à VET 
 
-        - le critère TEM_DELETE (soit Y, soit N) pour interchanger le mode suppression (N) et le mode insertion (Y) 
+       		- le critère TEM_DELETE (soit Y, soit N) pour interchanger le mode suppression (N) et le mode insertion (Y) 
 	   pour passage (script play_rdd_vac.sh) ou pour génération (script create_sql_pivot.sh)
 
-    	-  le critère COD_ETB: code établissement
+    		 -  le critère COD_ETB: code établissement
 	
-	-  le critère PREFIXON (soit Y, soit N) si utilisation d'un prefixe pour les VET et les VDI
+		 -  le critère PREFIXON (soit Y, soit N) si utilisation d'un prefixe pour les VET et les VDI
 	
-	-  le critère PREFIX_VET correspond au préfixe de la VET si utilisation d'un prefixe pour les VET et les VDI
-		-> Prefixage automatique avec "-"
+		 -  le critère PREFIX_VET correspond au préfixe de la VET si utilisation d'un prefixe pour les VET et les VDI
+			-> Prefixage automatique avec "-"
 
-	-  le critère PREFIX_VDI correspond au préfixe de la VDI si utilisation d'un prefixe pour les VET et les VDI
-		-> Prefixage automatique avec "-"
+		 -  le critère PREFIX_VDI correspond au préfixe de la VDI si utilisation d'un prefixe pour les VET et les VDI
+			-> Prefixage automatique avec "-"
 
   2. Lancer le script rdd_vac pour générer les vacs.
 
