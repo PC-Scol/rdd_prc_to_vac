@@ -33,7 +33,7 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 
         - le critère COD_ANU correspond à l'année universitaire que vous voulez reprendre
  
-        - le critère COD_TYP_OBJ correspond aux types de détéction que vous voulez faires
+        - le critère COD_TYP_OBJ correspond aux types de détéction que vous voulez faire
  
             4 types de detections sont disponibles :
  
