@@ -90,7 +90,8 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 	
 	5. Lancer le script généré pour les CHC et les COC dans la base pivot dans le dossier fichier_sortie_sql
  
-	6. Vérifier la présence des VACS pour module CHC pour l'ensemble des étudiants dans la base pivot (dans la tableapprenant_chc).
+	6. Vérifier la présence des VACS pour module CHC pour l'ensemble des étudiants dans la base pivot (dans la table apprenant_chc).
+ 	   1 -> passer script script_suppression_chc_superflus pour supprimer les éléments fils sous une EVAL
 
 	7. Passer les audits des modules CHC et COC
 
