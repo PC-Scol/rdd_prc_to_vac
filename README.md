@@ -33,7 +33,7 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 
         - le critère COD_ANU correspond à l'année universitaire que vous voulez reprendre
  
-        - le critère COD_TYP_OBJ correspond aux types de détéction que vous voulez faires
+        - le critère COD_TYP_OBJ correspond aux types de détéction que vous voulez faire
  
             4 types de detections sont disponibles :
  
@@ -47,22 +47,22 @@ Dans un premier temps, le programme génère six fichiers en sortie:
                 - LISTES_VET : pour toutes les versions d'étapes presente dans votre fichier FIC_NAME_FILTRE ( à ajouter dans rdd_vac.ini) 
                 (CONSEIL : -> Verifier espace disque si le nombre de vet est important)
 
-        - le critère COD_OBJ correspond soit un version d'étape si le critère COD_TYP_OBJ est égale à VET , soit un code composante si le critère COD_TYP_OBJ est égale à CMP
+   		- le critère COD_OBJ correspond soit un version d'étape si le critère COD_TYP_OBJ est égale à VET , soit un code composante si le critère COD_TYP_OBJ est égale à CMP
 
-        - le critère COD_VRS_OBJ correspond soit un code version d'étape si le critère COD_TYP_OBJ est égale à VET 
+       		- le critère COD_VRS_OBJ correspond soit un code version d'étape si le critère COD_TYP_OBJ est égale à VET 
 
-        - le critère TEM_DELETE (soit Y, soit N) pour interchanger le mode suppression (N) et le mode insertion (Y) 
+       		- le critère TEM_DELETE (soit Y, soit N) pour interchanger le mode suppression (N) et le mode insertion (Y) 
 	   pour passage (script play_rdd_vac.sh) ou pour génération (script create_sql_pivot.sh)
 
-    	-  le critère COD_ETB: code établissement
+    		 -  le critère COD_ETB: code établissement
 	
-	-  le critère PREFIXON (soit Y, soit N) si utilisation d'un prefixe pour les VET et les VDI
+		 -  le critère PREFIXON (soit Y, soit N) si utilisation d'un prefixe pour les VET et les VDI
 	
-	-  le critère PREFIX_VET correspond au préfixe de la VET si utilisation d'un prefixe pour les VET et les VDI
-		-> Prefixage automatique avec "-"
+		 -  le critère PREFIX_VET correspond au préfixe de la VET si utilisation d'un prefixe pour les VET et les VDI
+			-> Prefixage automatique avec "-"
 
-	-  le critère PREFIX_VDI correspond au préfixe de la VDI si utilisation d'un prefixe pour les VET et les VDI
-		-> Prefixage automatique avec "-"
+		 -  le critère PREFIX_VDI correspond au préfixe de la VDI si utilisation d'un prefixe pour les VET et les VDI
+			-> Prefixage automatique avec "-"
 
   2. Lancer le script rdd_vac pour générer les vacs.
 
@@ -90,17 +90,19 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 	
 	5. Lancer le script généré pour les CHC et les COC dans la base pivot dans le dossier fichier_sortie_sql
  
-	6. Vérifier la présence des VACS pour module CHC pour l'ensemble des étudiants dans la base pivot (dans la tableapprenant_chc).
+	6. Vérifier la présence des VACS pour module CHC pour l'ensemble des étudiants dans la base pivot (dans la table apprenant_chc).
+ 
+ 	7. Passer script script_suppression_chc_superflus;sql pour supprimer les éléments fils sous une EVAL
+  
+	8. Passer les audits des modules CHC et COC
 
-	7. Passer les audits des modules CHC et COC
+	9. Faire une injection normale des CHC
 
-	8. Faire une injection normale des CHC
-
-	9 Passer script script_coc_mcc.sql pour eviter probleme conteneur COC et probleme calcul des MCC
+	10. Passer script script_coc_mcc.sql pour eviter probleme conteneur COC et probleme calcul des MCC
 			
-    	10 Faire le calcul des MCC et les injecter
+    	11.Faire le calcul des MCC et les injecter
 
-	11 Faire une injection normale des COC
+	12;Faire une injection normale des COC
 	   
 	
 Si vous voulez supprimer les VACS 
