@@ -112,3 +112,5 @@ Si vous voulez supprimer les VACS
     - Lancer le script généré dans la base pivot
 
 
+Bonus : Projet de récupération des LCC pour les PRC 
+	-> Lancer create_lcc.sh puis, importer .csv généré sur Liens de correspondance pour calcul dans le module CHC
