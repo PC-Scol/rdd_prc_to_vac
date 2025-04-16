@@ -29,7 +29,7 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 
 
 ## Utilisation
-1. le programme fonctionnent en utilisant plusieurs critères placés dans le fichier .ini  (ces données sont à remplir obligatoirement) :
+1. le programme fonctionne en utilisant plusieurs critères placés dans le fichier .ini  (ces données sont à remplir obligatoirement) :
 
         - le critère COD_ANU correspond à l'année universitaire que vous voulez reprendre
  
@@ -112,3 +112,5 @@ Si vous voulez supprimer les VACS
     - Lancer le script généré dans la base pivot
 
 
+Bonus : Projet de récupération des LCC pour les PRC 
+	-> Lancer create_lcc.sh puis, importer .csv généré sur Liens de correspondance pour calcul dans le module CHC
