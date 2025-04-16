@@ -46,7 +46,7 @@ confirm_menu()
 # -----------------------------------------
 echo "-------------------------------------------------"
 echo "Recapitulatif :"	
-echo "    >>>     Code Année universitaire : ${COD_ANU}"		        			
+echo "    >>>     Code Annï¿½e universitaire : ${COD_ANU}"		        			
 echo "    >>>     Type Detection : ${COD_TYP_DETECT}"		    
 echo "    >>>     Code Objet : ${COD_OBJ}"
 echo "    >>>     Code Version Objet : ${COD_VRS_OBJ}"
@@ -81,7 +81,7 @@ DIR_FIC_ARCH=`printenv | grep ^PWD= | cut -d\= -f2`
     # dossier archive
 DIR_FIC_SORTIE=${DIR_FIC_ARCH}/fichier_sortie_sql
 
-     #FICHIER INI (chemin à ajouter)
+     #FICHIER INI (chemin ï¿½ ajouter)
 FIC_INI=${DIR_FIC_ARCH}/${NOM_BASE}.ini
 
 echo "-------------------------------------------------"
@@ -124,9 +124,9 @@ DIR_FIC_TMP=`grep "^DIR_FIC_ARCH" $FIC_INI | cut -d\: -f2`tmp
 COD_ANU=`grep "^COD_ANU" $FIC_INI | cut -d\: -f2`
     # Code type de detection (CMP, VET, ou l'ensemble des VETS 'VETALL')
 COD_TYP_DETECT=`grep "^COD_TYP_OBJ" $FIC_INI | cut -d\: -f2`
-    # Code element pédagogique
+    # Code element pï¿½dagogique
 COD_OBJ=`grep "^COD_OBJ" $FIC_INI | cut -d\: -f2`
-    # Code version element pédagogique
+    # Code version element pï¿½dagogique
 COD_VRS_OBJ=`grep "^COD_VRS_OBJ" $FIC_INI | cut -d\: -f2`
 
     # repertoires de depot et d'archive
@@ -141,7 +141,7 @@ PDB=`printenv | grep ^TWO_TASK= | cut -d\= -f2`
 confirm_menu
 
 
-#  Vérification existance du dossier log
+#  Vï¿½rification existance du dossier log
 if  [[ -z ${LOGIN_APOGEE} ]]
 then
   echo " Login non existant"
@@ -198,7 +198,7 @@ echo "  >>>   Fichier LOG SQL cree  -> ${FIC_SQL_LOG}"
 echo "  >>>   Fichier LOG cree  -> ${FIC_LOG}"
 
 
-    #  création du repertoire d'archive des vets
+    #  crï¿½ation du repertoire d'archive des vets
 if  ! test -d ${DIR_FIC_IN}
 then
   echo "  >>>   Creation du repertoire ${DIR_FIC_IN}"
@@ -207,7 +207,7 @@ then
 fi
 
 
-    #  création du repertoire d'archive des vets en sortie
+    #  crï¿½ation du repertoire d'archive des vets en sortie
 if  ! test -d ${DIR_FIC_SORTIE_IN}
 then
   echo "  >>>   Creation du repertoire ${DIR_FIC_SORTIE_IN}"
@@ -216,7 +216,7 @@ then
 fi
 
 
-    #  création du repertoire de sortie
+    #  crï¿½ation du repertoire de sortie
 if  ! test -d ${DIR_FIC_SORTIE}
 then
   echo "  >>>   Creation du repertoire ${DIR_FIC_SORTIE}"
@@ -225,7 +225,7 @@ then
 fi
 
 
-  # création du repertoire de depot des vet si type detection = LISTES_VET
+  # crï¿½ation du repertoire de depot des vet si type detection = LISTES_VET
 if  ! test -d ${DIR_FIC_VET_IN} && test ${COD_TYP_DETECT} = 'LISTES_VET'
 then
   echo "  >>>   ${DIR_FIC_VET_IN} inexistant"
@@ -237,7 +237,7 @@ then
 fi
 
 
-    # création du repertoire de tmp
+    # crï¿½ation du repertoire de tmp
 if  ! test -d ${DIR_FIC_TMP}
 then
   echo "  >>>   ${DIR_FIC_TMP} inexistant"
@@ -338,8 +338,8 @@ done
   echo "  >>>   Fin du test des codes formations "
   sleep 1
 
-  echo -e "  >>>   Debut du traitement de la génération des etapes pour LISTES_VET ">> $FIC_LOG
-  echo -e "  >>>   Debut du traitement de la génération des etapes pour LISTES_VET  "
+  echo -e "  >>>   Debut du traitement de la gï¿½nï¿½ration des etapes pour LISTES_VET ">> $FIC_LOG
+  echo -e "  >>>   Debut du traitement de la gï¿½nï¿½ration des etapes pour LISTES_VET  "
   sleep 1
 
 
@@ -355,8 +355,8 @@ do
   echo ${line} >> ${DIR_FIC_TMP}/${FIC_NAME_TMP}
 
 done
-  echo -e "  >>>   Fin du traitement de la génération des etapes pour LISTES_VET ">> $FIC_LOG
-  echo "  >>>   Fin du traitement de la génération des etapes pour LISTES_VET  "
+  echo -e "  >>>   Fin du traitement de la gï¿½nï¿½ration des etapes pour LISTES_VET ">> $FIC_LOG
+  echo "  >>>   Fin du traitement de la gï¿½nï¿½ration des etapes pour LISTES_VET  "
   sleep 1
 done
 
@@ -371,8 +371,8 @@ fi
 if test ${COD_TYP_DETECT} = 'CMP' || test ${COD_TYP_DETECT} = 'VETALL' || test ${COD_TYP_DETECT} = 'VET'
 then
 
-echo -e "  >>>   Debut du traitement de la génération des etapes pour cmp ou vetall ou vet ">> $FIC_LOG
-echo "  >>>   Debut du traitement de la génération des etapes pour cmp ou vetall ou vet "
+echo -e "  >>>   Debut du traitement de la gï¿½nï¿½ration des etapes pour cmp ou vetall ou vet ">> $FIC_LOG
+echo "  >>>   Debut du traitement de la gï¿½nï¿½ration des etapes pour cmp ou vetall ou vet "
 sleep 1
 
 $ORACLE_HOME/bin/sqlplus -s <<FIN_SQL 
@@ -500,8 +500,8 @@ SPOOL OFF
 EXIT
 FIN_SQL
 
-echo -e "  >>>   Fin du traitement de la génération des etapes pour cmp et vetall ">> $FIC_LOG
-echo "  >>>   Fin du traitement de la génération des etapes pour cmp et vetall "
+echo -e "  >>>   Fin du traitement de la gï¿½nï¿½ration des etapes pour cmp et vetall ">> $FIC_LOG
+echo "  >>>   Fin du traitement de la gï¿½nï¿½ration des etapes pour cmp et vetall "
 
 fi
 
@@ -517,7 +517,7 @@ COUNT_VET=`wc -l < ${DIR_FIC_TMP}/${FIC_NAME_TMP}`
 if [ $COUNT_VET -ne 0 ]
 then
 	
-	echo "  >>>   Présence de VET dans le fichier"
+	echo "  >>>   Prï¿½sence de VET dans le fichier"
 
 else
 	echo "  >>>   Pas de VET dans le fichier"
@@ -547,9 +547,9 @@ echo  "  >>>     Traitement pour la VET :  ${COD_OBJ_FIC} ${COD_VRS_OBJ} "
 # ETAPE 3 1  : generation des vacs apogees
 # --------------------------------------------
 
-echo -e "  >>>   Debut du traitement de la génération des cles vac " >> $FIC_LOG
+echo -e "  >>>   Debut du traitement de la gï¿½nï¿½ration des cles vac " >> $FIC_LOG
 
-# recherche des resultats et des prc pour chaque VET pour chaque etudiant inscrit sur cette année (iae en cours)
+# recherche des resultats et des prc pour chaque VET pour chaque etudiant inscrit sur cette annï¿½e (iae en cours)
 $ORACLE_HOME/bin/sqlplus -s <<FIN_SQL 
 ${STR_CONX}
 SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT} append
@@ -606,12 +606,13 @@ DECLARE
 				 elp.cod_nel,
 				 ice.cod_lcc_ice ;	
 						
-   CURSOR note_cur(cod_elp_in IN varchar2,cod_ind_in IN varchar2)
+   CURSOR note_cur(cod_elp_in IN varchar2,cod_ind_in IN varchar2, cod_anu_in in varchar2)
 	IS
 	SELECT DISTINCT  nvl(to_char(max(not_elp)),'NULL') note, nvl(to_char(max(bar_not_elp)), 'NULL') bareme
 	FROM resultat_elp
 	WHERE cod_elp = cod_elp_in 
 	  AND cod_ind =  cod_ind_in
+	  and cod_anu = cod_anu_in
 	 AND not_elp IS NOT NULL AND bar_not_elp IS NOT null AND cod_adm = 1;
 
    BEGIN
@@ -640,7 +641,7 @@ DECLARE
 	    				IF count_ide = 0
 	    				then		 
 				 	 		
-	 				   FOR note_rec IN note_cur(recherche_prc_rec.cod_elp,recherche_prc_rec.cod_ind)
+	 				   FOR note_rec IN note_cur(recherche_prc_rec.cod_elp,recherche_prc_rec.cod_ind, cod_anu_in)
 	 				   LOOP
 						
 		 				 linebuffer := ''||REPLACE(cod_anu_in,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_ind,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_etp,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_vrs_vet,'NULL',NULL)||';'||REPLACE(recherche_prc_rec.cod_elp,'','NULL')||';SYSDATE;'||REPLACE(cod_cip_vet,'','NULL')||';' ||note_rec.note|| ';' ||note_rec.bareme ||';NULL;NULL;NULL;NULL;NULL;';
@@ -664,7 +665,7 @@ SPOOL OFF
 EXIT
 FIN_SQL
 
-echo -e "  >>>   Fin du traitement de la génération des cles vac" >> $FIC_LOG
+echo -e "  >>>   Fin du traitement de la gï¿½nï¿½ration des cles vac" >> $FIC_LOG
 
 
  >> $FIC_LOG
