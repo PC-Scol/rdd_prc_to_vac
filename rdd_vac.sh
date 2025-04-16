@@ -636,7 +636,7 @@ DECLARE
 					select count(*)
 	     				into count_ide
 	     				from ind_dispense_elp
-	    				where cod_ind =  recherche_prc_rec.cod_ind  and cod_elp =  recherche_prc_rec.cod_elp ;
+	    				where cod_ind =  recherche_prc_rec.cod_ind  and cod_elp =  recherche_prc_rec.cod_elp and cod_anu_in = cod_anu_in;
 
 	    				IF count_ide = 0
 	    				then		 
