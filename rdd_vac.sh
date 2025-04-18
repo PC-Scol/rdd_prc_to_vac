@@ -396,12 +396,12 @@ VARIABLE ret_code NUMBER
 BEGIN
 
 DECLARE
-	linebuffer varchar2(20000) := '';
-	cod_anu_in varchar2(200) := '${COD_ANU}';
-	cod_cmp_in varchar2(200) := '${COD_OBJ}';
+	linebuffer varchar2(100) := '';
+	cod_anu_in varchar2(10) := '${COD_ANU}';
+	cod_cmp_in varchar2(10) := '${COD_OBJ}';
 	type_recherche varchar2(200) := '${COD_TYP_DETECT}';
-	cod_etp_in  varchar2(200) := '${COD_OBJ}';
-	cod_vrs_vet_in  varchar2(200) := '${COD_VRS_OBJ}';
+	cod_etp_in  varchar2(10) := '${COD_OBJ}';
+	cod_vrs_vet_in  varchar2(10) := '${COD_VRS_OBJ}';
 
 	-- curseur de recherche de VET et VDI par CMP
 	cursor main_by_cmp_cur(cod_cmp_in varchar2, cod_anu_in IN varchar2)
@@ -525,7 +525,7 @@ COUNT_VET=`wc -l < ${DIR_FIC_TMP}/${FIC_NAME_TMP}`
 if [ $COUNT_VET -ne 0 ]
 then
 	
-	echo "  >>>   Pr sence de VET dans le fichier"
+	echo "  >>>   Presence de VET dans le fichier"
 
 else
 	echo "  >>>   Pas de VET dans le fichier"
@@ -575,15 +575,15 @@ BEGIN
 
 DECLARE
 	--initialisation des variables
-	cod_dip_in varchar2(2000) := '${COD_DIP}';
-	cod_vrs_vdi_in varchar2(2000) := '${COD_VRS_VDI}';
+	cod_dip_in varchar2(10) := '${COD_DIP}';
+	cod_vrs_vdi_in varchar2(10) := '${COD_VRS_VDI}';
 
-	cod_etp_in varchar2(2000) := '${COD_ETP}';
-	cod_vrs_vet_in varchar2(2000) := '${COD_VRS_ETP}';
-	cod_anu_in varchar2(2000) :='${COD_ANU}';
+	cod_etp_in varchar2(10) := '${COD_ETP}';
+	cod_vrs_vet_in varchar2(10) := '${COD_VRS_ETP}';
+	cod_anu_in varchar2(10) :='${COD_ANU}';
 	
-	cod_cip_vet varchar2(2000) := '';
-	linebuffer varchar2(20000) := '';
+	cod_cip_vet varchar2(10) := '';
+	linebuffer varchar2(80) := '';
 	count_ide number(8,0) := 0;
 	
 	-- recuperation des prc
@@ -633,13 +633,19 @@ DECLARE
 	 AND not_elp IS NOT NULL AND bar_not_elp IS NOT null AND cod_adm = 1;
 
    BEGIN
-	
-	-- recherche du cip de la vet
-	SELECT DISTINCT FIRST_VALUE(cod_cip) OVER (ORDER BY COD_ETP) cod_cip
-	INTO cod_cip_vet
-	FROM vet_cip
-	WHERE cod_etp = cod_etp_in
-	  AND cod_vrs_vet = cod_vrs_vet_in;
+	BEGIN
+		-- recherche du cip de la vet
+		SELECT DISTINCT FIRST_VALUE(cod_cip) OVER (ORDER BY cod_cip asc) cod_cip
+		INTO cod_cip_vet
+		FROM vet_cip
+		WHERE cod_etp = cod_etp_in
+	  	AND cod_vrs_vet = cod_vrs_vet_in;
+	EXCEPTION
+		WHEN OTHERS
+			THEN
+		 	dbms_output.put_line(SQLERRM);
+
+	END;
 	
 	-- RECHERCHE PAR PRC
 	FOR recherche_prc_rec IN recherche_prc_cur(cod_dip_in, cod_vrs_vdi_in, cod_etp_in,cod_vrs_vet_in,cod_anu_in)
@@ -661,7 +667,7 @@ DECLARE
 	 				   FOR note_rec IN note_cur(recherche_prc_rec.cod_elp,recherche_prc_rec.cod_ind, cod_anu_in)
 	 				   LOOP
 						
-		 				 linebuffer := ''||REPLACE(cod_anu_in,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_ind,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_etp,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_vrs_vet,'NULL',NULL)||';'||REPLACE(recherche_prc_rec.cod_elp,'','NULL')||';SYSDATE;'||REPLACE(cod_cip_vet,'','NULL')||';' ||note_rec.note|| ';' ||note_rec.bareme ||';NULL;NULL;NULL;NULL;NULL;';
+		 				 linebuffer := ''||REPLACE(cod_anu_in,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_ind,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_etp,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_vrs_vet,'NULL',NULL)||';'||REPLACE(recherche_prc_rec.cod_elp,'','NULL')||';SYSDATE;'||REPLACE(cod_cip_vet,'','NULL')||';' ||note_rec.note|| ';' ||note_rec.bareme ||'';
 						 dbms_output.put_line(linebuffer);	
 					   END LOOP;
 	 				   

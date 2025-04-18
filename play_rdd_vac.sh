@@ -47,10 +47,11 @@ echo "-------------------------------------------------"
 echo "Recapitulatif :"
 echo "  >>>   Code Année universitaire : ${COD_ANU} "	
 echo "  >>>   Fichier choisi : ${fic_insert##*/}"	        	    
-echo "  >>>   PDB : $PDB	"
+
 echo "  >>>   Identifiant base de donnee : ${LOGIN_APOGEE} "	 
 echo "  >>>   Mot de passe base de donnee : ${MDP_APOGEE} "	
-
+echo "  >>>   PDB : $PDB	"
+echo "  >>>   TWO_TASK : ${TWO_TASK}"	   
 
 if [ "$TEM_DELETE" = "Y" ];
 then
@@ -287,11 +288,11 @@ BEGIN
 		NOT_VAA number(8,3) := NULL;
 		BAR_NOT_VAA number(5,0) := NULL;
 		COD_DEP_PAY_VAC varchar2(3) := NULL;
-		COD_TYP_DEP_PAY_VAC varchar2(20000) := NULL;
-		COD_ETB varchar2(20000) := NULL;
-		COD_PRG varchar2(20000) := NULL;
-		TEM_SNS_PRG varchar2(20000) := NULL;
-		LINEBUFFER varchar2(20000) := '';
+		COD_TYP_DEP_PAY_VAC varchar2(4) := NULL;
+		COD_ETB varchar2(7) := NULL;
+		COD_PRG varchar2(10) := NULL;
+		TEM_SNS_PRG varchar2(10) := NULL;
+		LINEBUFFER varchar2(100) := '';
 	BEGIN
 		IF '${NOT_VAA}' <> 'NULL' THEN
 			NOT_VAA :='${NOT_VAA}';
@@ -368,10 +369,10 @@ BEGIN
 	DECLARE 
 	 	ANNEE varchar2(4) := '${ANNEE}';
 		COD_IND number(8,0) := '${COD_IND}';		
-		COD_ETP varchar2(6) := '${COD_ETP}';
+		COD_ETP varchar2(7) := '${COD_ETP}';
 		COD_VRS_VET number(3,0) := '${COD_VRS_VET}';
-		COD_ELP varchar2(20000) := '${COD_ELP}';		
-		LINEBUFFER varchar2(20000) := '';
+		COD_ELP varchar2(10) := '${COD_ELP}';		
+		LINEBUFFER varchar2(100) := '';
 	BEGIN
 		
 					
