@@ -384,24 +384,40 @@ echo -e "  >>>   Debut du traitement de la generation des etapes pour cmp ou vet
 echo "  >>>   Debut du traitement de la generation des etapes pour cmp ou vetall ou vet "
 sleep 1
 
+if test ${COD_TYP_DETECT} = 'CMP' || test ${COD_TYP_DETECT} = 'VETALL' || test ${COD_TYP_DETECT} = 'VET'
+then
+
+echo -e "  >>>   Debut du traitement de la g�n�ration des etapes pour cmp ou vetall ou vet ">> $FIC_LOG
+echo "  >>>   Debut du traitement de la g�n�ration des etapes pour cmp ou vetall ou vet "
+sleep 1
+
 sqlplus -s <<FIN_SQL 
 ${STR_CONX}
 SPOOL ${DIR_FIC_TMP}/${FIC_NAME_TMP}
 set serveroutput on
 SET HEADING OFF
 SET FEEDBACK OFF
-set linesize 20000 
+-- linesize :
+--    + cod_dip		7
+--    + cod_vrs_vdi	3
+--    + cod_etp		6
+--    + cod_vrs_vet	3
+--	  + "-"			2
+--	  + ">"			1
+--	  ===============
+--					22 caractères => 25 par sécurité
+set linesize 25
 set pagesize 1
 VARIABLE ret_code NUMBER
 BEGIN
 
 DECLARE
-	linebuffer varchar2(100) := '';
-	cod_anu_in varchar2(10) := '${COD_ANU}';
-	cod_cmp_in varchar2(10) := '${COD_OBJ}';
-	type_recherche varchar2(200) := '${COD_TYP_DETECT}';
-	cod_etp_in  varchar2(10) := '${COD_OBJ}';
-	cod_vrs_vet_in  varchar2(10) := '${COD_VRS_OBJ}';
+	linebuffer		varchar2(25) := '';
+	type_recherche	varchar2(200) := '${COD_TYP_DETECT}';
+	cod_cmp_in		varchar2(6) := '${COD_OBJ}';
+	cod_anu_in		INS_ADM_ANU.COD_ANU%TYPE := '${COD_ANU}';
+	cod_etp_in		ETAPE.COD_ETP%TYPE := '${COD_OBJ}';
+	cod_vrs_vet_in	VERSION_ETAPE.COD_VRS_VET%TYPE := '${COD_VRS_OBJ}';
 
 	-- curseur de recherche de VET et VDI par CMP
 	cursor main_by_cmp_cur(cod_cmp_in varchar2, cod_anu_in IN varchar2)
@@ -424,7 +440,8 @@ DECLARE
       		 vrl.cod_vrs_vet,
       		 vde.cod_dip,
       		 vde.cod_vrs_vdi,
-      		 vet.cod_cmp;
+      		 vet.cod_cmp,
+      		 vrl.cod_lse;
 
       -- curseur de recherche de VET et VDI par annee (toutes les vets)
       cursor main_by_vet_cur(cod_anu_in in varchar2)
@@ -475,7 +492,7 @@ DECLARE
 	then
 		for main_by_cmp_rec in  main_by_cmp_cur(cod_cmp_in, cod_anu_in)
 		loop
-		  linebuffer := main_by_cmp_rec.cod_dip || '-' || main_by_cmp_rec.cod_vrs_vdi ||'>' ||main_by_cmp_rec.cod_etp ||'-' ||  main_by_cmp_rec.cod_vrs_vet ||chr(10);
+		  linebuffer := main_by_cmp_rec.cod_dip || '-' || main_by_cmp_rec.cod_vrs_vdi ||'>' ||main_by_cmp_rec.cod_etp ||'-' ||  main_by_cmp_rec.cod_vrs_vet ;
 		  dbms_output.put_line(linebuffer);
 
 		end loop;
@@ -484,7 +501,7 @@ DECLARE
 	then
 	    for main_by_vet_rec in main_by_vet_cur(cod_anu_in)
 	    loop
-		 linebuffer := main_by_vet_rec.cod_dip || '-' ||main_by_vet_rec.cod_vrs_vdi ||'>' ||   main_by_vet_rec.cod_etp ||'-' || main_by_vet_rec.cod_vrs_vet||chr(10);
+		 linebuffer := main_by_vet_rec.cod_dip || '-' ||main_by_vet_rec.cod_vrs_vdi ||'>' ||   main_by_vet_rec.cod_etp ||'-' || main_by_vet_rec.cod_vrs_vet;
 		 dbms_output.put_line(linebuffer);
 
 	    end loop;
@@ -493,9 +510,9 @@ DECLARE
 	then
 	    for main_vet_in_rec in main_vet_in_cur(cod_etp_in,cod_vrs_vet_in,cod_anu_in)
 	    loop
-		 linebuffer := linebuffer || main_vet_in_rec.cod_dip || '-' ||main_vet_in_rec.cod_vrs_vdi ||'>' ||  main_vet_in_rec.cod_etp ||'-' || main_vet_in_rec.cod_vrs_vet||chr(10);
+		 linebuffer := main_vet_in_rec.cod_dip || '-' ||main_vet_in_rec.cod_vrs_vdi ||'>' ||  main_vet_in_rec.cod_etp ||'-' || main_vet_in_rec.cod_vrs_vet;
+	     dbms_output.put_line(linebuffer);
 	    end loop;
-	    dbms_output.put_line(linebuffer);
 	end if;
 
 
@@ -507,6 +524,7 @@ PRINT
 SPOOL OFF
 EXIT
 FIN_SQL
+
 
 echo -e "  >>>   Fin du traitement de la generation des etapes pour cmp et vetall ">> $FIC_LOG
 echo "  >>>   Fin du traitement de la generation des etapes pour cmp et vetall "
