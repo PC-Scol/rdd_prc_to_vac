@@ -392,7 +392,7 @@ echo -e "  >>>   Debut du traitement de la génération des etapes pour cmp ou vet
 echo "  >>>   Debut du traitement de la génération des etapes pour cmp ou vetall ou vet "
 sleep 1
 
-$ORACLE_HOME/bin/sqlplus -s <<FIN_SQL 
+sqlplus -s <<FIN_SQL 
 ${STR_CONX}
 SPOOL ${DIR_FIC_TMP}/${FIC_NAME_TMP}
 set serveroutput on

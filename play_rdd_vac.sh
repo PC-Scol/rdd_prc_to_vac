@@ -266,7 +266,7 @@ BAR_NOT_VAA="$(cut -d';'  -f9 <<< ${sql_condition_string})"
 
 
 #Suppression des VACS dans Apogee
-$ORACLE_HOME/bin/sqlplus -s <<FIN_SQL 
+sqlplus -s <<FIN_SQL 
 ${STR_CONX}
 SPOOL ${FIC_LOG} append
 set serveroutput on
@@ -355,7 +355,7 @@ COD_ELP="$(cut -d';'  -f5 <<< ${sql_condition_string})"
 
 
 #Suppression des VACS dans Apogee
-$ORACLE_HOME/bin/sqlplus -s <<FIN_SQL 
+sqlplus -s <<FIN_SQL 
 ${STR_CONX}
 SPOOL ${FIC_LOG} append
 set serveroutput on

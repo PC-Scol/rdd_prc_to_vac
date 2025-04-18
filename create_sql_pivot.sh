@@ -291,7 +291,7 @@ NOT_VAA="$(cut -d';'  -f8 <<< ${sql_condition_string})"
 BAR_NOT_VAA="$(cut -d';'  -f9 <<< ${sql_condition_string})"
 
 
-$ORACLE_HOME/bin/sqlplus -s <<FIN_SQL 
+sqlplus -s <<FIN_SQL 
 ${STR_CONX}
 SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC} append
 set serveroutput on
@@ -521,7 +521,7 @@ echo "  >>>  Genération de la VAC pour module COC d'insertion  pour le pivot :$
 echo "  >>>>   Genération de la VAC module COC d'insertion pour le pivot  " >> $FIC_LOG
 
 
-$ORACLE_HOME/bin/sqlplus -s <<FIN_SQL 
+sqlplus -s <<FIN_SQL 
 ${STR_CONX}
 SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC} append
 set serveroutput on

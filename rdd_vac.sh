@@ -46,14 +46,15 @@ confirm_menu()
 # -----------------------------------------
 echo "-------------------------------------------------"
 echo "Recapitulatif :"	
-echo "    >>>     Code Ann�e universitaire : ${COD_ANU}"		        			
+echo "    >>>     Code Annee universitaire : ${COD_ANU}"		        			
 echo "    >>>     Type Detection : ${COD_TYP_DETECT}"		    
 echo "    >>>     Code Objet : ${COD_OBJ}"
 echo "    >>>     Code Version Objet : ${COD_VRS_OBJ}"
 echo "    >>>     Dossier racine : ${DIR_FIC_ARCH}"
 echo "    >>>     Identifiant base de donnee : ${LOGIN_APOGEE}"	 
 echo "    >>>     Mot de passe base de donnee : ${MDP_APOGEE}"	  
-echo "    >>>     PDB : $PDB"	        
+echo "    >>>     PDB : ${PDB}"
+echo "    >>>     TWO_TASK : ${TWO_TASK}"	        
 echo "-------------------------------------------------"
 # -----------------------------------------
 # Confirmation
@@ -81,7 +82,7 @@ DIR_FIC_ARCH=`printenv | grep ^PWD= | cut -d\= -f2`
     # dossier archive
 DIR_FIC_SORTIE=${DIR_FIC_ARCH}/fichier_sortie_sql
 
-     #FICHIER INI (chemin � ajouter)
+     #FICHIER INI (chemin a ajouter)
 FIC_INI=${DIR_FIC_ARCH}/${NOM_BASE}.ini
 
 echo "-------------------------------------------------"
@@ -124,9 +125,9 @@ DIR_FIC_TMP=`grep "^DIR_FIC_ARCH" $FIC_INI | cut -d\: -f2`tmp
 COD_ANU=`grep "^COD_ANU" $FIC_INI | cut -d\: -f2`
     # Code type de detection (CMP, VET, ou l'ensemble des VETS 'VETALL')
 COD_TYP_DETECT=`grep "^COD_TYP_OBJ" $FIC_INI | cut -d\: -f2`
-    # Code element p�dagogique
+    # Code element pedagogique
 COD_OBJ=`grep "^COD_OBJ" $FIC_INI | cut -d\: -f2`
-    # Code version element p�dagogique
+    # Code version element pedagogique
 COD_VRS_OBJ=`grep "^COD_VRS_OBJ" $FIC_INI | cut -d\: -f2`
 
     # repertoires de depot et d'archive
@@ -141,7 +142,7 @@ PDB=`printenv | grep ^TWO_TASK= | cut -d\= -f2`
 confirm_menu
 
 
-#  V�rification existance du dossier log
+#  Verification existance du dossier log
 if  [[ -z ${LOGIN_APOGEE} ]]
 then
   echo " Login non existant"
@@ -153,6 +154,14 @@ then
   echo "Mot de passe non existant"
   exit
 fi
+
+
+if  [[  -z ${TWO_TASK} ]] || [[  -z ${PDB} ]]
+then
+  echo "Probleme PDB ou TWO_TASK"
+  exit
+fi
+
     # generation timestamp pour les fichiers
 GEN_TIMESTAMP=$(date -I)
 
@@ -198,7 +207,7 @@ echo "  >>>   Fichier LOG SQL cree  -> ${FIC_SQL_LOG}"
 echo "  >>>   Fichier LOG cree  -> ${FIC_LOG}"
 
 
-    #  cr�ation du repertoire d'archive des vets
+    #  creation du repertoire d'archive des vets
 if  ! test -d ${DIR_FIC_IN}
 then
   echo "  >>>   Creation du repertoire ${DIR_FIC_IN}"
@@ -207,7 +216,7 @@ then
 fi
 
 
-    #  cr�ation du repertoire d'archive des vets en sortie
+    #  creation du repertoire d'archive des vets en sortie
 if  ! test -d ${DIR_FIC_SORTIE_IN}
 then
   echo "  >>>   Creation du repertoire ${DIR_FIC_SORTIE_IN}"
@@ -216,7 +225,7 @@ then
 fi
 
 
-    #  cr�ation du repertoire de sortie
+    #  creation du repertoire de sortie
 if  ! test -d ${DIR_FIC_SORTIE}
 then
   echo "  >>>   Creation du repertoire ${DIR_FIC_SORTIE}"
@@ -225,7 +234,7 @@ then
 fi
 
 
-  # cr�ation du repertoire de depot des vet si type detection = LISTES_VET
+  # creation du repertoire de depot des vet si type detection = LISTES_VET
 if  ! test -d ${DIR_FIC_VET_IN} && test ${COD_TYP_DETECT} = 'LISTES_VET'
 then
   echo "  >>>   ${DIR_FIC_VET_IN} inexistant"
@@ -237,7 +246,7 @@ then
 fi
 
 
-    # cr�ation du repertoire de tmp
+    # creation du repertoire de tmp
 if  ! test -d ${DIR_FIC_TMP}
 then
   echo "  >>>   ${DIR_FIC_TMP} inexistant"
@@ -338,8 +347,8 @@ done
   echo "  >>>   Fin du test des codes formations "
   sleep 1
 
-  echo -e "  >>>   Debut du traitement de la g�n�ration des etapes pour LISTES_VET ">> $FIC_LOG
-  echo -e "  >>>   Debut du traitement de la g�n�ration des etapes pour LISTES_VET  "
+  echo -e "  >>>   Debut du traitement de la generation des etapes pour LISTES_VET ">> $FIC_LOG
+  echo -e "  >>>   Debut du traitement de la generation des etapes pour LISTES_VET  "
   sleep 1
 
 
@@ -355,8 +364,8 @@ do
   echo ${line} >> ${DIR_FIC_TMP}/${FIC_NAME_TMP}
 
 done
-  echo -e "  >>>   Fin du traitement de la g�n�ration des etapes pour LISTES_VET ">> $FIC_LOG
-  echo "  >>>   Fin du traitement de la g�n�ration des etapes pour LISTES_VET  "
+  echo -e "  >>>   Fin du traitement de la generation des etapes pour LISTES_VET ">> $FIC_LOG
+  echo "  >>>   Fin du traitement de la generation des etapes pour LISTES_VET  "
   sleep 1
 done
 
@@ -371,11 +380,11 @@ fi
 if test ${COD_TYP_DETECT} = 'CMP' || test ${COD_TYP_DETECT} = 'VETALL' || test ${COD_TYP_DETECT} = 'VET'
 then
 
-echo -e "  >>>   Debut du traitement de la g�n�ration des etapes pour cmp ou vetall ou vet ">> $FIC_LOG
-echo "  >>>   Debut du traitement de la g�n�ration des etapes pour cmp ou vetall ou vet "
+echo -e "  >>>   Debut du traitement de la generation des etapes pour cmp ou vetall ou vet ">> $FIC_LOG
+echo "  >>>   Debut du traitement de la generation des etapes pour cmp ou vetall ou vet "
 sleep 1
 
-$ORACLE_HOME/bin/sqlplus -s <<FIN_SQL 
+sqlplus -s <<FIN_SQL 
 ${STR_CONX}
 SPOOL ${DIR_FIC_TMP}/${FIC_NAME_TMP}
 set serveroutput on
@@ -415,8 +424,7 @@ DECLARE
       		 vrl.cod_vrs_vet,
       		 vde.cod_dip,
       		 vde.cod_vrs_vdi,
-      		 vet.cod_cmp,
-      		 vrl.cod_lse;
+      		 vet.cod_cmp;
 
       -- curseur de recherche de VET et VDI par annee (toutes les vets)
       cursor main_by_vet_cur(cod_anu_in in varchar2)
@@ -500,8 +508,8 @@ SPOOL OFF
 EXIT
 FIN_SQL
 
-echo -e "  >>>   Fin du traitement de la g�n�ration des etapes pour cmp et vetall ">> $FIC_LOG
-echo "  >>>   Fin du traitement de la g�n�ration des etapes pour cmp et vetall "
+echo -e "  >>>   Fin du traitement de la generation des etapes pour cmp et vetall ">> $FIC_LOG
+echo "  >>>   Fin du traitement de la generation des etapes pour cmp et vetall "
 
 fi
 
@@ -517,7 +525,7 @@ COUNT_VET=`wc -l < ${DIR_FIC_TMP}/${FIC_NAME_TMP}`
 if [ $COUNT_VET -ne 0 ]
 then
 	
-	echo "  >>>   Pr�sence de VET dans le fichier"
+	echo "  >>>   Pr sence de VET dans le fichier"
 
 else
 	echo "  >>>   Pas de VET dans le fichier"
@@ -530,14 +538,18 @@ fi
 while read ligne 
 do
 
+ligne_dip=`echo $ligne | cut -f 1 -d ">"`
+
 ligne_etp=`echo $ligne | cut -f 2 -d ">"`
 
+COD_DIP=`echo $ligne_etp | cut -f 1 -d "-"`
+COD_VRS_VDI=`echo $ligne_etp | cut -f 2 -d "-"`
 
-COD_OBJ_FIC=`echo $ligne_etp | cut -f 1 -d "-"`
-COD_VRS_OBJ=`echo $ligne_etp | cut -f 2 -d "-"`
+COD_ETP=`echo $ligne_etp | cut -f 1 -d "-"`
+COD_VRS_ETP=`echo $ligne_etp | cut -f 2 -d "-"`
 
 echo -e "  >>>   Debut du traitement pour la code formation pegase :  $ligne  ">> $FIC_LOG
-echo  "  >>>     Traitement pour la VET :  ${COD_OBJ_FIC} ${COD_VRS_OBJ} "
+echo  "  >>>     Traitement pour la VET :  ${COD_ETP} ${COD_VRS_ETP} "
 
 ## --------------------------------------------
 # ETAPE 3 : TRAITEMENT DES VALEURS
@@ -547,10 +559,10 @@ echo  "  >>>     Traitement pour la VET :  ${COD_OBJ_FIC} ${COD_VRS_OBJ} "
 # ETAPE 3 1  : generation des vacs apogees
 # --------------------------------------------
 
-echo -e "  >>>   Debut du traitement de la g�n�ration des cles vac " >> $FIC_LOG
+echo -e "  >>>   Debut du traitement de la generation des cles vac " >> $FIC_LOG
 
-# recherche des resultats et des prc pour chaque VET pour chaque etudiant inscrit sur cette ann�e (iae en cours)
-$ORACLE_HOME/bin/sqlplus -s <<FIN_SQL 
+# recherche des resultats et des prc pour chaque VET pour chaque etudiant inscrit sur cette ann e (iae en cours)
+sqlplus -s <<FIN_SQL 
 ${STR_CONX}
 SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT} append
 set serveroutput on
@@ -563,8 +575,11 @@ BEGIN
 
 DECLARE
 	--initialisation des variables
-	cod_etp_in varchar2(2000) := '${COD_OBJ_FIC}';
-	cod_vrs_vet_in varchar2(2000) := '${COD_VRS_OBJ}';
+	cod_dip_in varchar2(2000) := '${COD_DIP}';
+	cod_vrs_vdi_in varchar2(2000) := '${COD_VRS_VDI}';
+
+	cod_etp_in varchar2(2000) := '${COD_ETP}';
+	cod_vrs_vet_in varchar2(2000) := '${COD_VRS_ETP}';
 	cod_anu_in varchar2(2000) :='${COD_ANU}';
 	
 	cod_cip_vet varchar2(2000) := '';
@@ -572,7 +587,7 @@ DECLARE
 	count_ide number(8,0) := 0;
 	
 	-- recuperation des prc
-   CURSOR recherche_prc_cur (cod_etp_in IN varchar2, cod_vrs_vet_in IN varchar2,cod_anu_in IN varchar2)
+   CURSOR recherche_prc_cur (cod_dip_in in varchar2, cod_vrs_vdi_in varchar2, cod_etp_in IN varchar2, cod_vrs_vet_in IN varchar2,cod_anu_in IN varchar2)
 		IS
 		SELECT ice.cod_anu,
 				 ice.cod_etp,
@@ -593,8 +608,10 @@ DECLARE
 		AND ice.cod_elp = elp.cod_elp
 		AND vde.cod_etp = ice.cod_etp
 		AND vde.cod_vrs_vet = ice.cod_vrs_vet
+		AND vde.cod_dip = cod_dip_in
+		AND vde.cod_vrs_vdi = cod_vrs_vdi_in
 		AND ice.tem_prc_ice = 'O'		
-		AND ice.cod_anu = cod_anu_in
+		AND ice.cod_anu < cod_anu_in
 		group by ice.cod_anu,
 				 ice.cod_etp,
 				 ice.cod_vrs_vet,
@@ -612,7 +629,7 @@ DECLARE
 	FROM resultat_elp
 	WHERE cod_elp = cod_elp_in 
 	  AND cod_ind =  cod_ind_in
-	  and cod_anu = cod_anu_in
+	  and cod_anu < cod_anu_in
 	 AND not_elp IS NOT NULL AND bar_not_elp IS NOT null AND cod_adm = 1;
 
    BEGIN
@@ -625,7 +642,7 @@ DECLARE
 	  AND cod_vrs_vet = cod_vrs_vet_in;
 	
 	-- RECHERCHE PAR PRC
-	FOR recherche_prc_rec IN recherche_prc_cur(cod_etp_in,cod_vrs_vet_in,cod_anu_in)
+	FOR recherche_prc_rec IN recherche_prc_cur(cod_dip_in, cod_vrs_vdi_in, cod_etp_in,cod_vrs_vet_in,cod_anu_in)
 	LOOP
 		
 			DECLARE
@@ -636,7 +653,7 @@ DECLARE
 					select count(*)
 	     				into count_ide
 	     				from ind_dispense_elp
-	    				where cod_ind =  recherche_prc_rec.cod_ind  and cod_elp =  recherche_prc_rec.cod_elp and cod_anu_in = cod_anu_in;
+	    				where cod_ind =  recherche_prc_rec.cod_ind  and cod_elp =  recherche_prc_rec.cod_elp and cod_anu < cod_anu_in;
 
 	    				IF count_ide = 0
 	    				then		 
@@ -665,7 +682,7 @@ SPOOL OFF
 EXIT
 FIN_SQL
 
-echo -e "  >>>   Fin du traitement de la g�n�ration des cles vac" >> $FIC_LOG
+echo -e "  >>>   Fin du traitement de la generation des cles vac" >> $FIC_LOG
 
 
  >> $FIC_LOG
