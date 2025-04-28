@@ -153,6 +153,19 @@ then
   echo "Mot de passe non existant"
   exit
 fi
+
+
+if [[  -n ${PDB} ]]
+then
+  PDB=FIC_NAME_FILTRE=`grep "^PDB" $FIC_INI | cut -d\: -f2`
+  if [[  -n ${PDB} ]]
+  then
+  	echo "Probleme PDB ou TWO_TASK"
+       exit
+  fi
+fi
+
+
     # generation timestamp pour les fichiers
 GEN_TIMESTAMP=$(date -I)
 
@@ -392,7 +405,7 @@ echo -e "  >>>   Debut du traitement de la génération des etapes pour cmp ou vet
 echo "  >>>   Debut du traitement de la génération des etapes pour cmp ou vetall ou vet "
 sleep 1
 
-sqlplus -s <<FIN_SQL 
+$ORACLE_HOME/bin/sqlplus -s <<FIN_SQL 
 ${STR_CONX}
 SPOOL ${DIR_FIC_TMP}/${FIC_NAME_TMP}
 set serveroutput on

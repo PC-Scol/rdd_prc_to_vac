@@ -199,6 +199,16 @@ then
 fi
 
 
+if [[  -n ${PDB} ]]
+then
+  PDB=FIC_NAME_FILTRE=`grep "^PDB" $FIC_INI | cut -d\: -f2`
+  if [[  -n ${PDB} ]]
+  then
+  	echo "Probleme PDB ou TWO_TASK"
+       exit
+  fi
+fi
+
 
  # log du programme
 BASE_FIC_LOG=${NOM_BASE}

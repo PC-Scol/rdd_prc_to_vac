@@ -11,6 +11,14 @@ Ce programme permet de générer des validations d'acquis d'expérience pour rep
     Ces VAC permettent de garder la PRC dans une maquette applatie. 
     Elle permet de travailler sur une seule année universitaire sans perdre ces PRC qui sont presentes sur une autre année universitaire antérieur pour les diffèrents étudiants. 
 
+> [!WARNING]
+> Sqlplus doit être installé sur le poste qui utilise ce projet par le biais soit d'une installation "oracle server" soit d'une installation "oracle client" (instant-client)
+
+> [!WARNING]
+> Sqlplus doit être installé sur le poste qui utilise ce projet 
+> Il faut soit une installation "oracle server" soit une installation "oracle client" (instant-client)
+> 	- par commande : sudo apt-get install libaio1 libaio-dev
+>   - ou disponibles sur https://www.oracle.com/fr/database/technologies/instant-client/linux-x86-64-downloads.html
 ## Fichiers générés
 
 Dans un premier temps, le programme génère six fichiers en sortie:
@@ -31,21 +39,23 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 ## Utilisation
 1. le programme fonctionne en utilisant plusieurs critères placés dans le fichier .ini  (ces données sont à remplir obligatoirement) :
 
-        - le critère COD_ANU correspond à l'année universitaire que vous voulez reprendre
+        - le critère COD_ANU correspond à l'année universitaire que vous voulez reprendre (elle correspond à l'année de départ que vous voulez reprendre)
  
         - le critère COD_TYP_OBJ correspond aux types de détéction que vous voulez faire
  
             4 types de detections sont disponibles :
  
-                - VET : pour une version d'étape 
+                - VET : pour une version d'étape (code etape et code version d'etape à renseigner dans le fichier)
+				    A renseigner !!! :
+					  -> COD_OBJ : Code étape
+					  -> COD_VRS_OBJ : Code version etape
  
                 - CMP : pour toutes les versions d'étapes d'une composante (CONSEIL : -> VERIFIER ESPACE DISQUE)
  
-                - VETALL : pour toutes les versions d'étapes qui sont ouvertes lors de l'année universitaire mises en paramètre 
-                (CONSEIL : -> Verifier espace disque si le nombre de vet est important)
+                - VETALL : pour toutes les versions d'étapes qui sont ouvertes lors de l'année universitaire mises en paramètre                
 	        
-                - LISTES_VET : pour toutes les versions d'étapes presente dans votre fichier FIC_NAME_FILTRE ( à ajouter dans rdd_vac.ini) 
-                (CONSEIL : -> Verifier espace disque si le nombre de vet est important)
+                - LISTES_VET : pour toutes les versions d'étapes presentes dans votre fichier FIC_NAME_FILTRE ( à ajouter dans rdd_vac.ini) 
+                
 
    		- le critère COD_OBJ correspond soit un version d'étape si le critère COD_TYP_OBJ est égale à VET , soit un code composante si le critère COD_TYP_OBJ est égale à CMP
 
@@ -54,7 +64,7 @@ Dans un premier temps, le programme génère six fichiers en sortie:
        		- le critère TEM_DELETE (soit Y, soit N) pour interchanger le mode suppression (N) et le mode insertion (Y) 
 	   pour passage (script play_rdd_vac.sh) ou pour génération (script create_sql_pivot.sh)
 
-    		 -  le critère COD_ETB: code établissement
+    	 -  le critère COD_ETB: code établissement
 	
 		 -  le critère PREFIXON (soit Y, soit N) si utilisation d'un prefixe pour les VET et les VDI
 	
@@ -63,6 +73,9 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 
 		 -  le critère PREFIX_VDI correspond au préfixe de la VDI si utilisation d'un prefixe pour les VET et les VDI
 			-> Prefixage automatique avec "-"
+
+		 - le critère PDB correspond à la variable d'environnement
+		 	 A renseigner !!! : votre PDB n'est pas renseigner
 
   2. Lancer le script rdd_vac pour générer les vacs.
 
