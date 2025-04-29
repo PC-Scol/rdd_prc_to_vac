@@ -50,7 +50,7 @@ echo "  >>>   Fichier choisi : ${fic_insert##*/}"
 echo "  >>>   PDB : $PDB	"
 echo "  >>>   Identifiant base de donnee : ${LOGIN_APOGEE} "	 
 echo "  >>>   Mot de passe base de donnee : ${MDP_APOGEE} "	
-
+echo "  >>>   Directory Cree : ${DIRECTORY} "
 
 if [ "$TEM_DELETE" = "Y" ];
 then
@@ -146,13 +146,20 @@ LOGIN_APOGEE=$LOGIN_APOGEE_SAISI
 echo -e "Mot de passe APOGEE ?: \c"
       read MDP_APOGEE_SAISI
 
+#Modification  Directory
+
+echo -e "Mot de passe Directory ?: \c"
+      read DIRECTORY_SAISI
+
+DIRECTORY=${DIRECTORY_SAISI}
+
 MDP_APOGEE=${MDP_APOGEE_SAISI}
 
     # chaine de connexion
 STR_CONX=${LOGIN_APOGEE}/${MDP_APOGEE}
 
     # fichier de log
-DIR_FIC_LOG=`grep "^DIR_FIC_ARCH" $FIC_INI | cut -d\: -f2`logs
+DIR_FIC_LOG=${DIR_FIC_ARCH}/logs
 
 COD_ANU=`grep "^COD_ANU" $FIC_INI | cut -d\: -f2`
 
@@ -183,21 +190,38 @@ then
 fi
 
 
-if [[  -n ${PDB} ]]
+if  [[  -z ${DIRECTORY} ]]
 then
-  PDB=FIC_NAME_FILTRE=`grep "^PDB" $FIC_INI | cut -d\: -f2`
-  if [[  -n ${PDB} ]]
+  echo "Directory non existant"
+  exit
+fi
+
+
+if [[  -z ${PDB} ]]
+then
+  PDB=`grep "^PDB" $FIC_INI | cut -d\: -f2`
+  if [[  -z ${PDB} ]]
   then
   	echo "Probleme PDB ou TWO_TASK"
        exit
   fi
 fi
 
+path_directory=`sqlplus -s ${STR_CONX} <<EOF
+set pages 0
+set head off
+set feed off
+SELECT directory_path
+	  FROM dba_directories
+	 WHERE directory_name = '${DIRECTORY}';
+exit
+EOF`
+
 
  # log du programme
 BASE_FIC_LOG=${NOM_BASE}
 
-FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}.log
+FIC_LOG=${BASE_FIC_LOG}.log
     # Variables du fichier d'environnement
     # Code annee universitaire
 
@@ -239,18 +263,32 @@ number_fic=0
 if [ $number_fic -ne 0 ];
 then
   number=$(( ++number ))
-  FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}_${$number_fic}.log
+  FIC_LOG=${BASE_FIC_LOG}_${$number_fic}.log
+  FIC_ERREUR=${BASE_FIC_LOG}_erreurs_${$number_fic}.log
   echo "  >>>   Fichier avec masque ${FIC_LOG} existant"  
 
 else
-  FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}.log
+  FIC_LOG=${BASE_FIC_LOG}.log
+  FIC_ERREUR=${BASE_FIC_LOG}_erreurs.log
 fi
 
  # Appel du menu
 confirm_menu
 
 
+if test -f "${DIR_FIC_LOG}/${FIC_LOG}"; then
+    rm -f ${DIR_FIC_LOG}/${FIC_LOG}
+fi
+
+
+if test -f "${DIR_FIC_LOG}/${FIC_ERREUR}"; then
+    rm -f ${DIR_FIC_LOG}/${FIC_ERREUR}
+fi
+
+
 sleep 1
+
+echo "  >>  Debut Programme " >> ${DIR_FIC_LOG}/${FIC_LOG}
 
 if [ "$TEM_DELETE" = "N" ];
 then
@@ -260,8 +298,8 @@ for sql_condition_string in  $(cat <  ${fic_insert}); do
 
 echo "  >>>  Insertion de la VAC ${sql_condition_string}"
 
-echo "  >>>  Insertion de la VAC ${sql_condition_string}" >> $FIC_LOG
-echo "  >>>>   Insertion pour la VAC " >> $FIC_LOG
+echo "  >>>  Insertion de la VAC ${sql_condition_string}" >> ${DIR_FIC_LOG}/${FIC_LOG}
+echo "  >>>>  Insertion pour la VAC " >> ${DIR_FIC_LOG}/${FIC_LOG}
 
 #Recupération des Valeurs du fichier cle
 ANNEE="$(cut -d';' -f1 <<< ${sql_condition_string})"
@@ -276,13 +314,11 @@ BAR_NOT_VAA="$(cut -d';'  -f9 <<< ${sql_condition_string})"
 
 
 #Suppression des VACS dans Apogee
-$ORACLE_HOME/bin/sqlplus -s <<FIN_SQL 
+sqlplus -s <<FIN_SQL 
 ${STR_CONX}
-SPOOL ${FIC_LOG} append
 set serveroutput on
 SET HEADING OFF
 SET FEEDBACK OFF
-set linesize 20000 
 set pagesize 1
 VARIABLE ret_code NUMBER
 BEGIN
@@ -301,7 +337,14 @@ BEGIN
 		COD_ETB varchar2(20000) := NULL;
 		COD_PRG varchar2(20000) := NULL;
 		TEM_SNS_PRG varchar2(20000) := NULL;
-		LINEBUFFER varchar2(20000) := '';
+		LINEBUFFER varchar2(2000) := '';
+		
+		-- utl file config
+	       repertoire  varchar2(100)  := '${DIRECTORY}';
+   	       fichier  varchar2(100)     := '${FIC_ERREUR}';
+		fichier_sortie UTL_FILE.FILE_TYPE;
+
+		
 	BEGIN
 		IF '${NOT_VAA}' <> 'NULL' THEN
 			NOT_VAA :='${NOT_VAA}';
@@ -322,40 +365,39 @@ BEGIN
 	EXCEPTION
         WHEN OTHERS
 		THEN 
-		 LINEBUFFER :=  SQLERRM;
-		 dbms_output.put_line('Erreur insertion :' ||SQLERRM);
+		 LINEBUFFER := 'Erreur sur ${sql_condition_string}';
+		 LINEBUFFER := LINEBUFFER ||'-'|| SQLERRM;
+		 fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
+		 utl_file.put_line(fichier_sortie,LINEBUFFER);
+		 utl_file.fclose(fichier_sortie);
 		 ROLLBACK;
 	END;
 	
 END;
 /
-PRINT 
-SPOOL OFF
 EXIT
 FIN_SQL
 
 	
-echo "  >>>> Fin Insertion de la VAC" >> $FIC_LOG	
+echo "  >>>> Fin Insertion de la VAC" >> ${DIR_FIC_LOG}/${FIC_LOG}		
 
 done
 
 sleep 1
 
-echo -e "  >>>   Fin de l'insertion des VACS">> $FIC_LOG
+echo -e "  >>>   Fin de l'insertion des VACS" >> ${DIR_FIC_LOG}/${FIC_LOG}	
 echo -e "  >>>   Fin de l'insertion des VACS"
 fi
 
-if [ "$TEM_DELETE" = "Y" ];
-then
+if [ "$TEM_DELETE" = "Y" ];then
 
 # parcours du fichier
 for sql_condition_string in  $(cat <  ${fic_insert}); do 
 
 echo "  >>>  Suppression de la VAC ${sql_condition_string}"
 
-echo "  >>>  Suppression de la VAC ${sql_condition_string}" >> $FIC_LOG
-echo "  >>>>   Suppression de la VAC " >> $FIC_LOG
-
+echo "  >>>  Suppression de la VAC ${sql_condition_string}" >> ${DIR_FIC_LOG}/${FIC_LOG}	
+echo "  >>>>   Suppression de la VAC " >> ${DIR_FIC_LOG}/${FIC_LOG}
 ANNEE="$(cut -d';' -f1 <<< ${sql_condition_string})"
 COD_IND="$(cut -d';'  -f2 <<< ${sql_condition_string})"
 COD_ETP="$(cut -d';'  -f3 <<< ${sql_condition_string})" 
@@ -365,13 +407,11 @@ COD_ELP="$(cut -d';'  -f5 <<< ${sql_condition_string})"
 
 
 #Suppression des VACS dans Apogee
-$ORACLE_HOME/bin/sqlplus -s <<FIN_SQL 
+sqlplus -s <<FIN_SQL 
 ${STR_CONX}
-SPOOL ${FIC_LOG} append
 set serveroutput on
 SET HEADING OFF
 SET FEEDBACK OFF
-set linesize 20000 
 set pagesize 1
 VARIABLE ret_code NUMBER
 BEGIN
@@ -381,7 +421,13 @@ BEGIN
 		COD_ETP varchar2(6) := '${COD_ETP}';
 		COD_VRS_VET number(3,0) := '${COD_VRS_VET}';
 		COD_ELP varchar2(20000) := '${COD_ELP}';		
-		LINEBUFFER varchar2(20000) := '';
+		LINEBUFFER varchar2(2000) := '';
+
+		-- utl file config
+	       repertoire  varchar2(100)  := '${DIRECTORY}';
+   	       fichier  varchar2(100)     := '${FIC_ERREUR}';
+		fichier_sortie UTL_FILE.FILE_TYPE;
+
 	BEGIN
 		
 					
@@ -390,35 +436,42 @@ BEGIN
 			using annee, cod_ind,COD_ETP,COD_VRS_VET,COD_ELP;
 			commit;
 
-		--dbms_output.put_line('SUPPRESSION DE VAC :');
-		--dbms_output.put_line('-> annee : ' || ANNEE || ' - cod_ind ' || COD_IND || ' - cod_etp : '|| COD_ETP ||  ' - cod_vrs_vet : '|| COD_VRS_VET || ' - cod_elp :'||COD_ELP );		
-	EXCEPTION
+	 EXCEPTION
         WHEN OTHERS
 		THEN 
-		 LINEBUFFER :=  SQLERRM;
-		 dbms_output.put_line('Erreur suppression :' || SQLERRM);
+		 LINEBUFFER := 'Erreur sur ${sql_condition_string}';
+		 LINEBUFFER := LINEBUFFER ||'-'|| SQLERRM;
+		 fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
+		 utl_file.put_line(fichier_sortie,LINEBUFFER);
+		 utl_file.fclose(fichier_sortie);		
 		 ROLLBACK;
 	END;
 	
 END;
 /
-PRINT 
-SPOOL OFF
 EXIT
 FIN_SQL
 
-echo "  >>>>   Fin Suppression de la VAC " >> $FIC_LOG
+echo "  >>>>   Fin Suppression de la VAC " >> ${DIR_FIC_LOG}/${FIC_LOG}	
 
 
 done
 
 fi
 
-echo "  >>>>   Fin Suppression des VAC" >> $FIC_LOG
+echo "  >>>>   Fin Suppression des VAC" >> ${DIR_FIC_LOG}/${FIC_LOG}
+{ 
+  echo -e "------------------------------" >> ${DIR_FIC_LOG}/${FIC_LOG}
+  echo "${path_directory}/${FIC_ERREUR}"
+  cat   ${path_directory}/${FIC_ERREUR}  >>  ${DIR_FIC_LOG}/${FIC_LOG}
+  rm -f ${path_directory}/${FIC_ERREUR} 
+} || { # catch
+    echo "  >   Fichier non present" 
 
+}
  
 # -----------------------------------------
 # Fin du programme
 # -----------------------------------------
 echo "  >   Fin de l'execution du programme" 
-echo -e "Fin normale de $0 :\n" >> $FIC_LOG
+

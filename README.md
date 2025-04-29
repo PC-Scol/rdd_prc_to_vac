@@ -19,6 +19,12 @@ Ce programme permet de générer des validations d'acquis d'expérience pour rep
 > Il faut soit une installation "oracle server" soit une installation "oracle client" (instant-client)
 > 	- par commande : sudo apt-get install libaio1 libaio-dev
 >   - ou disponibles sur https://www.oracle.com/fr/database/technologies/instant-client/linux-x86-64-downloads.html
+
+> [!WARNING]
+> Creer une directory
+> 		CREATE OR REPLACE DIRECTORY my_dir_vac AS '/applications/apogee/apo_6_00/batch/fic/APOTPDB';
+> 		GRANT READ, WRITE ON DIRECTORY my_dir_vac TO apogee;
+
 ## Fichiers générés
 
 Dans un premier temps, le programme génère six fichiers en sortie:
@@ -31,9 +37,9 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 
      cle_vac_<code_annee>_<type>_<code element>_xxx.dat : Fichier contenant les clés pour les VACS
 
-     insert_CHC_vac_pivot_XXXX_XXXXX.sql : Fichier généré contenant les CHC (VACS) pour la base pivot (Fichier SQL)
+     insert_CHC_vac_pivot_XXXX_XXXXX.csv : Fichier généré contenant les CHC (VACS) pour la base pivot (Fichier csv)
 
-     insert_COC_vac_pivot_XXXX_XXXXX.sql : Fichier généré contenant les COC (VACS) pour la base pivot (Fichier SQL)
+     insert_COC_vac_pivot_XXXX_XXXXX.csv : Fichier généré contenant les COC (VACS) pour la base pivot (Fichier csv)
 
 
 ## Utilisation
@@ -99,7 +105,7 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 
 	3. Déverser les informations des modules ODF, CHC et INS dans la base pivot.
 
-	4. Lancer le script create_sql_pivot.sh en mode insertion (TEM_DELETE=N) pour inserer les vacs générées pour inserer les VACS dans la base pivot.
+	4. Lancer le script create_sql_pivot.sh en mode insertion pour inserer les vacs générées pour inserer les VACS dans la base pivot.
 	
 	5. Lancer le script généré pour les CHC et les COC dans la base pivot dans le dossier fichier_sortie_sql
  
@@ -118,12 +124,5 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 	12;Faire une injection normale des COC
 	   
 	
-Si vous voulez supprimer les VACS 
-		
-    - Relancer le script create_sql_pivot.sh en mode suppression (TEM_DELETE=Y) pour genérer les vacs de suppression
-
-    - Lancer le script généré dans la base pivot
-
-
 Bonus : Projet de récupération des LCC pour les PRC 
 	-> Lancer create_lcc.sh puis, importer .csv généré sur Liens de correspondance pour calcul dans le module CHC

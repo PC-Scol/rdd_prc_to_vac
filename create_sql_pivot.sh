@@ -6,7 +6,7 @@
 # License-Filename: LICENSE
 
 # ---------------------------------------------------------------------------------------------------------------------
-# create_sql_pivot.sh: script de génération des vacs pour les inserer ou le supprimer en base pivot
+# create_sql_pivot.sh: script de génération des vacs pour les inserer en base pivot
 # ---------------------------------------------------------------------------------------------------------------------
 
 
@@ -54,19 +54,9 @@ echo "  >>>   Activation prefix : ${PREFIXON} "
 echo "  >>>   Prefix VDI : ${PREFIX_VDI} "	
 echo "  >>>   Prefix VET : ${PREFIX_VET} "	
 echo "  >>>   Code établissement : ${COD_ETB} "
-if [ "$TEM_DELETE" = "Y" ];
-then
-	echo "  >>>   En mode génération des VAC de Suppression !!"
-else
-	if [ "$TEM_DELETE" = "N" ];
-	then
-		echo "  >>>   En mode génération des VAC d'insertion !!"
-	else
-	  echo "  >>>    Impossible !!"
-	  exit
-	fi
+echo "  >>>   Directory Cree : ${DIRECTORY} "
+echo "  >>>   En mode génération des VAC d'insertion !!"
 
-fi
 
 if [ ! "${COD_ANU}" ] || [ ! "${COD_ETB}" ]  || [ ! "${MDP_APOGEE}" ] || [ ! "${LOGIN_APOGEE}" ] ;then
    echo "  >>> Probleme paramètre"
@@ -172,8 +162,6 @@ PREFIX_VDI=`grep "^PREFIX_VDI" $FIC_INI | cut -d\: -f2`
 
 PDB=`printenv | grep ^TWO_TASK= | cut -d\= -f2`
 
-TEM_DELETE=`grep "^TEM_DELETE" $FIC_INI | cut -d\: -f2`
-
 COD_ETB=`grep "^COD_ETB" $FIC_INI | cut -d\: -f2`
 
 
@@ -199,15 +187,23 @@ then
 fi
 
 
-if [[  -n ${PDB} ]]
+if [[  -z ${PDB} ]]
 then
   PDB=FIC_NAME_FILTRE=`grep "^PDB" $FIC_INI | cut -d\: -f2`
-  if [[  -n ${PDB} ]]
+  if [[  -z ${PDB} ]]
   then
   	echo "Probleme PDB ou TWO_TASK"
        exit
   fi
 fi
+
+#Modification  Directory
+
+echo -e "Nom Directory cree ?: \c"
+      read DIRECTORY_SAISI
+
+DIRECTORY=${DIRECTORY_SAISI}
+
 
 
  # log du programme
@@ -252,9 +248,9 @@ done
 GEN_TIMESTAMP=$(date  +%s)
 
     # Fichier de stockage SQL pour requete generation de VAC dans APOGEE
-FIC_NAME_PIVOT_INSERT_CHC=insert_CHC_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.sql
+FIC_NAME_PIVOT_INSERT_CHC=insert_CHC_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.csv
 
-FIC_NAME_PIVOT_INSERT_COC=insert_COC_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.sql
+FIC_NAME_PIVOT_INSERT_COC=insert_COC_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.csv
 
 FIC_NAME_PIVOT_DELETE=delete_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.sql
 
@@ -278,8 +274,16 @@ confirm_menu
 sleep 1
 
 
-if [ "$TEM_DELETE" = "N" ];
-then
+path_directory=`sqlplus -s ${STR_CONX} <<EOF
+set pages 0
+set head off
+set feed off
+SELECT directory_path
+	  FROM dba_directories
+	 WHERE directory_name = '${DIRECTORY}';
+exit
+EOF`
+
 
 # parcours du fichier
 for sql_condition_string in  $(cat <  ${fic_insert}); do 
@@ -300,14 +304,13 @@ COD_CIP="$(cut -d';'  -f7 <<< ${sql_condition_string})"
 NOT_VAA="$(cut -d';'  -f8 <<< ${sql_condition_string})"
 BAR_NOT_VAA="$(cut -d';'  -f9 <<< ${sql_condition_string})"
 
+DIRECTORY_INSERT_CHC=`pwd`/${DIR_FIC_SORTIE}
 
 sqlplus -s <<FIN_SQL 
 ${STR_CONX}
-SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC} append
 set serveroutput on
 SET HEADING OFF
 SET FEEDBACK OFF
-set linesize 20000 
 set pagesize 1
 VARIABLE ret_code NUMBER
 BEGIN
@@ -317,32 +320,35 @@ BEGIN
 		COD_ETU_VAL number(8,0) := null;	
 		COD_ETP_VAL varchar2(6) := '${COD_ETP}';
 		COD_VRS_VET_VAL number(3,0) := '${COD_VRS_VET}';
-		COD_ELP_VAL varchar2(20000) := '${COD_ELP}';
-		COD_ETB_VAL varchar2(20000) := '${COD_ETB}';
-		COD_DIP_VAL varchar2(20000) :=	NULL;
-		COD_VRS_VDI_VAL varchar2(20000) := NULL;
-		COD_NEL_VAL varchar2(20000) := NULL;
-		NOT_VAA_VAL varchar2(20000) := '${NOT_VAA}';
-		BAR_NOT_VAA_VAL varchar2(20000) := '${BAR_NOT_VAA}';
+		COD_ELP_VAL varchar2(10) := '${COD_ELP}';
+		COD_ETB_VAL varchar2(10) := '${COD_ETB}';
+		COD_DIP_VAL varchar2(10) :=	NULL;
+		COD_VRS_VDI_VAL varchar2(10) := NULL;
+		COD_NEL_VAL varchar2(10) := NULL;
+		NOT_VAA_VAL varchar2(10) := '${NOT_VAA}';
+		BAR_NOT_VAA_VAL varchar2(10) := '${BAR_NOT_VAA}';
 		COD_DEP_PAY_VAC varchar2(3) := NULL;
-		COD_TYP_DEP_PAY_VAC varchar2(20000) := NULL;
-		COD_ETB varchar2(20000) := NULL;
-		COD_PRG varchar2(20000) := NULL;
-		TEM_SNS_PRG varchar2(20000) := NULL;
-		PREFIXON_VAC varchar2(20000) := '${PREFIXON}';
-		PREFIX_VET_VAC varchar2(20000) := '${PREFIX_VET}';
-		PREFIX_VDI_VAC varchar2(20000) := '${PREFIX_VDI}';
-		LINEBUFFER varchar2(20000) := '';
-		CLE_CHC varchar2(20000) := '';
-		CLE_COC varchar2(20000) := '';
-		key_ins varchar2(20000) := '';
-		code_filtre_formation varchar2(20000) := '';
-		code_chemin varchar2(20000) := NULL;
-		chemin_element varchar2(20000) := '';
+		COD_TYP_DEP_PAY_VAC varchar2(10) := NULL;
+		COD_ETB varchar2(10) := NULL;
+		COD_PRG varchar2(10) := NULL;
+		TEM_SNS_PRG varchar2(10) := NULL;
+		PREFIXON_VAC varchar2(10) := '${PREFIXON}';
+		PREFIX_VET_VAC varchar2(10) := '${PREFIX_VET}';
+		PREFIX_VDI_VAC varchar2(10) := '${PREFIX_VDI}';
+		LINEBUFFER varchar2(600) := '';
+		CLE_CHC varchar2(50) := '';
+		code_filtre_formation varchar2(25) := '';
+		chemin_element varchar2(100) := '';
 		count_elp number(8,0) := 0;
-		first_elp varchar2(20000) := 0;
+		first_elp varchar2(10) := 0;
 		isExists number(8,0) := 0;
 		EXCEPTION_PROGRAMME EXCEPTION;
+
+		-- utl file config
+	       repertoire  varchar2(100)  := '${DIRECTORY}';
+   	       fichier  varchar2(100)     := '${FIC_NAME_PIVOT_INSERT_CHC}';
+		fichier_sortie UTL_FILE.FILE_TYPE;
+
 
 		-- curseur de creation du chemin
 		cursor create_chemin_cur (cod_ind_in in varchar2, cod_anu_in in varchar2, cod_elp_in in varchar2, cod_etp_in in varchar2, cod_vrs_vet_in in varchar2)
@@ -480,47 +486,42 @@ BEGIN
 		code_filtre_formation := COD_DIP_VAL ||'-'|| COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
 	
 		-- generation du SQL
-		LINEBUFFER := 'insert into apprenant_chc(id,code_periode,id_apprenant,code_apprenant,code_formation,code_objet_formation,code_chemin,code_type_objet_maquette,code_structure,type_chc,nombre_credit_formation,nombre_credit_objet_formation,temoin_objet_capitalisable,temoin_objet_conservable,duree_conservation,etat_objet_dispense,operation,type_amenagement,temoin_injection_chc)VALUES(';
-				LINEBUFFER := LINEBUFFER || '''' || CLE_CHC||''',';
-				LINEBUFFER := LINEBUFFER || '''' || ANNEE_VAL||''',';
-				LINEBUFFER := LINEBUFFER || '''' || COD_IND_VAL||''',';
-				LINEBUFFER := LINEBUFFER || '''' || COD_ETU_VAL||''',';
-				LINEBUFFER := LINEBUFFER || '''' || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||''',';
-				LINEBUFFER := LINEBUFFER || '''' || COD_ELP_VAL||''',';
-				LINEBUFFER := LINEBUFFER || '''' || chemin_element||''',';
-				LINEBUFFER := LINEBUFFER || 'NULL,';
-				LINEBUFFER := LINEBUFFER || '''' || COD_ETB_VAL||''',';
-				LINEBUFFER := LINEBUFFER || '''N'',';
-				LINEBUFFER := LINEBUFFER || 'NULL,';
-				LINEBUFFER := LINEBUFFER || 'NULL,';
-				LINEBUFFER := LINEBUFFER || '''O'',';
-				LINEBUFFER := LINEBUFFER || '''N'',';
-				LINEBUFFER := LINEBUFFER || 'NULL,';
-				LINEBUFFER := LINEBUFFER || 'NULL,';
-				LINEBUFFER := LINEBUFFER || '''AM'',';
-				LINEBUFFER := LINEBUFFER || '''EVAL'',';
-				LINEBUFFER := LINEBUFFER || 'false'; 
-				LINEBUFFER := LINEBUFFER || ') ON CONFLICT DO NOTHING;';				
-				LINEBUFFER := LINEBUFFER;
-		LINEBUFFER := LINEBUFFER || 'commit;';
+		LINEBUFFER := '''' || CLE_CHC||''';';
+		LINEBUFFER := LINEBUFFER || '''' || ANNEE_VAL||''';';
+		LINEBUFFER := LINEBUFFER || '''' || COD_IND_VAL||''';';
+		LINEBUFFER := LINEBUFFER || '''' || COD_ETU_VAL||''';';
+		LINEBUFFER := LINEBUFFER || '''' || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||''';';
+		LINEBUFFER := LINEBUFFER || '''' || COD_ELP_VAL||''';';
+		LINEBUFFER := LINEBUFFER || '''' || chemin_element||''';';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || '''' || COD_ETB_VAL||''';';
+		LINEBUFFER := LINEBUFFER || '''N'';';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || '''O'';';
+		LINEBUFFER := LINEBUFFER || '''N'';';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || '''AM'';';
+		LINEBUFFER := LINEBUFFER || '''EVAL'';';
+		LINEBUFFER := LINEBUFFER || 'false'; 			
+		LINEBUFFER := LINEBUFFER;
 
-		dbms_output.put_line(LINEBUFFER);
-
-
+		fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
+		utl_file.put_line(fichier_sortie,LINEBUFFER);
+		utl_file.fclose(fichier_sortie);
+	
 
 
 	EXCEPTION
         WHEN OTHERS
 		THEN 
-		 LINEBUFFER :=  SQLERRM;
-		 dbms_output.put_line('Erreur génération :' ||SQLERRM);
 		 ROLLBACK;
 	END;
 	
 END;
 /
-PRINT 
-SPOOL OFF
+
 EXIT
 FIN_SQL
 
@@ -533,11 +534,9 @@ echo "  >>>>   Genération de la VAC module COC d'insertion pour le pivot  " >> 
 
 sqlplus -s <<FIN_SQL 
 ${STR_CONX}
-SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC} append
 set serveroutput on
 SET HEADING OFF
-SET FEEDBACK OFF
-set linesize 20000 
+SET FEEDBACK OFF 
 set pagesize 1
 VARIABLE ret_code NUMBER
 BEGIN
@@ -547,28 +546,35 @@ BEGIN
 		COD_ETU_VAL number(8,0) := null;	
 		COD_ETP_VAL varchar2(6) := '${COD_ETP}';
 		COD_VRS_VET_VAL number(3,0) := '${COD_VRS_VET}';
-		COD_ELP_VAL varchar2(20000) := '${COD_ELP}';
-		COD_ETB_VAL varchar2(20000) := '${COD_ETB}';
-		COD_DIP_VAL varchar2(20000) :=	NULL;
-		COD_VRS_VDI_VAL varchar2(20000) := NULL;
-		COD_NEL_VAL varchar2(20000) := NULL;
-		NOT_VAA_VAL varchar2(20000) := '${NOT_VAA}';
-		BAR_NOT_VAA_VAL varchar2(20000) := '${BAR_NOT_VAA}';
-		COD_DEP_PAY_VAC varchar2(3) := NULL;
-		COD_TYP_DEP_PAY_VAC varchar2(20000) := NULL;
-		COD_ETB varchar2(20000) := NULL;
-		COD_PRG varchar2(20000) := NULL;
-		TEM_SNS_PRG varchar2(20000) := NULL;
-		PREFIXON_VAC varchar2(20000) := '${PREFIXON}';
-		PREFIX_VET_VAC varchar2(20000) := '${PREFIX_VET}';
-		PREFIX_VDI_VAC varchar2(20000) := '${PREFIX_VDI}';
-		LINEBUFFER varchar2(20000) := '';
-		CLE_CHC varchar2(20000) := '';
-		CLE_COC varchar2(20000) := '';
+		COD_ELP_VAL varchar2(10) := '${COD_ELP}';
+		COD_ETB_VAL varchar2(10) := '${COD_ETB}';
+		COD_DIP_VAL varchar2(10) :=	NULL;
+		COD_VRS_VDI_VAL varchar2(10) := NULL;
+		COD_NEL_VAL varchar2(10) := NULL;
+		NOT_VAA_VAL varchar2(10) := '${NOT_VAA}';
+		BAR_NOT_VAA_VAL varchar2(10) := '${BAR_NOT_VAA}';
+		COD_DEP_PAY_VAC varchar2(10) := NULL;
+		COD_TYP_DEP_PAY_VAC varchar2(10) := NULL;
+		COD_ETB varchar2(10) := NULL;
+		COD_PRG varchar2(10) := NULL;
+		TEM_SNS_PRG varchar2(10) := NULL;
+		PREFIXON_VAC varchar2(10) := '${PREFIXON}';
+		PREFIX_VET_VAC varchar2(10) := '${PREFIX_VET}';
+		PREFIX_VDI_VAC varchar2(10) := '${PREFIX_VDI}';
+		LINEBUFFER varchar2(1000) := '';
+		CLE_CHC varchar2(50) := '';
+		CLE_COC varchar2(100) := '';
 		key_ins varchar2(20000) := '';
-		code_filtre_formation varchar2(20000) := '';
-		sous_requete varchar2(20000) := '';
+		code_filtre_formation varchar2(50) := '';
 		EXCEPTION_PROGRAMME EXCEPTION;
+
+
+		-- utl file config
+	       repertoire  varchar2(100)  := '${DIRECTORY}';
+   	       fichier  varchar2(100)     := '${FIC_NAME_PIVOT_INSERT_COC}';
+		fichier_sortie UTL_FILE.FILE_TYPE;
+
+
 	BEGIN
 		 --Récupération des valeurs pour créer les clés et les ordres SQL
 					
@@ -612,54 +618,54 @@ BEGIN
 		END IF;
 	
 		--  Création de l'ordre d'insertion des coc en fonction des PRC trouvées dans APOGEE
-		LINEBUFFER := LINEBUFFER || chr(10) ||'insert into apprenant_coc (id,code_formation,code_objet_formation,code_filtre_formation,code_periode,code_structure,id_apprenant,code_apprenant,type_objet_formation,code_mention,grade_ects,gpa,note_retenue,bareme_note_retenue,point_jury_retenu,note_session1,bareme_note_session1,point_jury_session1,credit_ects_session1,rang_session1,note_session2,bareme_note_session2,point_jury_session2,resultat_final,resultat_session1,resultat_session2,rang_final,credit_ects_final,statut_deliberation_session1,statut_deliberation_session2_final,session_retenue,absence_finale,absence_session1,absence_session2,temoin_concerne_session2,statut_publication_session1,statut_publication_session2,statut_publication_final,temoin_capitalise,temoin_conserve,duree_conservation,note_minimale_conservation,temoin_validation_acquis) values (';
-						LINEBUFFER := LINEBUFFER || '''' || CLE_COC||''',';	
-						LINEBUFFER := LINEBUFFER || '''' || code_filtre_formation||''',';				
-						LINEBUFFER := LINEBUFFER || '''' || COD_ELP_VAL||''',';
-						LINEBUFFER := LINEBUFFER || '''' || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||''',';
-						LINEBUFFER := LINEBUFFER || '''' || ANNEE_VAL||''',';
-						LINEBUFFER := LINEBUFFER || '''' || COD_ETB_VAL||''',';
-						LINEBUFFER := LINEBUFFER || '''' || COD_IND_VAL||''',';
-						LINEBUFFER := LINEBUFFER || '''' || COD_ETU_VAL||''',';
-						LINEBUFFER := LINEBUFFER || '''' || COD_NEL_VAL||''',';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER ||	NOT_VAA_VAL||',';
-						LINEBUFFER := LINEBUFFER || BAR_NOT_VAA_VAL||',';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || NOT_VAA_VAL||',';
-						LINEBUFFER := LINEBUFFER ||BAR_NOT_VAA_VAL||',';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || 'NULL,';	
-						LINEBUFFER := LINEBUFFER ||NOT_VAA_VAL||',';
-						LINEBUFFER := LINEBUFFER ||BAR_NOT_VAA_VAL||',';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || '''ADM'',';
-						LINEBUFFER := LINEBUFFER || '''ADM'',';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || '''T'',';
-						LINEBUFFER := LINEBUFFER || '''T'',';
-						LINEBUFFER := LINEBUFFER || '2,';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || '''O'',';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || '''N'',';
-						LINEBUFFER := LINEBUFFER || '''O'',';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || 'NULL,';
-						LINEBUFFER := LINEBUFFER || 'NULL';
-						LINEBUFFER := LINEBUFFER ||') ON CONFLICT DO NOTHING; commit;';
-		LINEBUFFER := LINEBUFFER || 'commit;';		
+		LINEBUFFER := LINEBUFFER || '''' || CLE_COC||''';';	
+		LINEBUFFER := LINEBUFFER || '''' || code_filtre_formation||''';';				
+		LINEBUFFER := LINEBUFFER || '''' || COD_ELP_VAL||''';';
+		LINEBUFFER := LINEBUFFER || '''' || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||''';';
+		LINEBUFFER := LINEBUFFER || '''' || ANNEE_VAL||''';';
+		LINEBUFFER := LINEBUFFER || '''' || COD_ETB_VAL||''';';
+		LINEBUFFER := LINEBUFFER || '''' || COD_IND_VAL||''';';
+		LINEBUFFER := LINEBUFFER || '''' || COD_ETU_VAL||''';';
+		LINEBUFFER := LINEBUFFER || '''' || COD_NEL_VAL||''';';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER ||	NOT_VAA_VAL||';';
+		LINEBUFFER := LINEBUFFER || BAR_NOT_VAA_VAL||';';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || NOT_VAA_VAL||';';
+		LINEBUFFER := LINEBUFFER ||BAR_NOT_VAA_VAL||';';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';	
+		LINEBUFFER := LINEBUFFER ||NOT_VAA_VAL||';';
+		LINEBUFFER := LINEBUFFER ||BAR_NOT_VAA_VAL||';';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || '''ADM'';';
+		LINEBUFFER := LINEBUFFER || '''ADM'';';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || '''T'';';
+		LINEBUFFER := LINEBUFFER || '''T'';';
+		LINEBUFFER := LINEBUFFER || '2;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || '''O'';';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || '''N'';';
+		LINEBUFFER := LINEBUFFER || '''O'';';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL';
 
-		dbms_output.put_line(LINEBUFFER);
+		fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
+		utl_file.put_line(fichier_sortie,LINEBUFFER);
+		utl_file.fclose(fichier_sortie);
+
 
 
 
@@ -667,15 +673,11 @@ BEGIN
 	EXCEPTION
         WHEN OTHERS
 		THEN 
-		 LINEBUFFER :=  SQLERRM;
-		 dbms_output.put_line('Erreur génération :' ||SQLERRM);
 		 ROLLBACK;
 	END;
 	
 END;
 /
-PRINT 
-SPOOL OFF
 EXIT
 FIN_SQL
 
@@ -692,8 +694,10 @@ if [ ! -d ${DIR_FIC_TMP} ]; then
   mkdir ${DIR_FIC_TMP}
 fi
 
-awk 'NF > 0' ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC}  > ${DIR_FIC_TMP}/fichier_tempo.tmp
-awk 'NF > 0' ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC}  > ${DIR_FIC_TMP}/fichier_tempo_2.tmp
+awk 'NF > 0' ${path_directory}/${FIC_NAME_PIVOT_INSERT_COC}  > ${DIR_FIC_TMP}/fichier_tempo.tmp
+awk 'NF > 0' ${path_directory}/${FIC_NAME_PIVOT_INSERT_CHC}  > ${DIR_FIC_TMP}/fichier_tempo_2.tmp
+rm -f ${path_directory}/${FIC_NAME_PIVOT_INSERT_COC} 
+rm -f ${path_directory}/${FIC_NAME_PIVOT_INSERT_CHC}
 mv ${DIR_FIC_TMP}/fichier_tempo.tmp ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC}
 mv ${DIR_FIC_TMP}/fichier_tempo_2.tmp ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC}
 if [ -d ${DIR_FIC_TMP} ]; then
@@ -705,140 +709,9 @@ fi
 echo -e "  >>>   Fin Genération des VACS d'insertion pour la base pivot">> $FIC_LOG
 echo -e "  >>>   Fin Genération des VACS d'insertion pour la base pivot"
 sleep 1
-fi
 
-if [ "$TEM_DELETE" = "Y" ];
-then
-
-# parcours du fichier
-for sql_condition_string in  $(cat <  ${fic_insert}); do 
-
-echo "  >>>  Genération de la VAC de suppression  pour le pivot :  ${sql_condition_string}"
-
-echo "  >>>  Genération de la VAC de suppression  pour le pivot :${sql_condition_string}" >> $FIC_LOG
-echo "  >>>>   Genération de la VAC de suppression  pour le pivot  " >> $FIC_LOG
-
-ANNEE="$(cut -d';' -f1 <<< ${sql_condition_string})"
-COD_IND="$(cut -d';'  -f2 <<< ${sql_condition_string})"
-COD_ETP="$(cut -d';'  -f3 <<< ${sql_condition_string})" 
-COD_VRS_VET="$(cut -d';'  -f4 <<< ${sql_condition_string})"
-COD_ELP="$(cut -d';'  -f5 <<< ${sql_condition_string})" 
-
-$ORACLE_HOME/bin/sqlplus -s <<FIN_SQL 
-${STR_CONX}
-SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_DELETE} append
-set serveroutput on
-SET HEADING OFF
-SET FEEDBACK OFF
-set linesize 20000 
-set pagesize 1
-VARIABLE ret_code NUMBER
-BEGIN
-	DECLARE 
-	 	ANNEE_VAL varchar2(4) := '${ANNEE}';
-		COD_IND_VAL number(8,0) := '${COD_IND}';		
-		COD_ETP_VAL varchar2(6) := '${COD_ETP}';
-		COD_VRS_VET_VAL number(3,0) := '${COD_VRS_VET}';
-		COD_ELP_VAL varchar2(20000) := '${COD_ELP}';
-		COD_ETB varchar2(20000) := '${COD_ETB}';
-		COD_DIP_VAL varchar2(20000) :=	NULL;
-		COD_VRS_VDI_VAL varchar2(20000) := NULL;
-		COD_NEL_VAL varchar2(20000) := NULL;
-		PREFIXON_VAC varchar2(20000) := '${PREFIXON}';
-		PREFIX_VET_VAC varchar2(20000) := '${PREFIX_VET}';
-		PREFIX_VDI_VAC varchar2(20000) := '${PREFIX_VDI}';
-		LINEBUFFER varchar2(20000) := '';
-		CLE_CHC varchar2(20000) := '';
-		CLE_COC varchar2(20000) := '';
-		EXCEPTION_PROGRAMME EXCEPTION;
-	BEGIN
-
-		 --Récupération des valeurs pour créer les clés et les ordres SQL
-		 SELECT DISTINCT cod_dip
-		 into COD_DIP_VAL
-		 from ins_adm_etp
-			 where cod_etp = COD_ETP_VAL
-			 and cod_vrs_vet = COD_VRS_VET_VAL
-			 and cod_anu = ANNEE_VAL
-			 and cod_ind = COD_IND_VAL
-			  ;
-
-		select DISTINCT cod_vrs_vdi
- 		into COD_VRS_VDI_VAL
-		from ins_adm_etp
-			 where cod_etp = COD_ETP_VAL
-			 and cod_vrs_vet = COD_VRS_VET_VAL
-			 and cod_anu = ANNEE_VAL
-			 and cod_ind = COD_IND_VAL;
-
-		--  generation des clés
-		CLE_CHC  := COD_IND_VAL || '-'|| ANNEE_VAL ||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL||'-'|| COD_ELP_VAL;
-		
-		IF PREFIXON_VAC = 'Y'
-		THEN
-			CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'||PREFIX_VDI_VAC||'-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL ||'-'||PREFIX_VET_VAC||'-'||PREFIX_VET_VAC||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
-		ELSE
-			CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
-		END IF;
-
-
-		--  generation du SQL
-		LINEBUFFER := ' DELETE FROM apprenant_chc WHERE id =';
-		LINEBUFFER := LINEBUFFER || '''' || CLE_CHC ||''';';
-		LINEBUFFER := LINEBUFFER || chr(10);
-		LINEBUFFER := LINEBUFFER || 'DELETE FROM apprenant_coc WHERE id =';
-		LINEBUFFER := LINEBUFFER || '''' || CLE_COC||''';';
-
-		dbms_output.put_line(LINEBUFFER);
-
-
-
-
-	EXCEPTION
-        WHEN OTHERS
-		THEN 
-		 LINEBUFFER :=  SQLERRM;
-		 dbms_output.put_line('Erreur génération :' ||SQLERRM);
-		 ROLLBACK;
-	END;
-	
-END;
-/
-PRINT 
-SPOOL OFF
-EXIT
-FIN_SQL
-
-	
-echo "  >>>> Fin Genération de la VAC de suppression pour la base pivot ">> $FIC_LOG	
-
-done
-
-sleep 1
-
-if [ ! -d ${DIR_FIC_TMP} ]; then
-  mkdir ${DIR_FIC_TMP}
-fi
-
-awk 'NF > 0' ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_DELETE} > ${DIR_FIC_TMP}/delete_pivot_tmp.sql
-
-mv ${DIR_FIC_TMP}/delete_pivot_tmp.sql  ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_DELETE} 
-
-if [ -d ${DIR_FIC_TMP} ]; then
-  rmdir ${DIR_FIC_TMP}
-fi
-
-
-
-
-
-echo -e "  >>>   Fin Genération des VACS de suppression  pour la base pivot">> $FIC_LOG
-echo -e "  >>>   Fin Genération des VACS de suppression  pour la base pivot"
-fi
-sleep 1
 
 # -----------------------------------------
 # Fin du programme
 # -----------------------------------------
 echo "  >   Fin de l'execution du programme" 
-echo -e "Fin normale de $0 :\n" >> $FIC_LOG

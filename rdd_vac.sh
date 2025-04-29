@@ -299,7 +299,7 @@ set head off
 set feed off
 SELECT directory_path
 	  FROM dba_directories
-	 WHERE directory_name = 'MY_DIR_VAC';
+	 WHERE directory_name = '${DIRECTORY}';
 exit
 EOF`
 
@@ -543,7 +543,7 @@ DECLARE
 	then
 	    for main_vet_in_rec in main_vet_in_cur(cod_etp_in,cod_vrs_vet_in,cod_anu_in)
 	    loop
-	 	 fichier_sortie  := utl_file.fopen(repertoire, fichier, 'W');
+	 	  fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
 		 linebuffer := main_vet_in_rec.cod_dip || '-' ||main_vet_in_rec.cod_vrs_vdi ||'>' ||  main_vet_in_rec.cod_etp ||'-' || main_vet_in_rec.cod_vrs_vet;
 		 utl_file.put_line(fichier_sortie,linebuffer);
 		 utl_file.fclose(fichier_sortie);
@@ -740,6 +740,7 @@ echo -e "  >>>   Debut de la suppression des espaces vides dans le fichier inser
 
 
 awk 'NF > 0' ${path_directory}/${FIC_NAME_APOGEE_INSERT}  >> ${DIR_FIC_TMP}/cle_tmp.dat
+rm -f ${path_directory}/${FIC_NAME_APOGEE_INSERT}
 echo '' >> ${DIR_FIC_TMP}/cle_tmp.dat
 cp ${DIR_FIC_TMP}/cle_tmp.dat ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT} #rm ${DIR_FIC_TMP}/cle_tmp.dat
 

@@ -53,7 +53,9 @@ echo "    >>>     Code Version Objet : ${COD_VRS_OBJ}"
 echo "    >>>     Dossier racine : ${DIR_FIC_ARCH}"
 echo "    >>>     Identifiant base de donnee : ${LOGIN_APOGEE}"	 
 echo "    >>>     Mot de passe base de donnee : ${MDP_APOGEE}"	  
-echo "    >>>     PDB : $PDB"	        
+echo "    >>>     PDB : $PDB"
+echo "    >>>     Directory Cree : ${DIRECTORY} "
+	        
 echo "-------------------------------------------------"
 # -----------------------------------------
 # Confirmation
@@ -100,6 +102,14 @@ echo -e "Mot de passe APOGEE ?: \c"
       read MDP_APOGEE_SAISI
 
 MDP_APOGEE=${MDP_APOGEE_SAISI}
+
+#Modification  Directory
+
+echo -e "Nom Directory cree ?: \c"
+      read DIRECTORY_SAISI
+
+DIRECTORY=${DIRECTORY_SAISI}
+
 
     # chaine de connexion
 STR_CONX=${LOGIN_APOGEE}/${MDP_APOGEE}
@@ -155,10 +165,10 @@ then
 fi
 
 
-if [[  -n ${PDB} ]]
+if [[  -z ${PDB} ]]
 then
   PDB=FIC_NAME_FILTRE=`grep "^PDB" $FIC_INI | cut -d\: -f2`
-  if [[  -n ${PDB} ]]
+  if [[  -z ${PDB} ]]
   then
   	echo "Probleme PDB ou TWO_TASK"
        exit
@@ -182,6 +192,18 @@ vet_archive=vets_lcc_${COD_ANU}_${COD_TYP_DETECT}_${COD_OBJ}_${GEN_TIMESTAMP}
 
  # log du programme
 BASE_FIC_LOG=log_lcc_${NOM_BASE}_${COD_TYP_DETECT}_${COD_OBJ}_${GEN_TIMESTAMP}
+
+
+path_directory=`sqlplus -s ${STR_CONX} <<EOF
+set pages 0
+set head off
+set feed off
+SELECT directory_path
+	  FROM dba_directories
+	 WHERE directory_name = '${DIRECTORY}';
+exit
+EOF`
+
 
 
 echo "  >   Debut de l'execution du programme"  
@@ -407,11 +429,9 @@ sleep 1
 
 $ORACLE_HOME/bin/sqlplus -s <<FIN_SQL 
 ${STR_CONX}
-SPOOL ${DIR_FIC_TMP}/${FIC_NAME_TMP}
 set serveroutput on
 SET HEADING OFF
 SET FEEDBACK OFF
-set linesize 20000 
 set pagesize 1
 VARIABLE ret_code NUMBER
 BEGIN
@@ -423,7 +443,13 @@ DECLARE
 	type_recherche varchar2(200) := '${COD_TYP_DETECT}';
 	cod_etp_in  varchar2(200) := '${COD_OBJ}';
 	cod_vrs_vet_in  varchar2(200) := '${COD_VRS_OBJ}';
+	
+	-- utl file config
+	repertoire  varchar2(100)  := '${DIRECTORY}';
+   	fichier  varchar2(100)     := '${FIC_NAME_TMP}';
+	fichier_sortie UTL_FILE.FILE_TYPE;
 
+	
 	-- curseur de recherche de VET et VDI par CMP
 	cursor main_by_cmp_cur(cod_cmp_in varchar2, cod_anu_in IN varchar2)
        is
@@ -445,8 +471,7 @@ DECLARE
       		 vrl.cod_vrs_vet,
       		 vde.cod_dip,
       		 vde.cod_vrs_vdi,
-      		 vet.cod_cmp,
-      		 vrl.cod_lse;
+      		 vet.cod_cmp;
 
       -- curseur de recherche de VET et VDI par annee (toutes les vets)
       cursor main_by_vet_cur(cod_anu_in in varchar2)
@@ -498,8 +523,9 @@ DECLARE
 		for main_by_cmp_rec in  main_by_cmp_cur(cod_cmp_in, cod_anu_in)
 		loop
 		  linebuffer := main_by_cmp_rec.cod_dip || '-' || main_by_cmp_rec.cod_vrs_vdi ||'>' ||main_by_cmp_rec.cod_etp ||'-' ||  main_by_cmp_rec.cod_vrs_vet ||chr(10);
-		  dbms_output.put_line(linebuffer);
-
+		  fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
+	    	  utl_file.put_line(fichier_sortie,linebuffer );
+	         utl_file.fclose(fichier_sortie);
 		end loop;
 	end if;
 	if type_recherche = 'VETALL' 
@@ -507,7 +533,9 @@ DECLARE
 	    for main_by_vet_rec in main_by_vet_cur(cod_anu_in)
 	    loop
 		 linebuffer := main_by_vet_rec.cod_dip || '-' ||main_by_vet_rec.cod_vrs_vdi ||'>' ||   main_by_vet_rec.cod_etp ||'-' || main_by_vet_rec.cod_vrs_vet||chr(10);
-		 dbms_output.put_line(linebuffer);
+		 fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
+		 utl_file.put_line(fichier_sortie,linebuffer );
+		 utl_file.fclose(fichier_sortie);
 
 	    end loop;
 	end if;
@@ -517,7 +545,9 @@ DECLARE
 	    loop
 		 linebuffer := linebuffer || main_vet_in_rec.cod_dip || '-' ||main_vet_in_rec.cod_vrs_vdi ||'>' ||  main_vet_in_rec.cod_etp ||'-' || main_vet_in_rec.cod_vrs_vet||chr(10);
 	    end loop;
-	    dbms_output.put_line(linebuffer);
+	    fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
+	    utl_file.put_line(fichier_sortie,linebuffer );
+	    utl_file.fclose(fichier_sortie);
 	end if;
 
 
@@ -525,8 +555,6 @@ DECLARE
    END;
 END;
 /
-PRINT 
-SPOOL OFF
 EXIT
 FIN_SQL
 
@@ -538,7 +566,8 @@ fi
 sleep 1
 echo "  >>>   Suppression des espaces vides"
 # suppresion des espaces vides
-awk 'NF > 0'  ${DIR_FIC_TMP}/${FIC_NAME_TMP} > ${DIR_FIC_TMP}/temp
+awk 'NF > 0'  ${path_directory}/${FIC_NAME_TMP} > ${DIR_FIC_TMP}/temp
+rm -f ${path_directory}/${FIC_NAME_TMP} 
 cp ${DIR_FIC_TMP}/temp ${DIR_FIC_TMP}/${FIC_NAME_TMP}
 rm ${DIR_FIC_TMP}/temp
 sleep 1
@@ -585,13 +614,11 @@ echo -e "  >>>   Mise en place de l'entete ">> $FIC_LOG
 echo -e "  >>>   Debut du traitement du fichier  clée des LCCs " >> $FIC_LOG
 
 # recherche des clés lcc pour la demande
-$ORACLE_HOME/bin/sqlplus -s <<FIN_SQL 
+sqlplus -s <<FIN_SQL 
 ${STR_CONX}
-SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_CLE_LCC_APOGEE} append
 set serveroutput on
 SET HEADING OFF
 SET FEEDBACK OFF
-set linesize 20000 
 set pagesize 1
 VARIABLE ret_code NUMBER
 BEGIN
@@ -604,6 +631,12 @@ DECLARE
 	linebuffer varchar2(20000) := '';
 	commentaire varchar2(20000) := 'LCC generique';
 	isActive varchar2(20000) := 'O';
+
+	-- utl file config
+	repertoire  varchar2(100)  := '${DIRECTORY}';
+   	fichier  varchar2(100)     := '${FIC_NAME_CLE_LCC_APOGEE}';
+	fichier_sortie UTL_FILE.FILE_TYPE;
+
 	
 	-- recuperation des lcc
    CURSOR recherche_lcc_cur (cod_etp_in IN varchar2, cod_vrs_vet_in IN varchar2,cod_anu_in IN varchar2)
@@ -630,7 +663,9 @@ DECLARE
 	FOR recherche_lcc_rec IN recherche_lcc_cur(cod_etp_in,cod_vrs_vet_in,cod_anu_in)
 	LOOP
 		linebuffer := recherche_lcc_rec.cod_lcc_ice;	
-		dbms_output.put_line(linebuffer);		
+		fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
+	       utl_file.put_line(fichier_sortie,linebuffer);
+	       utl_file.fclose(fichier_sortie);	
 	 				   
 	END LOOP;
 	
@@ -639,8 +674,6 @@ DECLARE
   	
 END;
 /
-PRINT 
-SPOOL OFF
 EXIT
 FIN_SQL
 
@@ -659,8 +692,8 @@ echo -e "  >>>   Debut de la suppression des espaces vides dans le fichier inser
 echo -e "  >>>   Debut de la suppression des espaces vides dans le fichier insert">> $FIC_LOG
 
 
-awk 'NF > 0' ${DIR_FIC_SORTIE}/${FIC_NAME_CLE_LCC_APOGEE}  > ${DIR_FIC_TMP}/insert_tmp.sql
-rm ${DIR_FIC_SORTIE}/${FIC_NAME_CLE_LCC_APOGEE}
+awk 'NF > 0' ${path_directory}/${FIC_NAME_CLE_LCC_APOGEE}  > ${DIR_FIC_TMP}/insert_tmp.sql
+rm  -f ${path_directory}/${FIC_NAME_CLE_LCC_APOGEE}
 echo '' >> ${DIR_FIC_TMP}/insert_tmp.sql
 
 cp ${DIR_FIC_TMP}/insert_tmp.sql  ${DIR_FIC_SORTIE}/${FIC_NAME_CLE_LCC_APOGEE}
@@ -706,13 +739,11 @@ echo -e "  >>>   Debut du traitement du fichier des LCCs " >> $FIC_LOG
 
 
 # recherche lcc dans ind_contrat_elp
-$ORACLE_HOME/bin/sqlplus -s <<FIN_SQL 
+sqlplus -s <<FIN_SQL 
 ${STR_CONX}
-SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_LCC} append
 set serveroutput on
 SET HEADING OFF
 SET FEEDBACK OFF
-set linesize 20000 
 set pagesize 1
 VARIABLE ret_code NUMBER
 BEGIN
@@ -724,6 +755,12 @@ DECLARE
 	linebuffer varchar2(10000) := '';
 	commentaire varchar2(1) := NULL;
 	isActive varchar2(20000) := 'O';
+	
+	-- utl file config
+	repertoire  varchar2(100)  := '${DIRECTORY}';
+   	fichier  varchar2(100)     := '${FIC_NAME_APOGEE_LCC}';
+	fichier_sortie UTL_FILE.FILE_TYPE;
+
 	
 	-- recuperation des lcc
    CURSOR recherche_lcc_cur (cod_lcc_ice_in in varchar2)
@@ -746,13 +783,18 @@ DECLARE
 		IF recherche_lcc_rec.COD_ELP_S1_LCC is not null
 		then
 			linebuffer := chr(10) || recherche_lcc_rec.cod_elp_cible_lcc ||';'||recherche_lcc_rec.COD_ELP_S1_LCC||';'||isActive||';'||commentaire;
-			dbms_output.put_line(linebuffer);	
+			fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
+	       	utl_file.put_line(fichier_sortie,linebuffer);
+	       	utl_file.fclose(fichier_sortie);
+
 		end if;
 		
 		IF recherche_lcc_rec.COD_ELP_S2_LCC is not null
 		then
 			linebuffer := chr(10) || recherche_lcc_rec.cod_elp_cible_lcc ||';'||recherche_lcc_rec.COD_ELP_S2_LCC||';'||isActive||';'||commentaire;
-			dbms_output.put_line(linebuffer);
+			fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
+	       	utl_file.put_line(fichier_sortie,linebuffer);
+	       	utl_file.fclose(fichier_sortie);
 		end if;
 			 				   
 	END LOOP;
@@ -761,8 +803,6 @@ DECLARE
   	
 END;
 /
-PRINT 
-SPOOL OFF
 EXIT
 FIN_SQL
 
@@ -781,8 +821,8 @@ echo -e "  >>>   Fin de la suppression des espaces vides dans le fichier insert"
 echo -e "  >>>   Fin de la suppression des espaces vides dans le fichier insert"  >> $FIC_LOG
 sleep 1
 
-cat ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_LCC}| tr -d "[:blank:]"  > ${DIR_FIC_TMP}/insert_tmp.sql
-rm ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_LCC}
+cat ${path_directory}/${FIC_NAME_APOGEE_LCC}| tr -d "[:blank:]"  > ${DIR_FIC_TMP}/insert_tmp.sql
+rm -f ${path_directory}/${FIC_NAME_APOGEE_LCC}
 
 
 cp ${DIR_FIC_TMP}/insert_tmp.sql  ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_LCC}
