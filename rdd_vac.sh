@@ -187,7 +187,7 @@ fi
 GEN_TIMESTAMP=$(date -I)
 
     # Fichier de stockage SQL pour requete generation de VAC dans APOGEE
-FIC_NAME_APOGEE_INSERT=cle_vac_${COD_ANU}_${COD_TYP_DETECT}_${COD_OBJ}_${GEN_TIMESTAMP}
+FIC_NAME_APOGEE_INSERT=cle_vac_${COD_ANU}_${COD_TYP_DETECT}_${GEN_TIMESTAMP}
 
 
     # Fichier de stockage temporaire des VETS
@@ -599,7 +599,7 @@ COD_OBJ_FIC=`echo $ligne_etp | cut -f 1 -d "-"`
 COD_VRS_OBJ=`echo $ligne_etp | cut -f 2 -d "-"`
 
 echo -e "  >>>   Debut du traitement pour la code formation pegase :  $ligne  ">> $FIC_LOG
-echo  "  >>>     Traitement pour la VET :  ${COD_OBJ_FIC} - ${COD_VRS_OBJ} "
+echo  "  >>>    Traitement pour la VET :  ${COD_OBJ_FIC} - ${COD_VRS_OBJ} "
 ## --------------------------------------------
 # ETAPE 3 : TRAITEMENT DES VALEURS
 # --------------------------------------------
