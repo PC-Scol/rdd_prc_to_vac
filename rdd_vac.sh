@@ -192,10 +192,10 @@ FIC_NAME_APOGEE_INSERT=cle_vac_${COD_ANU}_${COD_TYP_DETECT}_${COD_OBJ}_${GEN_TIM
 
     # Fichier de stockage temporaire des VETS
 FIC_NAME_TMP=vets.tmp
-vet_archive=vets_${COD_ANU}_${COD_TYP_DETECT}_${COD_OBJ}_${GEN_TIMESTAMP}
+vet_archive=vets_${COD_ANU}_${COD_TYP_DETECT}_${GEN_TIMESTAMP}
 
  # log du programme
-BASE_FIC_LOG=log_${NOM_BASE}_${COD_TYP_DETECT}_${COD_OBJ}_${GEN_TIMESTAMP}
+BASE_FIC_LOG=log_${NOM_BASE}_${COD_TYP_DETECT}_${GEN_TIMESTAMP}
 
 
 echo "  >   Debut de l'execution du programme"  
@@ -327,6 +327,36 @@ echo -e "  >>>   droits en ecriture a la log" >> $FIC_LOG
 chmod go+w $FIC_LOG
 
 
+if  test ${COD_TYP_DETECT} = 'VET'
+then
+
+	echo "${COD_OBJ}" > ${DIR_FIC_TMP}/${FIC_NAME_TMP}	
+	
+       for i in  $(cat < `find ${DIR_FIC_TMP}/${FIC_NAME_TMP} -maxdepth 1 -type f -not -path '*/\.*' | sort`); do 
+
+		for line in  ${i//,/ };
+		do
+   		   # verification du format des codes pegases
+  		   if [[ $line == *">"* ]]; then
+     				echo "  >>>   Formation valide: $line" >> $FIC_LOG
+    				echo -e "  >>>   Filtre formation valide : $line" 
+
+   		   else
+
+   		      # si erreur
+   		      echo "  >>>   Filtre formation invalide : $line" >> $FIC_LOG
+   		      echo -e "  >>>   Filtre formation invalide : $line"
+		      echo -e "  >>>   Modifiez le filtre !!!!!!"
+   		      exit
+  		   fi
+	done
+
+done
+
+
+fi
+
+
 # ---------------------------------------------------------------------
 # ETAPE 2.5 (cas LISTES_VET)  : CHARGEMENT DU FICHIER DES CODES PEGASES
 # ---------------------------------------------------------------------
@@ -366,7 +396,9 @@ do
    # si erreur
     echo "  >>>   Filtre formation invalide : $line" >> $FIC_LOG
     echo -e "  >>>   Filtre formation invalide : $line"
-   
+    echo -e "  >>>   Modifiez le filtre !!!!!!"
+    exit
+
    fi
 
 
@@ -409,7 +441,7 @@ fi
 # ETAPE 2.5 (cas CMP, VETALL, VET)  : CHARGEMENT DU FICHIER DES CODES PEGASES
 # ---------------------------------------------------------------------------
 
-if test ${COD_TYP_DETECT} = 'CMP' || test ${COD_TYP_DETECT} = 'VETALL' || test ${COD_TYP_DETECT} = 'VET'
+if test ${COD_TYP_DETECT} = 'CMP' || test ${COD_TYP_DETECT} = 'VETALL'
 then
 
 echo -e "  >>>   Debut du traitement de la g n ration des etapes pour cmp ou vetall ou vet ">> $FIC_LOG
@@ -494,29 +526,6 @@ DECLARE
       		 vde.cod_dip,
       		 vde.cod_vrs_vdi;
 
-	-- curseur de recherche de VET et VDI par VET
-      cursor main_vet_in_cur(cod_etp_in in varchar2, cod_vrs_vet_in in varchar2,cod_anu_in in varchar2)
-      is
-      SELECT  vrl.cod_etp,
-      		vrl.cod_vrs_vet,
-	       vde.cod_dip,
-		vde.cod_vrs_vdi
-     	 FROM  version_etape vet,
-		VDI_FRACTIONNER_VET vde,
-		VET_REGROUPE_LSE vrl
-	 WHERE vet.cod_etp = cod_etp_in
-          AND vet.cod_vrs_vet = cod_vrs_vet_in
-          AND vde.COD_ETP = vet.COD_ETP 
-	   AND vde.cod_vrs_vet = vet.cod_vrs_vet 
-	   AND vde.daa_deb_val_vet <= cod_anu_in
-	   AND vde.daa_fin_val_vet >= cod_anu_in	
-	   AND vrl.COD_ETP = vde.COD_ETP 
-	   AND vrl.cod_vrs_vet = vde.COD_VRS_VET 
-	 GROUP BY vrl.cod_etp,
-      		 vrl.cod_vrs_vet,
-      		 vde.cod_dip,
-      		 vde.cod_vrs_vdi;
-
    BEGIN
  	
 	IF type_recherche = 'CMP'
@@ -539,16 +548,6 @@ DECLARE
 		 utl_file.fclose(fichier_sortie);
 	    end loop;
 	end if;
-	if type_recherche = 'VET'
-	then
-	    for main_vet_in_rec in main_vet_in_cur(cod_etp_in,cod_vrs_vet_in,cod_anu_in)
-	    loop
-	 	  fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
-		 linebuffer := main_vet_in_rec.cod_dip || '-' ||main_vet_in_rec.cod_vrs_vdi ||'>' ||  main_vet_in_rec.cod_etp ||'-' || main_vet_in_rec.cod_vrs_vet;
-		 utl_file.put_line(fichier_sortie,linebuffer);
-		 utl_file.fclose(fichier_sortie);
-	    end loop;
-	end if;
 		
    END;
 END;
@@ -565,10 +564,13 @@ fi
 sleep 1
 echo "  >>>   Suppression des espaces vides"
 # suppresion des espaces vides
-awk 'NF > 0'  ${path_directory}/${FIC_NAME_TMP} > ${DIR_FIC_TMP}/temp
-rm  -f ${path_directory}/${FIC_NAME_TMP} 
-cp ${DIR_FIC_TMP}/temp ${DIR_FIC_TMP}/${FIC_NAME_TMP}
-rm ${DIR_FIC_TMP}/temp
+if test ${COD_TYP_DETECT} = 'CMP' || test ${COD_TYP_DETECT} = 'VETALL'
+then
+ awk 'NF > 0'  ${path_directory}/${FIC_NAME_TMP} > ${DIR_FIC_TMP}/temp
+ rm  -f ${path_directory}/${FIC_NAME_TMP} 
+ cp ${DIR_FIC_TMP}/temp ${DIR_FIC_TMP}/${FIC_NAME_TMP}
+ rm ${DIR_FIC_TMP}/temp
+fi
 sleep 1
 
 COUNT_VET=`wc -l < ${DIR_FIC_TMP}/${FIC_NAME_TMP}`
@@ -597,8 +599,7 @@ COD_OBJ_FIC=`echo $ligne_etp | cut -f 1 -d "-"`
 COD_VRS_OBJ=`echo $ligne_etp | cut -f 2 -d "-"`
 
 echo -e "  >>>   Debut du traitement pour la code formation pegase :  $ligne  ">> $FIC_LOG
-echo  "  >>>     Traitement pour la VET :  ${COD_OBJ_FIC} ${COD_VRS_OBJ} "
-
+echo  "  >>>     Traitement pour la VET :  ${COD_OBJ_FIC} - ${COD_VRS_OBJ} "
 ## --------------------------------------------
 # ETAPE 3 : TRAITEMENT DES VALEURS
 # --------------------------------------------
@@ -739,10 +740,20 @@ echo -e "  >>>   Debut de la suppression des espaces vides dans le fichier inser
 echo -e "  >>>   Debut de la suppression des espaces vides dans le fichier insert">> $FIC_LOG
 
 
+if [ ! -e ${path_directory}/${FIC_NAME_APOGEE_INSERT} ];
+then
+	echo -e "  >>>   Erreur fichier"
+	echo -e "  >>>   Pas de Vac"
+	
+	exit
+
+fi
+
 awk 'NF > 0' ${path_directory}/${FIC_NAME_APOGEE_INSERT}  >> ${DIR_FIC_TMP}/cle_tmp.dat
 rm -f ${path_directory}/${FIC_NAME_APOGEE_INSERT}
 echo '' >> ${DIR_FIC_TMP}/cle_tmp.dat
-cp ${DIR_FIC_TMP}/cle_tmp.dat ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT} #rm ${DIR_FIC_TMP}/cle_tmp.dat
+cp ${DIR_FIC_TMP}/cle_tmp.dat ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT} 
+#rm -f ${DIR_FIC_TMP}/cle_tmp.dat
 
 echo -e "  >>>   Fin de la suppression des espaces vides dans le fichier insert"
 echo -e "  >>>   Fin de la suppression des espaces vides dans le fichier insert"  >> $FIC_LOG
@@ -756,9 +767,9 @@ echo -e "  >>>   Copie du fichier temporaire dans le dossier archive"
 echo -e "  >>>   Copie du fichier temporaire dans le dossier archive" >> $FIC_LOG
 
 number=0
-number=`cat ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT} | wc -l `
+number=`cat ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT} | wc -l` 
 
-if [ $number -le 1 ];
+if [ $number -le 1 ] ;
 then
 	echo -e "     "
 	echo -e "  >>>   Pas de VAC TROUVEE pour ces parametres !!!"

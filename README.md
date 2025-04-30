@@ -53,8 +53,8 @@ Dans un premier temps, le programme génère six fichiers en sortie:
  
                 - VET : pour une version d'étape (code etape et code version d'etape à renseigner dans le fichier)
 				    A renseigner !!! :
-					  -> COD_OBJ : Code étape
-					  -> COD_VRS_OBJ : Code version etape
+					  -> COD_OBJ : sous la forme du filtre formation pegase "COD_DIP-COD_VRS_VDI->ETP-COD_VRS_ETP
+					 
  
                 - CMP : pour toutes les versions d'étapes d'une composante (CONSEIL : -> VERIFIER ESPACE DISQUE)
  
@@ -65,7 +65,6 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 
    		- le critère COD_OBJ correspond soit un version d'étape si le critère COD_TYP_OBJ est égale à VET , soit un code composante si le critère COD_TYP_OBJ est égale à CMP
 
-       		- le critère COD_VRS_OBJ correspond soit un code version d'étape si le critère COD_TYP_OBJ est égale à VET 
 
        		- le critère TEM_DELETE (soit Y, soit N) pour interchanger le mode suppression (N) et le mode insertion (Y) 
 	   pour passage (script play_rdd_vac.sh) ou pour génération (script create_sql_pivot.sh)
