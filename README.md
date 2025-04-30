@@ -22,8 +22,8 @@ Ce programme permet de générer des validations d'acquis d'expérience pour rep
 
 > [!WARNING]
 > Creer une directory
-> 		CREATE OR REPLACE DIRECTORY my_dir_vac AS '/applications/apogee/apo_6_00/batch/fic/APOTPDB';
-> 		GRANT READ, WRITE ON DIRECTORY my_dir_vac TO apogee;
+	CREATE OR REPLACE DIRECTORY my_dir_vac AS '/applications/apogee/apo_6_00/batch/fic/APOTPDB';
+ 	GRANT READ, WRITE ON DIRECTORY my_dir_vac TO apogee;	
 
 ## Fichiers générés
 
