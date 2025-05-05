@@ -286,7 +286,7 @@ EOF`
 
 
 # parcours du fichier
-
+start=`date +%s`
 mapfile -t lines <  $fic_insert
 for ligne in "${lines[@]}"; do
 sql_condition_string=${ligne}
@@ -300,15 +300,8 @@ echo "  >>>>   Genération de la VAC module COC d'insertion pour le pivot  " >> 
 
 #recuperation des valeurs dans les clés
 IFS=';' read -r -a array <<< "$sql_condition_string"
-ANNEE="${array[0]}"
-COD_IND="${array[1]}"
-COD_ETP="${array[2]}"
-COD_VRS_VET="${array[3]}"
-COD_ELP="${array[4]}"
-DAT_DEC_ELP_VAA="${array[5]}"
-COD_CIP="${array[6]}"
-NOT_VAA="${array[7]}"
-BAR_NOT_VAA="${array[8]}"
+read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA <<< "$(echo "$sql_condition_string" | awk -F';' '{print $1, $2, $3, $4, $5, $6, $7, $8, $9}')"
+
 
 sqlplus -s <<FIN_SQL 
 ${STR_CONX}
@@ -466,10 +459,11 @@ EXIT
 FIN_SQL
 fi
 done
+end=`date +%s`
+runtime=$((end-start))
+sleep 1
 
-
-
-
+start=`date +%s`
 mapfile -t lines <  $fic_insert
 for ligne in "${lines[@]}"; do
 sql_condition_string=${ligne}
@@ -483,16 +477,7 @@ echo "  >>>  Genération de la VAC pour module CHC d'insertion  pour le pivot :$
 echo "  >>>>   Genération de la VAC module CHC d'insertion pour le pivot  " >> $FIC_LOG
 
 #recuperation des valeurs dans les clés
-IFS=';' read -r -a array <<< "$sql_condition_string"
-ANNEE="${array[0]}"
-COD_IND="${array[1]}"
-COD_ETP="${array[2]}"
-COD_VRS_VET="${array[3]}"
-COD_ELP="${array[4]}"
-DAT_DEC_ELP_VAA="${array[5]}"
-COD_CIP="${array[6]}"
-NOT_VAA="${array[7]}"
-BAR_NOT_VAA="${array[8]}"
+read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA <<< "$(echo "$sql_condition_string" | awk -F';' '{print $1, $2, $3, $4, $5, $6, $7, $8, $9}')"
 
 
 sqlplus -s <<FIN_SQL 
@@ -833,6 +818,10 @@ done
 sleep 1
 
 
+end=`date +%s`
+runtime_2=$((end-start))
+
+sleep 1
 
 
 
@@ -855,8 +844,8 @@ fi
 echo -e "  >>>   Fin Genération des VACS d'insertion pour la base pivot" >> $FIC_LOG
 echo -e "  >>>   Fin Genération des VACS d'insertion pour la base pivot"
 sleep 1
-
-
+echo "temps coc : ${runtime}"
+echo "temps chc : ${runtime_2}"
 # -----------------------------------------
 # Fin du programme
 # -----------------------------------------
