@@ -302,7 +302,7 @@ echo "  >>>>   Genération de la VAC module COC d'insertion pour le pivot  " >> 
 IFS=';' read -r -a array <<< "$sql_condition_string"
 read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA <<< "$(echo "$sql_condition_string" | awk -F';' '{print $1, $2, $3, $4, $5, $6, $7, $8, $9}')"
 
-
+COD_ELP=$(echo "${COD_ELP}" | sed "s/'/''/g")
 sqlplus -s <<FIN_SQL 
 ${STR_CONX}
 set serveroutput on
@@ -479,7 +479,7 @@ echo "  >>>>   Genération de la VAC module CHC d'insertion pour le pivot  " >> 
 #recuperation des valeurs dans les clés
 read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA <<< "$(echo "$sql_condition_string" | awk -F';' '{print $1, $2, $3, $4, $5, $6, $7, $8, $9}')"
 
-
+COD_ELP=$(echo "${COD_ELP}" | sed "s/'/''/g")
 sqlplus -s <<FIN_SQL 
 ${STR_CONX}
 set serveroutput on
@@ -763,8 +763,8 @@ BEGIN
 			LINEBUFFER := LINEBUFFER || '''' || ANNEE_VAL||''';';
 			LINEBUFFER := LINEBUFFER || '''' || COD_IND_VAL||''';';
 			LINEBUFFER := LINEBUFFER || '''' || COD_ETU_VAL||''';';
-			LINEBUFFER := LINEBUFFER || '''' || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||''';';
-			LINEBUFFER := LINEBUFFER || '''' || COD_ELP_VAL||''';';
+			LINEBUFFER := LINEBUFFER || '''' || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||''';';	
+			LINEBUFFER := LINEBUFFER || '''' || COD_ELP_VAL||''';';		
 			LINEBUFFER := LINEBUFFER || '''' || chemin_element||''';';
 			LINEBUFFER := LINEBUFFER || 'NULL;';
 			LINEBUFFER := LINEBUFFER || '''' || COD_ETB_VAL||''';';
