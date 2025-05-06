@@ -1,5 +1,4 @@
 
-	-> Lancer create_lcc.
 > [!WARNING]
 > Ce projet n'a pas encore atteint sa version stable. Il est donc sujet à des
 > modifications incompatibles de temps à autres.
