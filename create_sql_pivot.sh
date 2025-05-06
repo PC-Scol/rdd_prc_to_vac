@@ -290,17 +290,18 @@ start=`date +%s`
 mapfile -t lines <  $fic_insert
 for ligne in "${lines[@]}"; do
 sql_condition_string=${ligne}
-if [ ! -z ${sql_condition_string} ]
+if [  -z ${sql_condition_string} ]
 then
-
+  continue
+fi
 echo "  >>>  Genération de la VAC d'insertion (coc) pour le pivot :  ${sql_condition_string}"
 
 echo "  >>>  Genération de la VAC pour module COC d'insertion  pour le pivot :${sql_condition_string}" >> $FIC_LOG
 echo "  >>>>   Genération de la VAC module COC d'insertion pour le pivot  " >> $FIC_LOG
 
 #recuperation des valeurs dans les clés
-IFS=';' read -r -a array <<< "$sql_condition_string"
-read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA <<< "$(echo "$sql_condition_string" | awk -F';' '{print $1, $2, $3, $4, $5, $6, $7, $8, $9}')"
+
+IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA <<< "$sql_condition_string"
 
 COD_ELP=$(echo "${COD_ELP}" | sed "s/'/''/g")
 sqlplus -s <<FIN_SQL 
@@ -384,14 +385,14 @@ BEGIN
 		from element_pedagogi
 		where cod_elp = COD_ELP_VAL;
 
+		CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
+		code_filtre_formation := COD_DIP_VAL||'-'|| COD_VRS_VDI_VAL;
+
 		-- Création de la clé pour les COC et le filtre formation en fonction du préfixage
 		IF PREFIXON_VAC = 'Y'
 		THEN
 			CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'||PREFIX_VDI_VAC||'-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL ||'-'||PREFIX_VET_VAC||'-'||PREFIX_VET_VAC||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
 			code_filtre_formation := PREFIX_VET_VAC||'-'||COD_ETP_VAL||'-'|| COD_VRS_VET_VAL;
-		ELSE
-			CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
-			code_filtre_formation := COD_DIP_VAL||'-'|| COD_VRS_VDI_VAL;
 		END IF;
 	
 		--  Création de l'ordre d'insertion des coc en fonction des PRC trouvées dans APOGEE
@@ -457,7 +458,6 @@ END;
 /
 EXIT
 FIN_SQL
-fi
 done
 end=`date +%s`
 runtime=$((end-start))
@@ -468,8 +468,10 @@ mapfile -t lines <  $fic_insert
 for ligne in "${lines[@]}"; do
 sql_condition_string=${ligne}
 
-if [ ! -z ${sql_condition_string} ]
+if [ -z ${sql_condition_string} ]
 then
+   continue
+fi
 
 echo "  >>>  Genération de la VAC d'insertion (chc) pour le pivot :  ${sql_condition_string}"
 
@@ -477,7 +479,7 @@ echo "  >>>  Genération de la VAC pour module CHC d'insertion  pour le pivot :$
 echo "  >>>>   Genération de la VAC module CHC d'insertion pour le pivot  " >> $FIC_LOG
 
 #recuperation des valeurs dans les clés
-read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA <<< "$(echo "$sql_condition_string" | awk -F';' '{print $1, $2, $3, $4, $5, $6, $7, $8, $9}')"
+IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA <<< "$sql_condition_string"
 
 COD_ELP=$(echo "${COD_ELP}" | sed "s/'/''/g")
 sqlplus -s <<FIN_SQL 
@@ -562,118 +564,80 @@ BEGIN
 		cod_typ_lse_val varchar2(10);
 		niv number(8,0) := 0;
 	  BEGIN
-		DECLARE
-			 custom_exception EXCEPTION;
-		BEGIN	
-
+	
+		SELECT cod_dip
+		INTO COD_DIP_VAL
+		FROM (
+ 				SELECT cod_dip
+ 				FROM ins_adm_etp
+ 				 where cod_etp = COD_ETP_VAL
+			 		and cod_vrs_vet = COD_VRS_VET_VAL
+				 	and cod_anu = ANNEE_VAL
+				 	and cod_ind = COD_IND_VAL
+		)
+		WHERE ROWNUM = 1;		
+		 	
+		IF COD_DIP_VAL IS NULL
+		then 
 			SELECT cod_dip
 			INTO COD_DIP_VAL
 			FROM (
   				SELECT cod_dip
- 				FROM ins_adm_etp
- 				 where cod_etp = COD_ETP_VAL
-			 		and cod_vrs_vet = COD_VRS_VET_VAL
-				 	and cod_anu = ANNEE_VAL
-				 	and cod_ind = COD_IND_VAL
+ 				FROM vdi_fractionner_vet
+ 			 	where cod_etp = COD_ETP_VAL
+				and cod_vrs_vet = COD_VRS_VET_VAL
+				and daa_deb_rct_vet <=  ANNEE_VAL
+				and daa_fin_rct_vet >  ANNEE_VAL
 			)
-			WHERE ROWNUM = 1;		
-		 	
-			IF COD_DIP_VAL IS NULL
-			then 
-				raise custom_exception;
-			end if;
+			WHERE ROWNUM = 1;
 
-		EXCEPTION
-        	WHEN OTHERS
-			THEN 
-				SELECT cod_dip
-				INTO COD_DIP_VAL
-				FROM (
-  					SELECT cod_dip
- 					FROM vdi_fractionner_vet
- 				 	where cod_etp = COD_ETP_VAL
-					and cod_vrs_vet = COD_VRS_VET_VAL
-					and daa_deb_rct_vet <=  ANNEE_VAL
-					and daa_fin_rct_vet >  ANNEE_VAL
-				)
-				WHERE ROWNUM = 1;
-		END;
+		end if;
 
-		DECLARE
-			 custom_exception EXCEPTION;
-
-		BEGIN	
+		SELECT cod_vrs_vdi
+		INTO  COD_VRS_VDI_VAL
+		FROM (
+  			SELECT cod_vrs_vdi
+ 			FROM ins_adm_etp
+ 			where cod_etp = COD_ETP_VAL
+			and cod_vrs_vet = COD_VRS_VET_VAL
+			and cod_anu = ANNEE_VAL
+			and cod_ind = COD_IND_VAL
+		)
+		WHERE ROWNUM = 1;
+			
+			
+		IF COD_VRS_VDI_VAL IS NULL
+		then 
 			SELECT cod_vrs_vdi
 			INTO  COD_VRS_VDI_VAL
 			FROM (
   				SELECT cod_vrs_vdi
- 				FROM ins_adm_etp
- 				 where cod_etp = COD_ETP_VAL
-			 		and cod_vrs_vet = COD_VRS_VET_VAL
-				 	and cod_anu = ANNEE_VAL
-				 	and cod_ind = COD_IND_VAL
+ 				from vdi_fractionner_vet
+				where cod_etp = COD_ETP_VAL
+				and cod_vrs_vet = COD_VRS_VET_VAL
+				and daa_deb_rct_vet <=  ANNEE_VAL
+				and daa_fin_rct_vet >  ANNEE_VAL
 			)
 			WHERE ROWNUM = 1;
-			
-			
-			IF COD_VRS_VDI_VAL IS NULL
-			then 
-				raise custom_exception;
-			end if;
+		end if;
 		
-		EXCEPTION
-        	WHEN OTHERS
-			THEN 
-
-				SELECT cod_vrs_vdi
-				INTO  COD_VRS_VDI_VAL
-				FROM (
-  					SELECT cod_vrs_vdi
- 					from vdi_fractionner_vet
-					where cod_etp = COD_ETP_VAL
-					and cod_vrs_vet = COD_VRS_VET_VAL
-					and daa_deb_rct_vet <=  ANNEE_VAL
-					and daa_fin_rct_vet >  ANNEE_VAL
-				)
-				WHERE ROWNUM = 1;
-		END;
-
-		DECLARE
-			 custom_exception EXCEPTION;
-		BEGIN
-
+		SELECT cod_etu
+		INTO COD_ETU_VAL
+		FROM (
 			SELECT cod_etu
-				INTO COD_ETU_VAL
-				FROM (
-  					SELECT cod_etu
- 					from individu
-					where cod_ind  = COD_IND_VAL
-				)
-				WHERE ROWNUM = 1;
-
-		EXCEPTION
-        	WHEN OTHERS
-			THEN 
-		 	dbms_output.put_line('CODE ETU' || SQLERRM);
-		END;
-
-		DECLARE
-			 custom_exception EXCEPTION;
-
-		BEGIN
-			SELECT cod_nel
-				INTO COD_NEL_VAL				
-				FROM (
-  					SELECT cod_nel
- 					from element_pedagogi
-					where cod_elp = COD_ELP_VAL
-				)
-				WHERE ROWNUM = 1;
-		EXCEPTION
-        	WHEN OTHERS
-			THEN 
-		 	dbms_output.put_line('CODE NEL' ||SQLERRM);
-		END;
+			from individu
+			where cod_ind  = COD_IND_VAL
+		)
+		WHERE ROWNUM = 1;
+		
+		SELECT cod_nel
+		INTO COD_NEL_VAL				
+		FROM (
+  			SELECT cod_nel
+ 			from element_pedagogi
+			where cod_elp = COD_ELP_VAL
+		)
+		WHERE ROWNUM = 1;
 
 		count_elp := 0;
 
@@ -685,12 +649,10 @@ BEGIN
 			IF count_elp = 0
 			then
 			
+				chemin_element  := COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
 				IF PREFIXON_VAC = 'Y'
 				THEN
 					chemin_element := PREFIX_VDI_VAC||'-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL ||'>'||PREFIX_VET_VAC||'-'|| COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
-				ELSE
-					chemin_element  := COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
-					
 				END IF;
 				BEGIN
 					SELECT COD_LSE
@@ -710,12 +672,8 @@ BEGIN
    					 dbms_output.put_line(SQLERRM);
 				END;
 
-				if first_elp is not null then
-					first_elp := 'L-'|| first_elp;
-					
-					chemin_element := chemin_element || '>' || first_elp;	
-	
-				
+				if first_elp is not null then				
+					chemin_element := chemin_element || '>L-' || first_elp;	
 				END IF;
 				
 				-- si liste non trouve, ajout liste dans curseur
@@ -811,7 +769,7 @@ FIN_SQL
 
 	
 echo "  >>>> Fin Genération de la VAC module CHC d'insertion pour la base pivot " >> $FIC_LOG	
-fi
+
 done
 
 

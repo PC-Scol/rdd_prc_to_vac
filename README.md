@@ -1,4 +1,5 @@
 
+	-> Lancer create_lcc.
 > [!WARNING]
 > Ce projet n'a pas encore atteint sa version stable. Il est donc sujet à des
 > modifications incompatibles de temps à autres.
@@ -22,8 +23,9 @@ Ce programme permet de générer des validations d'acquis d'expérience pour rep
 
 > [!WARNING]
 > Creer une directory
+
 	CREATE OR REPLACE DIRECTORY my_dir_vac AS '/applications/apogee/apo_6_00/batch/fic/APOTPDB';
- 	GRANT READ, WRITE ON DIRECTORY my_dir_vac TO apogee;	
+	GRANT READ, WRITE ON DIRECTORY my_dir_vac TO apogee;	
 
 ## Fichiers générés
 
@@ -55,7 +57,6 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 				    A renseigner !!! :
 					  -> COD_OBJ : sous la forme du filtre formation pegase "COD_DIP-COD_VRS_VDI->ETP-COD_VRS_ETP
 					 
- 
                 - CMP : pour toutes les versions d'étapes d'une composante (CONSEIL : -> VERIFIER ESPACE DISQUE)
  
                 - VETALL : pour toutes les versions d'étapes qui sont ouvertes lors de l'année universitaire mises en paramètre                
@@ -123,5 +124,4 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 	12;Faire une injection normale des COC
 	   
 	
-Bonus : Projet de récupération des LCC pour les PRC 
-	-> Lancer create_lcc.sh puis, importer .csv généré sur Liens de correspondance pour calcul dans le module CHC
+Bonus : Projet de récupération des LCC pour les PRC sh puis, importer .csv généré sur Liens de correspondance pour calcul dans le module CHC
