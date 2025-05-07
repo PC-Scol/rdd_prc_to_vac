@@ -115,6 +115,7 @@ Commande SQL :
 
 
 \COPY apprenant_chc("id","code_periode","id_apprenant","code_apprenant","code_formation","code_objet_formation","code_chemin","code_type_objet_maquette","code_structure","type_chc","nombre_credit_formation","nombre_credit_objet_formation","temoin_objet_capitalisable","temoin_objet_conservable","duree_conservation","etat_objet_dispense","operation","type_amenagement","temoin_injection_chc") FROM 'fichier.csv' DELIMITER ';' CSV HEADER;
+
 ```
 
 	6. Vérifier la présence des VACS pour module CHC pour l'ensemble des étudiants dans la base pivot (dans la table apprenant_chc).
