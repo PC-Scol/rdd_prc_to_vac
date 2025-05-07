@@ -288,7 +288,12 @@ EOF`
 # parcours du fichier
 start=`date +%s`
 mapfile -t lines <  $fic_insert
+N=10
+(
 for ligne in "${lines[@]}"; do
+
+((i=i%N)); ((i++==0)) && wait
+
 sql_condition_string=${ligne}
 if [  -z ${sql_condition_string} ]
 then
@@ -346,8 +351,21 @@ BEGIN
    	       fichier  varchar2(100)     := '${FIC_NAME_PIVOT_INSERT_COC}';
 		fichier_sortie UTL_FILE.FILE_TYPE;
 
+		fexists   BOOLEAN;
+		file_length  NUMBER;
+  		block_size   BINARY_INTEGER;
+		entete varchar2(2000) :='"id";"code_formation";"code_objet_formation";"code_filtre_formation";"code_periode";"code_structure";"id_apprenant";"code_apprenant";"type_objet_formation";"code_mention";"grade_ects";"gpa";"note_retenue";"bareme_note_retenue";"point_jury_retenu";"note_session1";"bareme_note_session1";"point_jury_session1";"credit_ects_session1";"rang_session1";"note_session2";"bareme_note_session2";"point_jury_session2";"resultat_final";"resultat_session1";"resultat_session2";"rang_final";"credit_ects_final";"statut_deliberation_session1";"statut_deliberation_session2_final";"session_retenue";"absence_finale";"absence_session1";"absence_session2";"temoin_concerne_session2";"statut_publication_session1";"statut_publication_session2";"statut_publication_final";"temoin_capitalise";"temoin_conserve";"duree_conservation"; "note_minimale_conservation"; "temoin_validation_acquis"';
 
 	BEGIN
+
+		UTL_FILE.FGETATTR(repertoire  , fichier  , fexists, file_length, block_size);
+    		IF not fexists THEN       	
+			fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
+			utl_file.put_line(fichier_sortie,entete);
+			utl_file.fclose(fichier_sortie);
+			
+   		END IF;
+
 		 --Récupération des valeurs pour créer les clés et les ordres SQL
 					
 		 SELECT cod_dip
@@ -459,13 +477,21 @@ END;
 EXIT
 FIN_SQL
 done
+) &
+wait 
 end=`date +%s`
 runtime=$((end-start))
 sleep 1
 
 start=`date +%s`
 mapfile -t lines <  $fic_insert
+
+N=10
+(
 for ligne in "${lines[@]}"; do
+
+((i=i%N)); ((i++==0)) && wait
+
 sql_condition_string=${ligne}
 
 if [ -z ${sql_condition_string} ]
@@ -500,6 +526,7 @@ BEGIN
 		COD_ETB_VAL varchar2(10) := '${COD_ETB}';
 		COD_DIP_VAL varchar2(10) :=	NULL;
 		COD_VRS_VDI_VAL varchar2(10) := NULL;
+		CREDIT_VAL number(8,0) := null;
 		COD_NEL_VAL varchar2(10) := NULL;
 		NOT_VAA_VAL varchar2(10) := '${NOT_VAA}';
 		BAR_NOT_VAA_VAL varchar2(10) := '${BAR_NOT_VAA}';
@@ -519,11 +546,16 @@ BEGIN
 		first_elp varchar2(10) := 0;
 		isExists number(8,0) := 0;
 		EXCEPTION_PROGRAMME EXCEPTION;
-
+		
+		entete varchar2(2000) := '"id";"code_periode";"id_apprenant";"code_apprenant";"code_formation";"code_objet_formation";"code_chemin";"code_type_objet_maquette";"code_structure";"type_chc";"nombre_credit_formation";"nombre_credit_objet_formation";"temoin_objet_capitalisable";"temoin_objet_conservable";"duree_conservation";"etat_objet_dispense";"operation";"type_amenagement";"temoin_injection_chc"';
 		-- utl file config
 	       repertoire  varchar2(100)  := '${DIRECTORY}';
    	       fichier  varchar2(100)     := '${FIC_NAME_PIVOT_INSERT_CHC}';
 		fichier_sortie UTL_FILE.FILE_TYPE;
+
+		fexists   BOOLEAN;
+		file_length  NUMBER;
+  		block_size   BINARY_INTEGER;
 
 	BEGIN
 	  DECLARE
@@ -564,6 +596,15 @@ BEGIN
 		cod_typ_lse_val varchar2(10);
 		niv number(8,0) := 0;
 	  BEGIN
+
+		UTL_FILE.FGETATTR(repertoire  , fichier  , fexists, file_length, block_size);
+    		IF not fexists THEN       	
+			fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
+			utl_file.put_line(fichier_sortie,entete);
+			utl_file.fclose(fichier_sortie);
+			
+   		END IF;
+
 	
 		SELECT cod_dip
 		INTO COD_DIP_VAL
@@ -605,6 +646,18 @@ BEGIN
 		)
 		WHERE ROWNUM = 1;
 			
+		SELECT NBR_CRD_VDI_INS
+		INTO  CREDIT_VAL
+		FROM (
+  			SELECT NBR_CRD_VDI_INS
+ 			FROM ins_adm_etp
+ 			where cod_etp = COD_ETP_VAL
+			and cod_vrs_vet = COD_VRS_VET_VAL
+			and cod_anu = ANNEE_VAL
+			and cod_ind = COD_IND_VAL
+		)
+		WHERE ROWNUM = 1;
+
 			
 		IF COD_VRS_VDI_VAL IS NULL
 		then 
@@ -727,8 +780,8 @@ BEGIN
 			LINEBUFFER := LINEBUFFER || 'NULL;';
 			LINEBUFFER := LINEBUFFER || '''' || COD_ETB_VAL||''';';
 			LINEBUFFER := LINEBUFFER || '''N'';';
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-			LINEBUFFER := LINEBUFFER || 'NULL;';
+			LINEBUFFER := LINEBUFFER ||CREDIT_VAL||';';			
+			LINEBUFFER := LINEBUFFER || '0;';
 			LINEBUFFER := LINEBUFFER || '''O'';';
 			LINEBUFFER := LINEBUFFER || '''N'';';
 			LINEBUFFER := LINEBUFFER || 'NULL;';
@@ -771,7 +824,8 @@ FIN_SQL
 echo "  >>>> Fin Genération de la VAC module CHC d'insertion pour la base pivot " >> $FIC_LOG	
 
 done
-
+) &
+wait 
 
 sleep 1
 
