@@ -87,15 +87,15 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 
    Si insertion dans APOGEE :
 
-  	 3. Lancer le script play_rdd_vac.sh en mode insertion (TEM_DELETE=N) pour inserer les vacs générées.
+  	3. Lancer le script play_rdd_vac.sh en mode insertion (TEM_DELETE=N) pour inserer les vacs générées.
 
-  	 4. Vérifier la présence des VACS pour l'ensemble des étudiants.
+  	4. Vérifier la présence des VACS pour l'ensemble des étudiants.
      
-   	 5. Déverser les informations des modules ODF, CHC et INS dans la base pivot.
+   	5. Déverser les informations des modules ODF, CHC et INS dans la base pivot.
 
-  	 6. Vérifier la présence des vacs dans la table apprenant_chc
-
-	 7. Faire une injection normale 
+  	6. Vérifier la présence des vacs dans la table apprenant_chc
+	
+	7. Faire une injection normale 
  
   	 Si vous voulez supprimer les VACS 
 		- Relancer le script play_rdd_vac.sh en mode suppression (TEM_DELETE=Y) pour supprimer les vacs générées.
@@ -106,8 +106,17 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 
 	4. Lancer le script create_sql_pivot.sh en mode insertion pour inserer les vacs générées pour inserer les VACS dans la base pivot.
 	
-	5. Lancer le script généré pour les CHC et les COC dans la base pivot dans le dossier fichier_sortie_sql
- 
+	5. Mettre le fichier csv généré pour les CHC et les COC dans la base pivot dans le dossier fichier_sortie_sql avec les commandes ci-dessous
+
+```sql
+Commande SQL :
+
+\COPY apprenant_coc("id","code_formation","code_objet_formation","code_filtre_formation","code_periode","code_structure","id_apprenant","code_apprenant","type_objet_formation","code_mention","grade_ects","gpa","note_retenue","bareme_note_retenue","point_jury_retenu","note_session1","bareme_note_session1","point_jury_session1","credit_ects_session1","rang_session1","note_session2","bareme_note_session2","point_jury_session2","resultat_final","resultat_session1","resultat_session2","rang_final","credit_ects_final","statut_deliberation_session1","statut_deliberation_session2_final","session_retenue","absence_finale","absence_session1","absence_session2","temoin_concerne_session2","statut_publication_session1","statut_publication_session2","statut_publication_final","temoin_capitalise","temoin_conserve","duree_conservation", "note_minimale_conservation", "temoin_validation_acquis") FROM 'fichier.csv' DELIMITER ';' CSV HEADER;
+
+
+\COPY apprenant_chc("id","code_periode","id_apprenant","code_apprenant","code_formation","code_objet_formation","code_chemin","code_type_objet_maquette","code_structure","type_chc","nombre_credit_formation","nombre_credit_objet_formation","temoin_objet_capitalisable","temoin_objet_conservable","duree_conservation","etat_objet_dispense","operation","type_amenagement","temoin_injection_chc") FROM 'fichier.csv' DELIMITER ';' CSV HEADER;
+```
+
 	6. Vérifier la présence des VACS pour module CHC pour l'ensemble des étudiants dans la base pivot (dans la table apprenant_chc).
  
  	7. Passer script script_suppression_chc_superflus;sql pour supprimer les éléments fils sous une EVAL
@@ -118,9 +127,9 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 
 	10. Passer script script_coc_mcc.sql pour eviter probleme conteneur COC et probleme calcul des MCC
 			
-    	11.Faire le calcul des MCC et les injecter
+    11. Faire le calcul des MCC et les injecter
 
-	12;Faire une injection normale des COC
+	12. Faire une injection normale des COC
 	   
 	
 Bonus : Projet de récupération des LCC pour les PRC sh puis, importer .csv généré sur Liens de correspondance pour calcul dans le module CHC
