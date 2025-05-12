@@ -285,20 +285,18 @@ exit
 EOF`
 
 
-# parcours du fichier
-start=`date +%s`
-mapfile -t lines <  $fic_insert
-N=10
-(
-for ligne in "${lines[@]}"; do
-
-((i=i%N)); ((i++==0)) && wait
+process_coc() {
+local ligne=$1
+local str_conx=$2
 
 sql_condition_string=${ligne}
+
 if [  -z ${sql_condition_string} ]
 then
-  continue
+  exit
 fi
+
+
 echo "  >>>  Genération de la VAC d'insertion (coc) pour le pivot :  ${sql_condition_string}"
 
 echo "  >>>  Genération de la VAC pour module COC d'insertion  pour le pivot :${sql_condition_string}" >> $FIC_LOG
@@ -310,7 +308,7 @@ IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP N
 
 COD_ELP=$(echo "${COD_ELP}" | sed "s/'/''/g")
 sqlplus -s <<FIN_SQL 
-${STR_CONX}
+${str_conx}
 set serveroutput on
 SET HEADING OFF
 SET FEEDBACK OFF 
@@ -476,9 +474,41 @@ END;
 /
 EXIT
 FIN_SQL
+
+}
+
+# Number of threads
+num_threads=4
+
+# parcours du fichier
+start=`date +%s`
+mapfile -t lines <  $fic_insert
+
+array_length=${#lines[@]}
+number_item=$((${array_length}/${num_threads}))
+items_per_packet=$(printf "%.0f" "$number_item")
+
+
+# Process items in packets
+for ((i=0; i<${#lines[@]}; i+=$items_per_packet)); do
+    # Create a packet of items
+    packet=("${lines[@]:$i:$items_per_packet}")
+
+    # Process the packet in parallel
+    (
+        for item in "${packet[@]}"; do
+            process_coc "${item}" "${STR_CONX}"
+	 done
+    ) &
+    pids+=($!)  # Store the process ID
+    # If we have reached the maximum number of threads, wait for one to finish
+    if [[ ${#pids[@]} -eq $num_threads ]]; then
+        wait -n
+        pids=("${pids[@]/$!/}")  # Remove the finished process ID from the array
+    fi
+
 done
-) &
-wait 
+
 end=`date +%s`
 runtime=$((end-start))
 sleep 1
@@ -486,17 +516,20 @@ sleep 1
 start=`date +%s`
 mapfile -t lines <  $fic_insert
 
-N=10
-(
-for ligne in "${lines[@]}"; do
+array_length=${#lines[@]}
+number_item=$((${array_length}/${num_threads}))
+items_per_packet=$(printf "%.0f" "$number_item")
 
-((i=i%N)); ((i++==0)) && wait
+
+process_chc() {
+local ligne=$1
+local str_conx=$2
 
 sql_condition_string=${ligne}
 
-if [ -z ${sql_condition_string} ]
+if [  -z ${sql_condition_string} ]
 then
-   continue
+  exit
 fi
 
 echo "  >>>  Genération de la VAC d'insertion (chc) pour le pivot :  ${sql_condition_string}"
@@ -819,13 +852,30 @@ END;
 /
 EXIT
 FIN_SQL
+}
 
-	
-echo "  >>>> Fin Genération de la VAC module CHC d'insertion pour la base pivot " >> $FIC_LOG	
+# Process items in packets
+for ((i=0; i<${#lines[@]}; i+=$items_per_packet)); do
+    # Create a packet of items
+    packet=("${lines[@]:$i:$items_per_packet}")
+
+    # Process the packet in parallel
+    (
+        for item in "${packet[@]}"; do
+            process_chc "${item}" "${STR_CONX}"
+	 done
+    ) &
+    pids+=($!)  # Store the process ID
+    # If we have reached the maximum number of threads, wait for one to finish
+    if [[ ${#pids[@]} -eq $num_threads ]]; then
+        wait -n
+        pids=("${pids[@]/$!/}")  # Remove the finished process ID from the array
+    fi
 
 done
-) &
-wait 
+
+wait
+
 
 sleep 1
 
