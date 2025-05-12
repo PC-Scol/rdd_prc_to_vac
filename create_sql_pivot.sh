@@ -366,40 +366,118 @@ BEGIN
 
 		 --Récupération des valeurs pour créer les clés et les ordres SQL
 					
-		 SELECT cod_dip
-			INTO COD_DIP_VAL
-			FROM (
-  				SELECT cod_dip
+		DECLARE
+			 custom_exception EXCEPTION;
+		BEGIN	
+	
+		SELECT cod_dip
+		INTO COD_DIP_VAL
+		FROM (
+ 				SELECT cod_dip
  				FROM ins_adm_etp
  				 where cod_etp = COD_ETP_VAL
 			 		and cod_vrs_vet = COD_VRS_VET_VAL
 				 	and cod_anu = ANNEE_VAL
 				 	and cod_ind = COD_IND_VAL
 			)
-		WHERE ROWNUM = 1;
-	
+			WHERE ROWNUM = 1;			
+		 	
+			IF COD_DIP_VAL IS NULL
+			then 
+				raise custom_exception;
+			end if;
+
+		EXCEPTION
+        	WHEN OTHERS
+			THEN 
+				SELECT cod_dip
+				INTO COD_DIP_VAL
+				FROM (
+  					SELECT cod_dip
+ 					FROM vdi_fractionner_vet
+ 				 	where cod_etp = COD_ETP_VAL
+					and cod_vrs_vet = COD_VRS_VET_VAL
+					and daa_deb_rct_vet <=  ANNEE_VAL
+					and daa_fin_rct_vet >  ANNEE_VAL
+				)
+				WHERE ROWNUM = 1;
+		END;		
+
+		DECLARE
+			 custom_exception EXCEPTION;
+		BEGIN	
 		SELECT cod_vrs_vdi
 		INTO  COD_VRS_VDI_VAL
 		FROM (
   			SELECT cod_vrs_vdi
- 			from vdi_fractionner_vet
-			where cod_etp = COD_ETP_VAL
+ 			FROM ins_adm_etp
+ 			where cod_etp = COD_ETP_VAL
 			and cod_vrs_vet = COD_VRS_VET_VAL
-			and daa_deb_rct_vet <=  ANNEE_VAL
-			and daa_fin_rct_vet >  ANNEE_VAL
+			and cod_anu = ANNEE_VAL
+			and cod_ind = COD_IND_VAL
 		)
-		WHERE ROWNUM = 1;
+		WHERE ROWNUM = 1;	
+			
+			
+		IF COD_VRS_VDI_VAL IS NULL
+		then 			
+			RAISE custom_exception;
+			
+		END IF;
+		EXCEPTION
+        	WHEN OTHERS
+			THEN 
+		 	SELECT cod_vrs_vdi
+			INTO  COD_VRS_VDI_VAL
+			FROM (
+  				SELECT cod_vrs_vdi
+ 				FROM vdi_fractionner_vet
+ 				 	where cod_etp = COD_ETP_VAL
+					and cod_vrs_vet = COD_VRS_VET_VAL
+					and daa_deb_rct_vet <=  ANNEE_VAL
+					and daa_fin_rct_vet >  ANNEE_VAL
+ 			)
+			WHERE ROWNUM = 1;		
+		END;
+
+		
+	
+		DECLARE
+			 custom_exception EXCEPTION;
+		BEGIN
 
 		SELECT cod_etu
-		into COD_ETU_VAL
-		from individu
-		where cod_ind  = COD_IND_VAL;
+		INTO COD_ETU_VAL
+		FROM (
+ 			 SELECT cod_etu
+			 from individu
+			 where cod_ind  = COD_IND_VAL
+		   )
+		 WHERE ROWNUM = 1;
 
+		EXCEPTION
+        	WHEN OTHERS
+			THEN 
+		 	dbms_output.put_line('CODE ETU' || SQLERRM);
+		END;
 
-		select cod_nel
-		into COD_NEL_VAL
-		from element_pedagogi
-		where cod_elp = COD_ELP_VAL;
+		DECLARE
+			 custom_exception EXCEPTION;
+
+		BEGIN
+			SELECT cod_nel
+				INTO COD_NEL_VAL				
+				FROM (
+  					SELECT cod_nel
+ 					from element_pedagogi
+					where cod_elp = COD_ELP_VAL
+				)
+				WHERE ROWNUM = 1;
+		EXCEPTION
+        	WHEN OTHERS
+			THEN 
+		 	dbms_output.put_line('CODE NEL' ||SQLERRM);
+		END;
 
 		CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
 		code_filtre_formation := COD_DIP_VAL||'-'|| COD_VRS_VDI_VAL;
@@ -499,7 +577,7 @@ for ((i=0; i<${#lines[@]}; i+=$items_per_packet)); do
         for item in "${packet[@]}"; do
             process_coc "${item}" "${STR_CONX}"
 	 done
-    ) &
+    ) & 
     pids+=($!)  # Store the process ID
     # If we have reached the maximum number of threads, wait for one to finish
     if [[ ${#pids[@]} -eq $num_threads ]]; then
@@ -509,17 +587,17 @@ for ((i=0; i<${#lines[@]}; i+=$items_per_packet)); do
 
 done
 
+
+# wait for all pids
+for pid in ${pids[*]}; do
+    wait $pid
+done
+
 end=`date +%s`
 runtime=$((end-start))
 sleep 1
 
 start=`date +%s`
-mapfile -t lines <  $fic_insert
-
-array_length=${#lines[@]}
-number_item=$((${array_length}/${num_threads}))
-items_per_packet=$(printf "%.0f" "$number_item")
-
 
 process_chc() {
 local ligne=$1
@@ -639,6 +717,12 @@ BEGIN
    		END IF;
 
 	
+		 --Récupération des valeurs pour créer les clés et les ordres SQL
+					
+		DECLARE
+			 custom_exception EXCEPTION;
+		BEGIN	
+	
 		SELECT cod_dip
 		INTO COD_DIP_VAL
 		FROM (
@@ -648,25 +732,33 @@ BEGIN
 			 		and cod_vrs_vet = COD_VRS_VET_VAL
 				 	and cod_anu = ANNEE_VAL
 				 	and cod_ind = COD_IND_VAL
-		)
-		WHERE ROWNUM = 1;		
-		 	
-		IF COD_DIP_VAL IS NULL
-		then 
-			SELECT cod_dip
-			INTO COD_DIP_VAL
-			FROM (
-  				SELECT cod_dip
- 				FROM vdi_fractionner_vet
- 			 	where cod_etp = COD_ETP_VAL
-				and cod_vrs_vet = COD_VRS_VET_VAL
-				and daa_deb_rct_vet <=  ANNEE_VAL
-				and daa_fin_rct_vet >  ANNEE_VAL
 			)
-			WHERE ROWNUM = 1;
+			WHERE ROWNUM = 1;			
+		 	
+			IF COD_DIP_VAL IS NULL
+			then 
+				raise custom_exception;
+			end if;
 
-		end if;
-
+		EXCEPTION
+        	WHEN OTHERS
+			THEN 
+				SELECT cod_dip
+				INTO COD_DIP_VAL
+				FROM (
+  					SELECT cod_dip
+ 					FROM vdi_fractionner_vet
+ 				 	where cod_etp = COD_ETP_VAL
+					and cod_vrs_vet = COD_VRS_VET_VAL
+					and daa_deb_rct_vet <=  ANNEE_VAL
+					and daa_fin_rct_vet >  ANNEE_VAL
+				)
+				WHERE ROWNUM = 1;
+		END;
+		
+		DECLARE
+			 custom_exception EXCEPTION;
+		BEGIN	
 		SELECT cod_vrs_vdi
 		INTO  COD_VRS_VDI_VAL
 		FROM (
@@ -677,53 +769,68 @@ BEGIN
 			and cod_anu = ANNEE_VAL
 			and cod_ind = COD_IND_VAL
 		)
-		WHERE ROWNUM = 1;
+		WHERE ROWNUM = 1;	
 			
-		SELECT NBR_CRD_VDI_INS
-		INTO  CREDIT_VAL
-		FROM (
-  			SELECT NBR_CRD_VDI_INS
- 			FROM ins_adm_etp
- 			where cod_etp = COD_ETP_VAL
-			and cod_vrs_vet = COD_VRS_VET_VAL
-			and cod_anu = ANNEE_VAL
-			and cod_ind = COD_IND_VAL
-		)
-		WHERE ROWNUM = 1;
-
 			
 		IF COD_VRS_VDI_VAL IS NULL
-		then 
-			SELECT cod_vrs_vdi
+		then 			
+			RAISE custom_exception;
+			
+		END IF;
+		EXCEPTION
+        	WHEN OTHERS
+			THEN 
+		 	SELECT cod_vrs_vdi
 			INTO  COD_VRS_VDI_VAL
 			FROM (
   				SELECT cod_vrs_vdi
- 				from vdi_fractionner_vet
-				where cod_etp = COD_ETP_VAL
-				and cod_vrs_vet = COD_VRS_VET_VAL
-				and daa_deb_rct_vet <=  ANNEE_VAL
-				and daa_fin_rct_vet >  ANNEE_VAL
-			)
-			WHERE ROWNUM = 1;
-		end if;
+ 				FROM vdi_fractionner_vet
+ 				 	where cod_etp = COD_ETP_VAL
+					and cod_vrs_vet = COD_VRS_VET_VAL
+					and daa_deb_rct_vet <=  ANNEE_VAL
+					and daa_fin_rct_vet >  ANNEE_VAL
+ 			)
+			WHERE ROWNUM = 1;		
+		END;
+
 		
+	
+		DECLARE
+			 custom_exception EXCEPTION;
+		BEGIN
+
 		SELECT cod_etu
 		INTO COD_ETU_VAL
 		FROM (
-			SELECT cod_etu
-			from individu
-			where cod_ind  = COD_IND_VAL
-		)
-		WHERE ROWNUM = 1;
-		
-		SELECT cod_nel
-		INTO COD_NEL_VAL				
-		FROM (
-  			SELECT cod_nel
- 			from element_pedagogi
-			where cod_elp = COD_ELP_VAL
-		)
-		WHERE ROWNUM = 1;
+ 			 SELECT cod_etu
+			 from individu
+			 where cod_ind  = COD_IND_VAL
+		   )
+		   WHERE ROWNUM = 1;
+
+		EXCEPTION
+        	WHEN OTHERS
+			THEN 
+		 	dbms_output.put_line('CODE ETU' || SQLERRM);
+		END;
+
+		DECLARE
+			 custom_exception EXCEPTION;
+
+		BEGIN
+			SELECT cod_nel
+				INTO COD_NEL_VAL				
+				FROM (
+  					SELECT cod_nel
+ 					from element_pedagogi
+					where cod_elp = COD_ELP_VAL
+				)
+				WHERE ROWNUM = 1;
+		EXCEPTION
+        	WHEN OTHERS
+			THEN 
+		 	dbms_output.put_line('CODE NEL' ||SQLERRM);
+		END;
 
 		count_elp := 0;
 
@@ -864,7 +971,7 @@ for ((i=0; i<${#lines[@]}; i+=$items_per_packet)); do
         for item in "${packet[@]}"; do
             process_chc "${item}" "${STR_CONX}"
 	 done
-    ) &
+    )  &
     pids+=($!)  # Store the process ID
     # If we have reached the maximum number of threads, wait for one to finish
     if [[ ${#pids[@]} -eq $num_threads ]]; then
@@ -874,8 +981,10 @@ for ((i=0; i<${#lines[@]}; i+=$items_per_packet)); do
 
 done
 
-wait
-
+# wait for all pids
+for pid in ${pids[*]}; do
+    wait $pid
+done
 
 sleep 1
 
