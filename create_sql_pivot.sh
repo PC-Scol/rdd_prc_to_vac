@@ -55,6 +55,7 @@ echo "  >>>   Prefix VDI : ${PREFIX_VDI} "
 echo "  >>>   Prefix VET : ${PREFIX_VET} "	
 echo "  >>>   Code établissement : ${COD_ETB} "
 echo "  >>>   Directory Cree : ${DIRECTORY} "
+echo "  >>>   Nombre de Thread: ${NBTHR} "
 echo "  >>>   En mode génération des VAC d'insertion !!"
 
 
@@ -63,6 +64,10 @@ if [ ! "${COD_ANU}" ] || [ ! "${COD_ETB}" ]  || [ ! "${MDP_APOGEE}" ] || [ ! "${
    exit
 fi
 
+if [ ! "${NBTHR}" ] ;then
+   echo "  >>> Probleme paramètre"
+   exit
+fi
 
 	        
 echo "-------------------------------------------------"
@@ -164,7 +169,7 @@ PDB=`printenv | grep ^TWO_TASK= | cut -d\= -f2`
 
 COD_ETB=`grep "^COD_ETB" $FIC_INI | cut -d\: -f2`
 
-
+NBTHR=`grep "^NB_THREAD" $FIC_INI | cut -d\: -f2`
 
 #  Vérification existance du dossier log
 if  ! test -d ${DIR_FIC_LOG}
@@ -556,7 +561,7 @@ FIN_SQL
 }
 
 # Number of threads
-num_threads=4
+num_threads=${NBTHR}
 
 # parcours du fichier
 start=`date +%s`

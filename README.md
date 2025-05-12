@@ -82,6 +82,7 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 		 - le critère PDB correspond à la variable d'environnement
 		 	 A renseigner !!! : votre PDB n'est pas renseigner
 
+		 - le critère NB_THREAD correspond au nombre de thread (uniquement pour create_sql_pivot.sh)
   2. Lancer le script rdd_vac pour générer les vacs.
 
 
