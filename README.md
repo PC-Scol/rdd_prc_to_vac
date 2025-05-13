@@ -112,10 +112,18 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 ```sql
 Commande SQL :
 
-\COPY apprenant_coc("id","code_formation","code_objet_formation","code_filtre_formation","code_periode","code_structure","id_apprenant","code_apprenant","type_objet_formation","code_mention","grade_ects","gpa","note_retenue","bareme_note_retenue","point_jury_retenu","note_session1","bareme_note_session1","point_jury_session1","credit_ects_session1","rang_session1","note_session2","bareme_note_session2","point_jury_session2","resultat_final","resultat_session1","resultat_session2","rang_final","credit_ects_final","statut_deliberation_session1","statut_deliberation_session2_final","session_retenue","absence_finale","absence_session1","absence_session2","temoin_concerne_session2","statut_publication_session1","statut_publication_session2","statut_publication_final","temoin_capitalise","temoin_conserve","duree_conservation", "note_minimale_conservation", "temoin_validation_acquis") FROM 'fichier.csv' DELIMITER ';' CSV HEADER;
+ CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_chc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_chc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;
 
 
-\COPY apprenant_chc("id","code_periode","id_apprenant","code_apprenant","code_formation","code_objet_formation","code_chemin","code_type_objet_maquette","code_structure","type_chc","nombre_credit_formation","nombre_credit_objet_formation","temoin_objet_capitalisable","temoin_objet_conservable","duree_conservation","etat_objet_dispense","operation","type_amenagement","temoin_injection_chc") FROM 'fichier.csv' DELIMITER ';' CSV HEADER;
+CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_coc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_coc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;
+
+```
+Si dans DOCKER
+```docker
+
+docker exec -i pivot_postgrestest_1  psql -U pcscol -d pivotbdd -c " CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_chc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_chc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;"
+
+docker exec -i pivot_postgrestest_1  psql -U pcscol -d pivotbdd -c " CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_coc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_coc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;"
 
 ```
 
