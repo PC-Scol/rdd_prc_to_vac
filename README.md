@@ -66,7 +66,7 @@ Dans un premier temps, le programme génère six fichiers en sortie:
    		- le critère COD_OBJ correspond soit un version d'étape si le critère COD_TYP_OBJ est égale à VET , soit un code composante si le critère COD_TYP_OBJ est égale à CMP
 
 
-       		- le critère TEM_DELETE (soit Y, soit N) pour interchanger le mode suppression (N) et le mode insertion (Y) 
+       	- le critère TEM_DELETE (soit Y, soit N) pour interchanger le mode suppression (N) et le mode insertion (Y) 
 	   pour passage (script play_rdd_vac.sh) ou pour génération (script create_sql_pivot.sh)
 
     	 -  le critère COD_ETB: code établissement
