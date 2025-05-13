@@ -103,9 +103,9 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 
   Soit insertion dans la base pivot :
 
-	3. Déverser les informations des modules ODF, CHC et INS dans la base pivot.
+	3. Déverser les informations des modules CHC et COC dans la base pivot.
 
-	4. Lancer le script create_sql_pivot.sh en mode insertion pour inserer les vacs générées pour inserer les VACS dans la base pivot.
+	4. Lancer le script create_sql_pivot.sh en mode insertion pour générer les fichiers CSV.
 	
 	5. Mettre le fichier csv généré pour les CHC et les COC dans la base pivot dans le dossier fichier_sortie_sql avec les commandes ci-dessous
 
@@ -118,18 +118,24 @@ Commande SQL :
 CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_coc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_coc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;
 
 ```
-Si dans DOCKER
+
 ```docker
 
+Si dans DOCKER
+
+docker cp 'nom_fichier.csv' pivot_postgrestest_1:/tmp
+
 docker exec -i pivot_postgrestest_1  psql -U pcscol -d pivotbdd -c " CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_chc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_chc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;"
+
+docker cp 'nom_fichier.csv' pivot_postgrestest_1:/tmp
 
 docker exec -i pivot_postgrestest_1  psql -U pcscol -d pivotbdd -c " CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_coc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_coc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;"
 
 ```
 
-	6. Vérifier la présence des VACS pour module CHC pour l'ensemble des étudiants dans la base pivot (dans la table apprenant_chc).
+	6. Vérifier la présence des VACS pour module CHC et dans le module COC pour l'ensemble des étudiants dans la base pivot (dans la table apprenant_chc).
  
- 	7. Passer script script_suppression_chc_superflus;sql pour supprimer les éléments fils sous une EVAL
+ 	7. Passer script script_suppression_chc_superflus.sql pour supprimer les éléments fils sous une EVAL
   
 	8. Passer les audits des modules CHC et COC
 
