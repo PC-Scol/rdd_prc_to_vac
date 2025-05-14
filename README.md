@@ -92,7 +92,7 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 
   	4. Vérifier la présence des VACS pour l'ensemble des étudiants.
      
-   	5. Déverser les informations des modules ODF, CHC et INS dans la base pivot.
+   	5. Déverser les informations des modules CHC et COC dans la base pivot.
 
   	6. Vérifier la présence des vacs dans la table apprenant_chc
 	
@@ -136,12 +136,14 @@ docker exec -i pivot_postgrestest_1  psql -U pcscol -d pivotbdd -c " CREATE TABL
 	6. Vérifier la présence des VACS pour module CHC et dans le module COC pour l'ensemble des étudiants dans la base pivot (dans la table apprenant_chc).
  
  	7. Passer script script_suppression_chc_superflus.sql pour supprimer les éléments fils sous une EVAL
+	   (Problème du à l'injection des CHC après le déversement du module CHC)
   
 	8. Passer les audits des modules CHC et COC
 
 	9. Faire une injection normale des CHC
 
 	10. Passer script script_coc_mcc.sql pour eviter probleme conteneur COC et probleme calcul des MCC
+		(Problème du à l'injection des COC après le déversement du module COC)
 			
     11. Faire le calcul des MCC et les injecter
 

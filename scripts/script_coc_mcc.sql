@@ -184,10 +184,22 @@ begin
 	close cur_mcc_element;
 
  	RAISE NOTICE ' ---> MAJ duree conservation';
-		update apprenant_coc
-		set duree_conservation = 99,
-			 note_minimale_conservation = 10
-		where temoin_conserve = 'O';
+		update apprenant_coc coc1
+		set duree_conservation = (
+											select max(duree_conservation)
+											from apprenant_coc coc2
+											where coc2.code_objet_formation  = coc1.code_objet_formation 
+											and coc2.code_filtre_formation = coc1.code_filtre_formation
+											and coc2.code_periode = coc1.code_periode
+											),
+			 note_minimale_conservation = (
+											select max(note_minimale_conservation)
+											from apprenant_coc coc2
+											where coc2.code_objet_formation  = coc1.code_objet_formation 
+											and coc2.code_filtre_formation = coc1.code_filtre_formation
+											and coc2.code_periode = coc1.code_periode
+											)
+		 where temoin_conserve = 'O';
 RAISE NOTICE '=============================================';
 RAISE NOTICE 'Fin';
 end;
