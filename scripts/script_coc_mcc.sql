@@ -4,7 +4,7 @@ declare
 	-- cursor de recherche des élements fils
 	cur_element_fils cursor for select distinct code_apprenant ||'-' || code_objet_formation id
 										 from apprenant_coc appcoc
-										 where not exists (select 1 from apprenant_chc appchc where appchc.code_apprenant = appcoc.code_apprenant and (appcoc.code_objet_formation = appchc.code_objet_formation) and appchc.code_formation = appcoc.code_filtre_formation )
+										 where not exists (select 1 from apprenant_chc appchc where appchc.code_apprenant = appcoc.code_apprenant and (appcoc.code_objet_formation = appchc.code_objet_formation) and appchc.code_formation = appcoc.code_filtre_formation and appcoc.code_periode = appcoc.code_periode)
 										 and appcoc.code_objet_formation is not null;
 
 	-- modification des temoins de capitalisation ( probleme lors des calculs des MCC)
