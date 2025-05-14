@@ -112,7 +112,7 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 ```sql
 Commande SQL :
 
- CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_chc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_chc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;
+CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_chc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_chc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;
 
 
 CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_coc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_coc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;

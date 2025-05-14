@@ -572,28 +572,27 @@ number_item=$((${array_length}/${num_threads}))
 items_per_packet=$(printf "%.0f" "$number_item")
 
 
-# Process items in packets
+
 for ((i=0; i<${#lines[@]}; i+=$items_per_packet)); do
-    # Create a packet of items
+    
     packet=("${lines[@]:$i:$items_per_packet}")
 
-    # Process the packet in parallel
+    
     (
         for item in "${packet[@]}"; do
             process_coc "${item}" "${STR_CONX}"
 	 done
     ) & 
     pids+=($!)  # Store the process ID
-    # If we have reached the maximum number of threads, wait for one to finish
+    
     if [[ ${#pids[@]} -eq $num_threads ]]; then
         wait -n
-        pids=("${pids[@]/$!/}")  # Remove the finished process ID from the array
+        pids=("${pids[@]/$!/}")  
     fi
 
 done
 
 
-# wait for all pids
 for pid in ${pids[*]}; do
     wait $pid
 done
@@ -966,27 +965,27 @@ EXIT
 FIN_SQL
 }
 
-# Process items in packets
+
 for ((i=0; i<${#lines[@]}; i+=$items_per_packet)); do
-    # Create a packet of items
+
     packet=("${lines[@]:$i:$items_per_packet}")
 
-    # Process the packet in parallel
+
     (
         for item in "${packet[@]}"; do
             process_chc "${item}" "${STR_CONX}"
 	 done
     )  &
-    pids+=($!)  # Store the process ID
-    # If we have reached the maximum number of threads, wait for one to finish
+    pids+=($!)
+
     if [[ ${#pids[@]} -eq $num_threads ]]; then
         wait -n
-        pids=("${pids[@]/$!/}")  # Remove the finished process ID from the array
+        pids=("${pids[@]/$!/}")  
     fi
 
 done
 
-# wait for all pids
+
 for pid in ${pids[*]}; do
     wait $pid
 done
@@ -998,8 +997,6 @@ end=`date +%s`
 runtime_2=$((end-start))
 
 sleep 1
-
-
 
 if [ ! -d ${DIR_FIC_TMP} ]; then
   mkdir ${DIR_FIC_TMP}
