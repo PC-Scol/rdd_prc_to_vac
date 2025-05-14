@@ -184,6 +184,7 @@ begin
 	close cur_mcc_element;
 
  	RAISE NOTICE ' ---> MAJ duree conservation';
+
 		update apprenant_coc coc1
 		set duree_conservation = (
 											select max(duree_conservation)
@@ -198,8 +199,39 @@ begin
 											where coc2.code_objet_formation  = coc1.code_objet_formation 
 											and coc2.code_filtre_formation = coc1.code_filtre_formation
 											and coc2.code_periode = coc1.code_periode
-											)
-		 where temoin_conserve = 'O';
+											)		  
+		 where (temoin_conserve = 'O');
+		
+ 	  	
+
+		update apprenant_coc coc1
+		set duree_conservation = null,
+			 note_minimale_conservation = null		    		  
+		 where (temoin_conserve = 'N');
+		RAISE NOTICE ' ---> MAJ session retenue';
+		update apprenant_coc coc1
+		set session_retenue = 
+									(
+										select max(session_retenue)
+										from  apprenant_coc coc2
+										where  coc2.code_objet_formation  = coc1.code_objet_formation 
+										and coc2.code_filtre_formation = coc1.code_filtre_formation
+										and coc2.code_periode = coc1.code_periode
+									)	
+		where coc1.code_periode  ||'-'||coc1.code_objet_formation || '-' || coc1.code_filtre_formation 
+		in
+		(
+					select coc2.code_periode || '-' || coc2.code_objet_formation || '-' || coc2.code_filtre_formation
+					from  apprenant_coc coc2
+					group by  coc2.code_periode ||'-'||coc2.code_objet_formation || '-' || coc2.code_filtre_formation
+					having count(distinct coc2.session_retenue) > 1
+		);
+
+		RAISE NOTICE ' ---> MAJ temoin_concerne_session2';
+		update apprenant_coc coc1
+		set temoin_concerne_session2 = 'O'
+		where session_retenue = '2';
+
 RAISE NOTICE '=============================================';
 RAISE NOTICE 'Fin';
 end;
