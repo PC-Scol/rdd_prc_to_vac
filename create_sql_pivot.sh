@@ -543,24 +543,30 @@ BEGIN
 			and COD_IND = COD_IND_VAL
 			and cod_ses = '2'
 			and cod_adm = '1';
-
-		Select not_elp 
-		into note_session2 
-		from resultat_elp relp
-		where  cod_elp = COD_ELP_VAL
+		Begin
+			Select not_elp 
+			into note_session2 
+			from resultat_elp relp
+			where  cod_elp = COD_ELP_VAL
 			and COD_IND = COD_IND_VAL
 			and cod_ses = '2'
 			and cod_adm = '1';
 
-		Select bar_not_elp 
-		into bareme_session2 
-		from resultat_elp relp
-		where  cod_elp = COD_ELP_VAL
+			Select bar_not_elp 
+			into bareme_session2 
+			from resultat_elp relp
+			where  cod_elp = COD_ELP_VAL
 			and COD_IND = COD_IND_VAL
 			and cod_ses = '2'
 			and cod_adm = '1';
+		exception
+			when others
+				then 
+				 bareme_session2  := 'NULL';
+				 note_session2 := 'NULL';
+		end;
 
-
+		
 	
 		CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
 		code_filtre_formation := COD_DIP_VAL||'-'|| COD_VRS_VDI_VAL;
