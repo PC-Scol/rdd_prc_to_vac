@@ -348,6 +348,14 @@ BEGIN
 		key_ins varchar2(20000) := '';
 		code_filtre_formation varchar2(50) := '';
 		EXCEPTION_PROGRAMME EXCEPTION;
+		tem_capitalise varchar2(2) := null;
+		tem_conservation varchar2(2) := null;
+		duree_conservation number(8,0)  := null;
+		note_minimale_conservation number(8,0)  := null;
+		resultat_session1  varchar2(4)  := null;
+		resultat_session2  varchar2(4) := null;	
+		note_session2 varchar2(10) := null;
+		bareme_session2 varchar2(10) := null;
 
 
 		-- utl file config
@@ -489,12 +497,71 @@ BEGIN
 			into NUM_SESSION
 			from resultat_elp
 			where COD_ADM = 1
-			and COD_ANU = ANNEE_VAL
 			and cod_elp = COD_ELP_VAL
-			and COD_IND = COD_IND_VAL
-			and tem_ind_crn_elp = 'O';
-	
+			and COD_IND = COD_IND_VAL;
 
+		
+		Select max(elp.tem_cap_elp) as temoin_capitalise
+			into tem_capitalise
+			from ELEMENT_PEDAGOGI elp
+			where cod_elp = COD_ELP_VAL;
+		
+			
+		Select max(elp.tem_con_elp)
+			into tem_conservation
+			from ELEMENT_PEDAGOGI elp
+			where cod_elp = COD_ELP_VAL;
+
+		Select max(elp.dur_con_elp)
+			into duree_conservation
+			from ELEMENT_PEDAGOGI elp
+			where cod_elp = COD_ELP_VAL;
+		
+			
+		Select max(elp.not_min_con_elp)
+			into note_minimale_conservation 
+			from ELEMENT_PEDAGOGI elp
+			where cod_elp = COD_ELP_VAL;
+
+
+		Select max(CASE WHEN relp.cod_ses='1' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
+						WHEN relp.cod_ses='1' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
+				END)
+		into resultat_session1
+		from resultat_elp relp
+		where   cod_elp = COD_ELP_VAL
+			and COD_IND = COD_IND_VAL
+			and cod_ses = '1'
+			and cod_adm = '1';
+
+		Select max(CASE WHEN relp.cod_ses='2' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
+			WHEN relp.cod_ses='2' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
+				END) 
+		into resultat_session2
+		from resultat_elp relp
+		where  cod_elp = COD_ELP_VAL
+			and COD_IND = COD_IND_VAL
+			and cod_ses = '2'
+			and cod_adm = '1';
+
+		Select not_elp 
+		into note_session2 
+		from resultat_elp relp
+		where  cod_elp = COD_ELP_VAL
+			and COD_IND = COD_IND_VAL
+			and cod_ses = '2'
+			and cod_adm = '1';
+
+		Select bar_not_elp 
+		into bareme_session2 
+		from resultat_elp relp
+		where  cod_elp = COD_ELP_VAL
+			and COD_IND = COD_IND_VAL
+			and cod_ses = '2'
+			and cod_adm = '1';
+
+
+	
 		CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
 		code_filtre_formation := COD_DIP_VAL||'-'|| COD_VRS_VDI_VAL;
 
@@ -522,8 +589,7 @@ BEGIN
 		LINEBUFFER := LINEBUFFER || BAR_NOT_VAA_VAL||';';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || NOT_VAA_VAL||';';
-		LINEBUFFER := LINEBUFFER ||BAR_NOT_VAA_VAL||';';			
-		
+		LINEBUFFER := LINEBUFFER ||BAR_NOT_VAA_VAL||';';		
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
@@ -537,8 +603,34 @@ BEGIN
 
 		end if;		
 		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'ADM;';
-		LINEBUFFER := LINEBUFFER || 'ADM;';
+		IF  resultat_session2 is not null
+			then 
+				LINEBUFFER := LINEBUFFER || resultat_session2 ||';';	
+			else
+				IF  resultat_session1 is not null
+				then
+					LINEBUFFER := LINEBUFFER || resultat_session1 ||';';
+				else
+					LINEBUFFER := LINEBUFFER || 'NULL;';
+				end if;
+
+		end if;			
+	
+
+
+		IF  resultat_session1 is not null
+		then 
+			LINEBUFFER := LINEBUFFER || resultat_session1 ||';';	
+		else
+			LINEBUFFER := LINEBUFFER || 'NULL;';
+		end if;
+
+		IF  resultat_session2 is not null
+		then 
+			LINEBUFFER := LINEBUFFER || resultat_session2 ||';';	
+		else
+			LINEBUFFER := LINEBUFFER || 'NULL;';
+		end if;		
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
@@ -561,14 +653,26 @@ BEGIN
 		else
 			LINEBUFFER := LINEBUFFER || 'N;';
 		end if;
-		LINEBUFFER := LINEBUFFER || 'O;';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'N;';
-		LINEBUFFER := LINEBUFFER || 'O;';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || tem_capitalise||';';
+		LINEBUFFER := LINEBUFFER || tem_conservation||';';
+		if duree_conservation is not null
+		then
+		   LINEBUFFER := LINEBUFFER || duree_conservation||';';
+		else
+		   LINEBUFFER := LINEBUFFER || 'NULL;';
+		end if;
+		if note_minimale_conservation is not null
+		then
+		  	LINEBUFFER := LINEBUFFER || note_minimale_conservation||';';
+		else
+			LINEBUFFER := LINEBUFFER || 'NULL;';
+		end if;	
 		LINEBUFFER := LINEBUFFER || 'NULL';
+
+
 
 		fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
 		utl_file.put_line(fichier_sortie,LINEBUFFER);

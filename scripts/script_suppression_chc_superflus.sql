@@ -35,7 +35,7 @@ declare
 											where exists 
 											(
 												select 1
-												from apprenant_chc chc where chc.code_periode = ac.code_periode and chc.code_formation <>ac.code_formation  and chc.code_chemin = ac.code_chemin and ac.code_apprenant =chc.code_apprenant  and chc.code_objet_formation = ac.code_objet_formation 
+												from apprenant_chc chc where chc.code_periode = ac.code_periode and chc.code_formation <>ac.code_formation  and chc.code_chemin = ac.code_chemin and ac.code_apprenant = chc.code_apprenant  and chc.code_objet_formation = ac.code_objet_formation 
 											) and operation <> 'AM';
 
 		
