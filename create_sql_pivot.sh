@@ -639,7 +639,6 @@ BEGIN
 		end if;		
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'T;';
 		LINEBUFFER := LINEBUFFER || 'T;';
 		IF NUM_SESSION = 2
@@ -675,8 +674,8 @@ BEGIN
 		else
 			LINEBUFFER := LINEBUFFER || 'NULL;';
 		end if;
-		LINEBUFFER := LINEBUFFER || 'NULL';
-
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
 
 
 		fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A',32767);
