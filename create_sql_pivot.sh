@@ -366,7 +366,7 @@ BEGIN
 		fexists   BOOLEAN;
 		file_length  NUMBER;
   		block_size   BINARY_INTEGER;
-		entete varchar2(2000) :='"id";"code_formation";"code_objet_formation";"code_filtre_formation";"code_periode";"code_structure";"id_apprenant";"code_apprenant";"type_objet_formation";"code_mention";"grade_ects";"gpa";"note_retenue";"bareme_note_retenue";"point_jury_retenu";"note_session1";"bareme_note_session1";"point_jury_session1";"credit_ects_session1";"rang_session1";"note_session2";"bareme_note_session2";"point_jury_session2";"resultat_final";"resultat_session1";"resultat_session2";"rang_final";"credit_ects_final";"statut_deliberation_session1";"statut_deliberation_session2_final";"session_retenue";"absence_finale";"absence_session1";"absence_session2";"temoin_concerne_session2";"statut_publication_session1";"statut_publication_session2";"statut_publication_final";"temoin_capitalise";"temoin_conserve";"duree_conservation"; "note_minimale_conservation"; "temoin_validation_acquis"';
+		entete varchar2(2000) :='"id";"code_formation";"code_objet_formation";"code_filtre_formation";"code_periode";"code_structure";"id_apprenant";"code_apprenant";"type_objet_formation";"code_mention";"grade_ects";"gpa";"note_retenue";"bareme_note_retenue";"point_jury_retenu";"note_session1";"bareme_note_session1";"point_jury_session1";"credit_ects_session1";"rang_session1";"note_session2";"bareme_note_session2";"point_jury_session2";"resultat_final";"resultat_session1";"resultat_session2";"rang_final";"credit_ects_final";"statut_deliberation_session1";"statut_deliberation_session2_final";"session_retenue";"absence_finale";"absence_session1";"absence_session2";"temoin_concerne_session2";"statut_publication_session1";"statut_publication_session2";"statut_publication_final";"temoin_capitalise";"temoin_conserve";"duree_conservation";"note_minimale_conservation";"temoin_validation_acquis"';
 
 	BEGIN
 
@@ -661,7 +661,6 @@ BEGIN
 		end if;
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || tem_capitalise||';';
 		LINEBUFFER := LINEBUFFER || tem_conservation||';';
 		if duree_conservation is not null
@@ -675,12 +674,12 @@ BEGIN
 		  	LINEBUFFER := LINEBUFFER || note_minimale_conservation||';';
 		else
 			LINEBUFFER := LINEBUFFER || 'NULL;';
-		end if;	
+		end if;
 		LINEBUFFER := LINEBUFFER || 'NULL';
 
 
 
-		fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
+		fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A',32767);
 		utl_file.put_line(fichier_sortie,LINEBUFFER);
 		utl_file.fclose(fichier_sortie);
 
@@ -1076,7 +1075,7 @@ BEGIN
 			LINEBUFFER := LINEBUFFER || 'false'; 			
 			LINEBUFFER := LINEBUFFER;
 		
-			fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
+			fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A',32767);
 			utl_file.put_line(fichier_sortie,LINEBUFFER);
 			utl_file.fclose(fichier_sortie);
 	
