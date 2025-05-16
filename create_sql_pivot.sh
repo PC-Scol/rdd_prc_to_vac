@@ -675,7 +675,7 @@ BEGIN
 			LINEBUFFER := LINEBUFFER || 'NULL;';
 		end if;
 		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL';
 
 
 		fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A',32767);
