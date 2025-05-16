@@ -660,6 +660,7 @@ BEGIN
 		end if;
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || tem_capitalise||';';
 		LINEBUFFER := LINEBUFFER || tem_conservation||';';
 		if duree_conservation is not null
@@ -674,7 +675,6 @@ BEGIN
 		else
 			LINEBUFFER := LINEBUFFER || 'NULL;';
 		end if;
-		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'NULL';
 
 
@@ -994,11 +994,22 @@ BEGIN
 					SELECT COD_LSE
  					INTO first_elp
   					FROM (
-    						SELECT DISTINCT COD_LSE
-    						FROM ELP_REGROUPE_ELP
-   						WHERE COD_ELP_FILS = cod_elp_sup_val
-      						AND COD_TYP_LSE IN ('X', 'F')
-    						ORDER BY COD_LSE
+    						SELECT DISTINCT ERE.COD_LSE
+    						FROM ELP_REGROUPE_ELP ERE ,
+						    VET_REGROUPE_LSE VRL
+   						WHERE ERE.COD_ELP_FILS = cod_elp_sup_val
+      						AND ERE.COD_TYP_LSE IN ('X')
+   						AND VRL.cod_lse = ere.cod_lse
+							and VRL.cod_etp = COD_ETP_VAL
+							and VRL.cod_vrs_vet = COD_VRS_VET_VAL
+							and (extract( YEAR FROM VRL.DAT_cre_REL_LSE_VET) < ANNEE_VAL)
+							AND  (
+								(extract( YEAR FROM VRL.DAT_FRM_REL_LSE_VET) > ANNEE_VAL) 
+								 OR 
+								 VRL.DAT_FRM_REL_LSE_VET IS null 
+								)
+	    						ORDER BY ERE.COD_LSE
+						
   					)
  					 WHERE ROWNUM = 1;	
 				EXCEPTION
