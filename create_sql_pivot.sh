@@ -825,7 +825,6 @@ BEGIN
 			WHERE lse.cod_lse=ice.cod_lse
 			AND ice.cod_ind = COD_IND_VAL
 			CONNECT BY PRIOR ice.cod_elp = ice.cod_elp_sup
-						AND PRIOR ice.cod_anu=2022
 						AND PRIOR ice.cod_etp= COD_ETP_VAL
 						AND PRIOR ice.cod_vrs_vet=COD_VRS_VET_VAL
 						AND PRIOR ice.cod_ind= COD_IND_VAL		
