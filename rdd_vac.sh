@@ -683,8 +683,8 @@ DECLARE
                 AND ide.cod_ind=ice.cod_ind
                 AND ide.cod_etp=ice.cod_etp
                 AND ide.cod_vrs_vet=ice.cod_vrs_vet
-                AND ide.cod_elp=ice.cod_elp
-			)
+		  AND ide.cod_elp=ice.cod_elp
+	 )
         AND relp.cod_elp = ice.cod_elp
         AND relp.cod_ind =  ice.cod_ind
 	    AND relp.cod_anu < ice.cod_anu
