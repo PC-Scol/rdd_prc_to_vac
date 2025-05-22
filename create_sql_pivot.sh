@@ -818,7 +818,8 @@ BEGIN
 		is 
  			select DISTINCT ice.cod_elp,
 			ice.cod_ind,
-			replace(SYS_CONNECT_BY_PATH(DECODE(lse.cod_typ_lse,'O','','L-'||ice.cod_lse||'>')||ice.cod_elp, '>>'),'>>','>') AS CHEMIN			
+			replace(SYS_CONNECT_BY_PATH(DECODE(lse.cod_typ_lse,'O','','L-'||ice.cod_lse||'>')||ice.cod_elp, '>>'),'>>','>') AS CHEMIN,
+			ice.TEM_PRC_ICE			
 			FROM IND_CONTRAT_ELP ice
 						,LISTE_ELP lse
 			WHERE lse.cod_lse=ice.cod_lse
@@ -842,6 +843,7 @@ BEGIN
 		chemin varchar2(2000);
 		cod_elp_fils_chemin varchar2(10);
 		cod_ind_cursor varchar2(10);
+		tem_prc_ice varchar2(1);
 	BEGIN
 
 		UTL_FILE.FGETATTR(repertoire  , fichier  , fexists, file_length, block_size);
@@ -979,10 +981,10 @@ BEGIN
 
 		open create_chemin_cur;
 		LOOP
-		fetch create_chemin_cur into cod_elp_fils_chemin,cod_ind_cursor,chemin;
+		fetch create_chemin_cur into cod_elp_fils_chemin,cod_ind_cursor,chemin,  tem_prc_ice;
 			EXIT WHEN  create_chemin_cur%NOTFOUND;			
 
-			IF cod_elp_fils_chemin = COD_ELP_VAL
+			IF cod_elp_fils_chemin = COD_ELP_VAL and tem_prc_ice = 'O'
 			THEN
 				chemin_element := chemin_element ||''||chemin;
 			END IF;
