@@ -15,7 +15,7 @@ declare
 													 code_formation
 											from apprenant_chc ac 
 										)
-										select tab2.code_apprenant ||'-' || tab2.code_objet_formation	id	 
+										select tab2.code_apprenant ||'-' || tab2.code_objet_formation || '-' || tab2.code_periode || '-' ||tab2.code_formation id	 
 										from tab tab1,
 											  tab tab2
 										where tab1.code_apprenant = tab2.code_apprenant 
@@ -58,7 +58,7 @@ begin
 		BEGIN
 
 			DELETE FROM apprenant_chc appchc
-			WHERE  appchc.code_apprenant ||'-'||appchc.code_objet_formation = rec_element_fils.id;	
+			WHERE  appchc.code_apprenant ||'-'||appchc.code_objet_formation || '-' || appchc.code_periode || '-' || appchc.code_formation = rec_element_fils.id;	
 			RAISE NOTICE ' ---> Suppression CHC';
 			
 		EXCEPTION

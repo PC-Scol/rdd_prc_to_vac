@@ -3,7 +3,7 @@ do $$
 declare 	
 	rec_element_fils  record;
 	-- cursor de recherche des élements fils
-	cur_element_fils cursor for select distinct code_apprenant ||'-' || code_objet_formation id
+	cur_element_fils cursor for select distinct code_apprenant ||'-' || code_objet_formation ||'-' || code_periode ||'-' || code_filtre_formation id
 										 from apprenant_coc appcoc
 										 where not exists (select 1 from apprenant_chc appchc where appchc.code_apprenant = appcoc.code_apprenant and (appcoc.code_objet_formation = appchc.code_objet_formation) and appchc.code_formation = appcoc.code_filtre_formation and appcoc.code_periode = appcoc.code_periode)
 										 and appcoc.code_objet_formation is not null;
@@ -36,7 +36,7 @@ begin
 		BEGIN
 
 			DELETE FROM apprenant_coc appcoc
-			WHERE  appcoc.code_apprenant ||'-'||appcoc.code_objet_formation = rec_element_fils.id;	
+			WHERE   appcoc.code_apprenant ||'-' || appcoc.code_objet_formation ||'-' || appcoc.code_periode ||'-' || appcoc.code_filtre_formation = rec_element_fils.id;	
 			RAISE NOTICE ' ---> Suppression COC';
 			
 		EXCEPTION
