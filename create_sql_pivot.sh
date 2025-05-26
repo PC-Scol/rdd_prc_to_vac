@@ -799,6 +799,9 @@ BEGIN
 		count_elp number(8,0) := 0;
 		first_elp varchar2(10) := 0;
 		isExists number(8,0) := 0;
+ 		COD_ANU_out varchar2(10) := null;
+		cod_typ_lse_out varchar2(2) := null;
+		cod_ind_out varchar2(10) := null;
 		EXCEPTION_PROGRAMME EXCEPTION;
 		
 		entete varchar2(2000) := '"id";"code_periode";"id_apprenant";"code_apprenant";"code_formation";"code_objet_formation";"code_chemin";"code_type_objet_maquette";"code_structure";"type_chc";"nombre_credit_formation";"nombre_credit_objet_formation";"temoin_objet_capitalisable";"temoin_objet_conservable";"duree_conservation";"etat_objet_dispense";"operation";"type_amenagement";"temoin_injection_chc"';
@@ -815,41 +818,30 @@ BEGIN
 	  DECLARE
 		-- curseur de creation du chemin
 		cursor create_chemin_cur 
-		is 
-		 SELECT ice.cod_elp cod_elp_cur_val,
-			 ice.cod_elp_sup cod_elp_sup_val,
-			 ere.cod_typ_lse cod_typ_lse_val,
-			 'L-' || ice.cod_lse cod_lse_val,
-			 LEVEL number_niv
-		 FROM ind_contrat_elp ice,
-	 	      elp_regroupe_elp ere
-		 CONNECT BY PRIOR ice.cod_elp_sup = ice.cod_elp 
-			AND ere.cod_elp_pere = ice.cod_elp_sup
-			AND ice.cod_ind =  COD_IND_VAL
-			AND ice.cod_anu = ANNEE_VAL
-			AND ice.cod_etp = COD_ETP_VAL
-			AND ice.cod_vrs_vet = COD_VRS_VET_VAL
-			AND ere.cod_lse=ice.cod_lse
-		 START WITH ice.cod_elp = COD_ELP_VAL
-			AND ice.cod_ind = COD_IND_VAL
-			AND ice.cod_anu = ANNEE_VAL
-			AND ice.cod_etp = COD_ETP_VAL
-			AND ice.cod_vrs_vet = COD_VRS_VET_VAL
-			AND ere.cod_elp_fils = ice.cod_elp
-			AND ere.cod_lse=ice.cod_lse
-		  GROUP BY ice.cod_elp,						
-			ice.cod_elp_sup,
-			'L-' || ice.cod_lse,
-			ere.cod_typ_lse,		
-			LEVEL 
-		  ORDER BY LEVEL DESC;
-
-		cod_elp_cur_val varchar2(10);
-		cod_elp_sup_val varchar2(10);
-		cod_lse_val varchar2(10);
-		cod_typ_lse_val varchar2(10);
-		niv number(8,0) := 0;
-	  BEGIN
+		is 		
+		   SELECT  DISTINCT  replace(SYS_CONNECT_BY_PATH(DECODE(lse.cod_typ_lse,'O','','L-'||ice.cod_lse||'>')||ice.cod_elp, '>>'),'>>','>') AS CHEMIN
+				      ,ice.cod_elp AS cod_elp_fils
+				      ,connect_by_root(ice.cod_anu) AS COD_ANU,
+		 	             lse.cod_typ_lse,
+	    	       	      ice.cod_ind
+				FROM IND_CONTRAT_ELP ice
+							,LISTE_ELP lse
+				WHERE lse.cod_lse=ice.cod_lse
+				CONNECT BY PRIOR ice.cod_elp = ice.cod_elp_sup
+							AND PRIOR ice.cod_anu = ice.cod_anu
+							AND PRIOR ice.cod_etp=ice.cod_etp
+							AND PRIOR ice.cod_vrs_vet=ice.cod_vrs_vet
+							AND PRIOR ice.cod_ind=ice.cod_ind							
+				START WITH 	ice.cod_anu= ANNEE_VAL 
+						AND ice.cod_ind = COD_IND_VAL
+						AND ice.cod_etp = COD_ETP_VAL
+						AND ice.cod_vrs_vet = COD_VRS_VET
+						AND ice.cod_elp_sup IS NULL;
+		chemin varchar2(2000);
+		cod_elp_fils_chemin varchar2(10);
+		cod_ind_cursor varchar2(10);
+		tem_prc_ice varchar2(1);
+	BEGIN
 
 		UTL_FILE.FGETATTR(repertoire  , fichier  , fexists, file_length, block_size);
     		IF not fexists THEN       	
@@ -976,87 +968,30 @@ BEGIN
 		END;
 
 		count_elp := 0;
+		
 
+		chemin_element  := COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
+		IF PREFIXON_VAC = 'Y'
+		THEN
+			chemin_element := PREFIX_VDI_VAC||'-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL ||'>'||PREFIX_VET_VAC||'-'|| COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
+		END IF;
+		
 		open create_chemin_cur;
 		LOOP
-		fetch create_chemin_cur into cod_elp_cur_val, cod_elp_sup_val,cod_typ_lse_val, cod_lse_val ,niv ;
-			EXIT WHEN  create_chemin_cur%NOTFOUND;
-			-- creation du chemin de l'élement en fonction des contrats pédagogiques d'APOGEE
-			IF count_elp = 0
-			then
-			
-				chemin_element  := COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
-				IF PREFIXON_VAC = 'Y'
-				THEN
-					chemin_element := PREFIX_VDI_VAC||'-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL ||'>'||PREFIX_VET_VAC||'-'|| COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
-				END IF;
-				BEGIN
-					SELECT COD_LSE
- 					INTO first_elp
-  					FROM (
-    						SELECT DISTINCT ERE.COD_LSE
-    						FROM ELP_REGROUPE_ELP ERE ,
-						    VET_REGROUPE_LSE VRL
-   						WHERE ERE.COD_ELP_FILS = cod_elp_sup_val
-      						AND ERE.COD_TYP_LSE IN ('X')
-   						AND VRL.cod_lse = ere.cod_lse
-							and VRL.cod_etp = COD_ETP_VAL
-							and VRL.cod_vrs_vet = COD_VRS_VET_VAL
-							and (extract( YEAR FROM VRL.DAT_cre_REL_LSE_VET) < ANNEE_VAL)
-							AND  (
-								(extract( YEAR FROM VRL.DAT_FRM_REL_LSE_VET) > ANNEE_VAL) 
-								 OR 
-								 VRL.DAT_FRM_REL_LSE_VET IS null 
-								)
-	    						ORDER BY ERE.COD_LSE
-						
-  					)
- 					 WHERE ROWNUM = 1;	
-				EXCEPTION
-  				WHEN NO_DATA_FOUND THEN
-   					 first_elp := NULL;
-  				WHEN OTHERS THEN
-   					 dbms_output.put_line(SQLERRM);
-				END;
+		fetch create_chemin_cur into chemin, cod_elp_fils_chemin,COD_ANU_out ,cod_typ_lse_out,cod_ind_out  ;
+			EXIT WHEN  create_chemin_cur%NOTFOUND;			
 
-				if first_elp is not null then				
-					chemin_element := chemin_element || '>L-' || first_elp;	
-				END IF;
-				
-				-- si liste non trouve, ajout liste dans curseur
-				IF cod_typ_lse_val in ('X','F')  
-				and cod_elp_sup_val is null 
-				and first_elp <>  cod_lse_val	
-				then 
-					chemin_element := chemin_element || '>' ||  cod_lse_val;											
-				end if;			
-
-				--- mettre element superieur
-				if   cod_elp_sup_val is not null
-				then
-					chemin_element  := chemin_element   ||'>'|| cod_elp_sup_val;
-				end if;
-
-				first_elp := null;
-
-			end if;
-			-- ajout au chemin de la liste facultative ou obligatoire
-			IF cod_typ_lse_val in ('X','F') and cod_elp_sup_val is not null
-			then 
-				chemin_element := chemin_element || '>' || cod_lse_val;			
-			end if;
-
-			-- ajout de l'element
-			chemin_element := chemin_element || '>' || cod_elp_cur_val;
-
-
-			count_elp := count_elp + 1;
-		  
+			IF cod_elp_fils_chemin = COD_ELP_VAL and count_elp < 1
+			THEN
+				chemin_element := chemin_element ||''||chemin;
+				count_elp := count_elp + 1;
+			END IF;
+						  
   		END LOOP;
 		close create_chemin_cur;
 
 
-		first_elp := null;
+
 
 		-- generation des clés
 		CLE_CHC  := COD_IND_VAL || '-'|| ANNEE_VAL ||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL||'-'|| COD_ELP_VAL;
