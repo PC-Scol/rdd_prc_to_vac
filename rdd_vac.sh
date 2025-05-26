@@ -693,7 +693,7 @@ DECLARE
 			WHERE ins.cod_etp = ice.cod_etp
 			AND ins.cod_vrs_vet = ice.cod_vrs_vet
 			AND ins.cod_anu = ice.cod_anu
-			AND ins.cod_ind = ice.cod_ind
+			AND ins.cod_ind = ice.cod_ind			
 	  )
         AND relp.cod_elp = ice.cod_elp
         AND relp.cod_ind =  ice.cod_ind
