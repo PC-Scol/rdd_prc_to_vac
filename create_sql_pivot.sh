@@ -305,7 +305,7 @@ fi
 echo "  >>>  Genération de la VAC d'insertion (coc) pour le pivot :  ${sql_condition_string}"
 
 echo "  >>>  Genération de la VAC pour module COC d'insertion  pour le pivot :${sql_condition_string}" >> $FIC_LOG
-echo "  >>>>   Genération de la VAC module COC d'insertion pour le pivot  " >> $FIC_LOG
+
 
 #recuperation des valeurs dans les clés
 
@@ -756,7 +756,6 @@ fi
 echo "  >>>  Genération de la VAC d'insertion (chc) pour le pivot :  ${sql_condition_string}"
 
 echo "  >>>  Genération de la VAC pour module CHC d'insertion  pour le pivot :${sql_condition_string}" >> $FIC_LOG
-echo "  >>>>   Genération de la VAC module CHC d'insertion pour le pivot  " >> $FIC_LOG
 
 #recuperation des valeurs dans les clés
 IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA <<< "$sql_condition_string"
