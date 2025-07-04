@@ -6,7 +6,7 @@
 # RDD_VAC
 
 ## Contenu
-Ce programme permet de générer des validations d'acquis d'expérience pour reprendre les PRC des années antérieurs.
+Ce programme permet de générer des validations d'acquis d'expérience pour reprendre les PRC des années antérieures au périmètre de RDD.
 
     Le principe est d'aller chercher les PRC qui ne sont pas dans la table IND_DISPENSE_ELP afin de genérer des VAC. 
     Ces VAC permettent de garder la PRC dans une maquette applatie. 
