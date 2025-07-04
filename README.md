@@ -5,23 +5,32 @@
 
 # RDD_VAC
 
+## Contenu
 Ce programme permet de générer des validations d'acquis d'expérience pour reprendre les PRC des années antérieurs.
 
     Le principe est d'aller chercher les PRC qui ne sont pas dans la table IND_DISPENSE_ELP afin de genérer des VAC. 
     Ces VAC permettent de garder la PRC dans une maquette applatie. 
     Elle permet de travailler sur une seule année universitaire sans perdre ces PRC qui sont presentes sur une autre année universitaire antérieur pour les diffèrents étudiants. 
 
-> [!WARNING]
-> Sqlplus doit être installé sur le poste qui utilise ce projet par le biais soit d'une installation "oracle server" soit d'une installation "oracle client" (instant-client)
-
+## Prérequis
+### Installation du client Oracle sqlplus
 > [!WARNING]
 > Sqlplus doit être installé sur le poste qui utilise ce projet 
-> Il faut soit une installation "oracle server" soit une installation "oracle client" (instant-client)
-> 	- par commande : sudo apt-get install libaio1 libaio-dev
->   - ou disponibles sur https://www.oracle.com/fr/database/technologies/instant-client/linux-x86-64-downloads.html
+> Cela peut être effectué
+>   - soit au travers d'une installation "oracle server"
+>	- soit au travers d'une installation "oracle client" instant-client. Exemple installation Debian 12 :
+>		1. librairies prérequis : sudo apt-get install libaio1 libaio-dev
+>		2. Installation du client : https://www.oracle.com/fr/database/technologies/instant-client/linux-x86-64-downloads.html
 
+### Paramétrage du client Oracle sqlplus
 > [!WARNING]
-> Creer une directory
+> Tous les éléments de connectique réseau Oracle doivent être paramétrés :
+> 1. tnsnames.ora déclaré et utilisable par sqlplus
+> 2. tnsnames.ora renseigné avec les éléments pour atteindre la PDB renseignée dans rdd_vac.ini (qui primera sur TWO_TASK)
+
+### Paramétrage du répertoire de dépôt
+> [!WARNING]
+> Une fois connecté à la base Apogée sur laquelle l'outil va s'appuyer, creer un directory pour le dépôt des fichiers générés par l'outil
 
 	CREATE OR REPLACE DIRECTORY my_dir_vac AS '/applications/apogee/apo_6_00/batch/fic/APOTPDB';
 	GRANT READ, WRITE ON DIRECTORY my_dir_vac TO apogee;	
@@ -54,7 +63,7 @@ Dans un premier temps, le programme génère six fichiers en sortie:
  
                 - VET : pour une version d'étape (code etape et code version d'etape à renseigner dans le fichier)
 				    A renseigner !!! :
-					  -> COD_OBJ : sous la forme du filtre formation pegase "COD_DIP-COD_VRS_VDI->ETP-COD_VRS_ETP
+					  -> COD_OBJ : sous la forme du filtre_formations de l'outillage de reprise de données pegase "COD_DIP-COD_VRS_VDI->ETP-COD_VRS_ETP
 					 
                 - CMP : pour toutes les versions d'étapes d'une composante (CONSEIL : -> VERIFIER ESPACE DISQUE)
  

@@ -88,26 +88,33 @@ FIC_INI=${DIR_FIC_ARCH}/${NOM_BASE}.ini
 echo "-------------------------------------------------"
 echo "Vos identifiants et mot de passe :"
 
-# Modification Identifiant
-echo -e "Login APOGEE ?  : \c"
-      read LOGIN_APOGEE_SAISI
+# Récupération Identifiant
+LOGIN_APOGEE_SAISI=`grep "^LOGIN_APOGEE" $FIC_INI | cut -d\: -f2`
+if  [[  -z ${LOGIN_APOGEE_SAISI} ]]
+then
+	echo -e "Login APOGEE ?  : \c"
+	read LOGIN_APOGEE_SAISI
+fi
+LOGIN_APOGEE=${LOGIN_APOGEE_SAISI}
 
-LOGIN_APOGEE=$LOGIN_APOGEE_SAISI
 
-
-#Modification  Mot de passe
-
-echo -e "Mot de passe APOGEE ?: \c"
-      read MDP_APOGEE_SAISI
-
+# Récupération Mot de passe
+MDP_APOGEE_SAISI=`grep "^MDP_APOGEE" $FIC_INI | cut -d\: -f2`
+if  [[  -z ${MDP_APOGEE_SAISI} ]]
+then
+	echo -e "Mot de passe APOGEE ?: \c"
+	read MDP_APOGEE_SAISI
+fi
 MDP_APOGEE=${MDP_APOGEE_SAISI}
 
 
-#Modification  Mot de passe
-
-echo -e "Nom Directory cree ?: \c"
-      read DIRECTORY_SAISI
-
+# Récupération du directory Apogée
+DIRECTORY_SAISI=`grep "^DIRECTORY" $FIC_INI | cut -d\: -f2`
+if  [[  -z ${DIRECTORY_SAISI} ]]
+then
+	echo -e "Nom Directory cree ?: \c"
+	read DIRECTORY_SAISI
+fi
 DIRECTORY=${DIRECTORY_SAISI}
 
 
@@ -146,8 +153,12 @@ FIC_NAME_APOGEE=`grep "^FIC_NAME_APOGEE" $FIC_INI | cut -d\: -f2`
     # repertoire depot du filtre de formation pour LISTE_VET
 FIC_NAME_FILTRE=`grep "^FIC_NAME_FILTRE" $FIC_INI | cut -d\: -f2`
 
-PDB=`printenv | grep ^TWO_TASK= | cut -d\= -f2`
-
+PDB=`grep "^PDB" $FIC_INI | cut -d\: -f2`
+if [[  -z ${PDB} ]]
+then
+  PDB=`printenv | grep ^TWO_TASK= | cut -d\= -f2`
+fi
+export TWO_TASK=${PDB}
 
  # Appel du menu
 confirm_menu
@@ -172,15 +183,10 @@ then
   exit
 fi
 
-
 if [[  -z ${PDB} ]]
 then
-  PDB=`grep "^PDB" $FIC_INI | cut -d\: -f2`
-  if [[  -z ${PDB} ]]
-  then
-  	echo "Probleme PDB ou TWO_TASK"
-       exit
-  fi
+echo "Probleme PDB ou TWO_TASK"
+	exit
 fi
 
     # generation timestamp pour les fichiers
