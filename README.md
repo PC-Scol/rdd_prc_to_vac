@@ -67,9 +67,9 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 					 
                 - CMP : pour toutes les versions d'étapes d'une composante (CONSEIL : -> VERIFIER ESPACE DISQUE)
  
-                - VETALL : pour toutes les versions d'étapes qui sont ouvertes lors de l'année universitaire mises en paramètre                
+                - VETALL : pour toutes les versions d'étapes qui sont ouvertes lors de l'année universitaire mises en paramètre
 	        
-                - LISTES_VET : pour toutes les versions d'étapes presentes dans votre fichier FIC_NAME_FILTRE ( à ajouter dans rdd_vac.ini) 
+                - LISTES_VET : pour toutes les versions d'étapes presentes dans votre fichier FIC_NAME_FILTRE ( à ajouter dans rdd_vac.ini)
                 
 
    		- le critère COD_OBJ correspond soit un version d'étape si le critère COD_TYP_OBJ est égale à VET , soit un code composante si le critère COD_TYP_OBJ est égale à CMP
@@ -94,59 +94,60 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 		 - le critère NB_THREAD correspond au nombre de thread (uniquement pour create_sql_pivot.sh)
   2. Lancer le script rdd_vac pour générer les vacs.
 
+     PUIS
 
-   Si insertion dans APOGEE :
+  * Soit insertion dans APOGEE :
 
-  	3. Lancer le script play_rdd_vac.sh en mode insertion (TEM_DELETE=N) pour inserer les vacs générées.
+	3. Lancer le script play_rdd_vac.sh en mode insertion (TEM_DELETE=N) pour inserer les vacs générées.
 
-  	4. Vérifier la présence des VACS pour l'ensemble des étudiants.
-     
-   	5. Déverser les informations des modules CHC et COC dans la base pivot.
+	4. Vérifier la présence des VACS pour l'ensemble des étudiants.
+	
+	5. Déverser les informations des modules CHC et COC dans la base pivot.
 
-  	6. Vérifier la présence des vacs dans la table apprenant_chc
+	6. Vérifier la présence des vacs dans la table apprenant_chc
 	
 	7. Faire une injection normale 
- 
-  	 Si vous voulez supprimer les VACS 
+
+	Si vous voulez supprimer les VACS 
 		- Relancer le script play_rdd_vac.sh en mode suppression (TEM_DELETE=Y) pour supprimer les vacs générées.
 
-  Soit insertion dans la base pivot :
+  * Soit insertion dans la base pivot :
 
 	3. Déverser les informations des modules CHC et COC dans la base pivot.
 
-	4. Lancer le script create_sql_pivot.sh en mode insertion pour générer les fichiers CSV.
+	4. Lancer le script create_sql_pivot.sh pour générer les fichiers CSV.
 	
-	5. Mettre le fichier csv généré pour les CHC et les COC dans la base pivot dans le dossier fichier_sortie_sql avec les commandes ci-dessous
+	5. Injecter le fichier csv généré pour les CHC et les COC dans la base pivot dans le dossier fichier_sortie_sql avec les commandes ci-dessous
 
-```sql
-Commande SQL :
+	```sql
+	Commande SQL :
 
-CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_chc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_chc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;
+	CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_chc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_chc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;
 
 
-CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_coc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_coc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;
+	CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_coc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_coc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;
 
-```
+	```
 
-```docker
+	```docker
 
-Si dans DOCKER
+	Si dans DOCKER
 
-docker cp 'nom_fichier.csv' pivot_postgrestest_1:/tmp
+	docker cp 'nom_fichier.csv' pivot_postgrestest_1:/tmp
 
-docker exec -i pivot_postgrestest_1  psql -U pcscol -d pivotbdd -c " CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_chc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_chc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;"
+	docker exec -i pivot_postgrestest_1  psql -U pcscol -d pivotbdd -c " CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_chc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_chc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;"
 
-docker cp 'nom_fichier.csv' pivot_postgrestest_1:/tmp
+	docker cp 'nom_fichier.csv' pivot_postgrestest_1:/tmp
 
-docker exec -i pivot_postgrestest_1  psql -U pcscol -d pivotbdd -c " CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_coc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_coc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;"
+	docker exec -i pivot_postgrestest_1  psql -U pcscol -d pivotbdd -c " CREATE TABLE public.tmp_table AS SELECT * FROM public.apprenant_coc WITH NO DATA; COPY public.tmp_table FROM 'nom_fichier.csv' WITH (FORMAT csv, delimiter ';' , HEADER true, NULL 'NULL'); INSERT INTO public.apprenant_coc SELECT * FROM tmp_table ON CONFLICT DO NOTHING;DROP TABLE tmp_table;"
 
-```
+	```
 
 	6. Vérifier la présence des VACS pour module CHC et dans le module COC pour l'ensemble des étudiants dans la base pivot (dans la table apprenant_chc).
- 
- 	7. Passer script script_suppression_chc_superflus.sql pour supprimer les éléments fils sous une EVAL
-	   (Problème du à l'injection des CHC après le déversement du module CHC)
-  
+
+	7. Passer script script_suppression_chc_superflus.sql pour supprimer les éléments fils sous une EVAL
+	(Problème du à l'injection des CHC après le déversement du module CHC)
+
 	8. Passer les audits des modules CHC et COC
 
 	9. Faire une injection normale des CHC
@@ -154,7 +155,7 @@ docker exec -i pivot_postgrestest_1  psql -U pcscol -d pivotbdd -c " CREATE TABL
 	10. Passer script script_coc_mcc.sql pour eviter probleme conteneur COC et probleme calcul des MCC
 		(Problème du à l'injection des COC après le déversement du module COC)
 			
-    11. Faire le calcul des MCC et les injecter
+	11. Faire le calcul des MCC et les injecter
 
 	12. Faire une injection normale des COC
 	   

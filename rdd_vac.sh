@@ -18,10 +18,10 @@
 exit_if_error() {
   local exit_code=$1
   shift
-  [[ $exit_code ]] &&               
-    ((exit_code != 0)) && {         
-      printf 'ERROR: %s\n' "$@" >&2 
-      exit "$exit_code"             
+  [[ $exit_code ]] &&
+    ((exit_code != 0)) && {
+      printf 'ERROR: %s\n' "$@" >&2
+      exit "$exit_code"
                                     
     }
 }
@@ -45,16 +45,15 @@ confirm_menu()
 # Affichage des parametres
 # -----------------------------------------
 echo "-------------------------------------------------"
-echo "Recapitulatif :"	
-echo "    >>>     Code Ann e universitaire : ${COD_ANU}"		        			
-echo "    >>>     Type Detection : ${COD_TYP_DETECT}"		    
+echo "Recapitulatif :"
+echo "    >>>     Code Annee universitaire : ${COD_ANU}"
+echo "    >>>     Type Detection : ${COD_TYP_DETECT}"
 echo "    >>>     Code Objet : ${COD_OBJ}"
 echo "    >>>     Code Version Objet : ${COD_VRS_OBJ}"
 echo "    >>>     Dossier racine : ${DIR_FIC_ARCH}"
-echo "    >>>     Identifiant base de donnee : ${LOGIN_APOGEE}"	 
-echo "    >>>     Mot de passe base de donnee : ${MDP_APOGEE}"	  
-echo "    >>>     PDB : $PDB"      
-echo "    >>>     Directory Cree : ${DIRECTORY} "
+echo "    >>>     Identifiant base de donnee : ${LOGIN_APOGEE}"
+echo "    >>>     Mot de passe base de donnee : ${MDP_APOGEE}"
+echo "    >>>     PDB : $PDB"
 echo "-------------------------------------------------"
 # -----------------------------------------
 # Confirmation
@@ -108,17 +107,6 @@ fi
 MDP_APOGEE=${MDP_APOGEE_SAISI}
 
 
-# Récupération du directory Apogée
-DIRECTORY_SAISI=`grep "^DIRECTORY" $FIC_INI | cut -d\: -f2`
-if  [[  -z ${DIRECTORY_SAISI} ]]
-then
-	echo -e "Nom Directory cree ?: \c"
-	read DIRECTORY_SAISI
-fi
-DIRECTORY=${DIRECTORY_SAISI}
-
-
-
     # chaine de connexion
 STR_CONX=${LOGIN_APOGEE}/${MDP_APOGEE}
 
@@ -142,9 +130,9 @@ DIR_FIC_TMP=`grep "^DIR_FIC_ARCH" $FIC_INI | cut -d\: -f2`tmp
 COD_ANU=`grep "^COD_ANU" $FIC_INI | cut -d\: -f2`
     # Code type de detection (CMP, VET, ou l'ensemble des VETS 'VETALL')
 COD_TYP_DETECT=`grep "^COD_TYP_OBJ" $FIC_INI | cut -d\: -f2`
-    # Code element p dagogique
+    # Code element pedagogique
 COD_OBJ=`grep "^COD_OBJ" $FIC_INI | cut -d\: -f2`
-    # Code version element p dagogique
+    # Code version element pedagogique
 COD_VRS_OBJ=`grep "^COD_VRS_OBJ" $FIC_INI | cut -d\: -f2`
 
     # repertoires de depot et d'archive
@@ -177,15 +165,9 @@ then
   exit
 fi
 
-if  [[  -z ${DIRECTORY_SAISI} ]]
-then
-  echo "Directory non existant"
-  exit
-fi
-
 if [[  -z ${PDB} ]]
 then
-echo "Probleme PDB ou TWO_TASK"
+echo "Probleme PDB ou TWO_TASK non positionnés"
 	exit
 fi
 
@@ -234,7 +216,7 @@ echo "  >>>   Fichier LOG SQL cree  -> ${FIC_SQL_LOG}"
 echo "  >>>   Fichier LOG cree  -> ${FIC_LOG}"
 
 
-    #  cr ation du repertoire d'archive des vets
+    #  creation du repertoire d'archive des vets
 if  ! test -d ${DIR_FIC_IN}
 then
   echo "  >>>   Creation du repertoire ${DIR_FIC_IN}"
@@ -243,7 +225,7 @@ then
 fi
 
 
-    #  cr ation du repertoire d'archive des vets en sortie
+    #  creation du repertoire d'archive des vets en sortie
 if  ! test -d ${DIR_FIC_SORTIE_IN}
 then
   echo "  >>>   Creation du repertoire ${DIR_FIC_SORTIE_IN}"
@@ -252,7 +234,7 @@ then
 fi
 
 
-    #  cr ation du repertoire de sortie
+    #  creation du repertoire de sortie
 if  ! test -d ${DIR_FIC_SORTIE}
 then
   echo "  >>>   Creation du repertoire ${DIR_FIC_SORTIE}"
@@ -261,7 +243,7 @@ then
 fi
 
 
-  # cr ation du repertoire de depot des vet si type detection = LISTES_VET
+  # creation du repertoire de depot des vet si type detection = LISTES_VET
 if  ! test -d ${DIR_FIC_VET_IN} && test ${COD_TYP_DETECT} = 'LISTES_VET'
 then
   echo "  >>>   ${DIR_FIC_VET_IN} inexistant"
@@ -273,7 +255,7 @@ then
 fi
 
 
-    # cr ation du repertoire de tmp
+    # creation du repertoire de tmp
 if  ! test -d ${DIR_FIC_TMP}
 then
   echo "  >>>   ${DIR_FIC_TMP} inexistant"
@@ -298,16 +280,6 @@ echo "  >>>   Fichier DAT cree  -> ${FIC_NAME_APOGEE_INSERT}"
 
 sleep 1
 
-
-path_directory=`sqlplus -s ${STR_CONX} <<EOF
-set pages 0
-set head off
-set feed off
-SELECT directory_path
-	  FROM dba_directories
-	 WHERE directory_name = '${DIRECTORY}';
-exit
-EOF`
 
 # --------------------------------------------
 # PURGE DE FICHIERS PRECEDENTS
@@ -418,8 +390,8 @@ done
   echo "  >>>   Fin du test des codes formations "
   sleep 1
 
-  echo -e "  >>>   Debut du traitement de la g n ration des etapes pour LISTES_VET ">> $FIC_LOG
-  echo -e "  >>>   Debut du traitement de la g n ration des etapes pour LISTES_VET  "
+  echo -e "  >>>   Debut du traitement de la generation des etapes pour LISTES_VET ">> $FIC_LOG
+  echo -e "  >>>   Debut du traitement de la generation des etapes pour LISTES_VET  "
   sleep 1
 
 
@@ -435,8 +407,8 @@ do
   echo ${line} >> ${DIR_FIC_TMP}/${FIC_NAME_TMP}
 
 done
-  echo -e "  >>>   Fin du traitement de la g n ration des etapes pour LISTES_VET ">> $FIC_LOG
-  echo "  >>>   Fin du traitement de la g n ration des etapes pour LISTES_VET  "
+  echo -e "  >>>   Fin du traitement de la generation des etapes pour LISTES_VET ">> $FIC_LOG
+  echo "  >>>   Fin du traitement de la generation des etapes pour LISTES_VET  "
   sleep 1
 done
 
@@ -450,8 +422,8 @@ fi
 if test ${COD_TYP_DETECT} = 'CMP' || test ${COD_TYP_DETECT} = 'VETALL'
 then
 
-echo -e "  >>>   Debut du traitement de la g n ration des etapes pour cmp ou vetall ou vet ">> $FIC_LOG
-echo "  >>>   Debut du traitement de la g n ration des etapes pour cmp ou vetall ou vet "
+echo -e "  >>>   Debut du traitement de la generation des etapes pour cmp ou vetall ou vet ">> $FIC_LOG
+echo "  >>>   Debut du traitement de la generation des etapes pour cmp ou vetall ou vet "
 sleep 1
 
 
@@ -472,21 +444,15 @@ SET FEEDBACK OFF
 set linesize 25
 set pagesize 1
 VARIABLE ret_code NUMBER
+SPOOL ${DIR_FIC_TMP}/${FIC_NAME_TMP}
 BEGIN
 
 DECLARE
 	linebuffer		varchar2(25) := '';
 	type_recherche	varchar2(200) := '${COD_TYP_DETECT}';
-	cod_cmp_in		varchar2(6) := '${COD_OBJ}';
+	cod_cmp_in		varchar2(200) := '${COD_OBJ}';
 	cod_anu_in		INS_ADM_ANU.COD_ANU%TYPE := '${COD_ANU}';
-	cod_etp_in		ETAPE.COD_ETP%TYPE := '${COD_OBJ}';
-	cod_vrs_vet_in	VERSION_ETAPE.COD_VRS_VET%TYPE := '${COD_VRS_OBJ}';
 	
-	-- utl file config
-	repertoire varchar2(100) := '${DIRECTORY}';
-   	fichier varchar2(100) := '${FIC_NAME_TMP}';
-	fichier_sortie UTL_FILE.FILE_TYPE;
-
 	-- curseur de recherche de VET et VDI par CMP
 	cursor main_by_cmp_cur(cod_cmp_in varchar2, cod_anu_in IN varchar2)
        is
@@ -497,12 +463,12 @@ DECLARE
       	 FROM  version_etape vet,
 	       VDI_FRACTIONNER_VET vde,
 		VET_REGROUPE_LSE vrl
-	 WHERE vde.COD_ETP = vet.COD_ETP 
-	   AND vde.cod_vrs_vet = vet.cod_vrs_vet 
+	 WHERE vde.COD_ETP = vet.COD_ETP
+	   AND vde.cod_vrs_vet = vet.cod_vrs_vet
 	   AND vde.daa_deb_val_vet <= cod_anu_in
-	   AND vde.daa_fin_val_vet >= cod_anu_in	
-	   AND vrl.COD_ETP = vde.COD_ETP 
-	   AND vrl.cod_vrs_vet = vde.COD_VRS_VET 
+	   AND vde.daa_fin_val_vet >= cod_anu_in
+	   AND vrl.COD_ETP = vde.COD_ETP
+	   AND vrl.cod_vrs_vet = vde.COD_VRS_VET
 	   AND vet.cod_cmp = cod_cmp_in
 	GROUP BY vrl.cod_etp,
       		 vrl.cod_vrs_vet,
@@ -521,12 +487,12 @@ DECLARE
      	 FROM  version_etape vet,
 		VDI_FRACTIONNER_VET vde,
 		VET_REGROUPE_LSE vrl
-	 WHERE vde.COD_ETP = vet.COD_ETP 
-	   AND vde.cod_vrs_vet = vet.cod_vrs_vet 
+	 WHERE vde.COD_ETP = vet.COD_ETP
+	   AND vde.cod_vrs_vet = vet.cod_vrs_vet
 	   AND vde.daa_deb_val_vet <= cod_anu_in
-	   AND vde.daa_fin_val_vet >= cod_anu_in	
-	   AND vrl.COD_ETP = vde.COD_ETP 
-	   AND vrl.cod_vrs_vet = vde.COD_VRS_VET 
+	   AND vde.daa_fin_val_vet >= cod_anu_in
+	   AND vrl.COD_ETP = vde.COD_ETP
+	   AND vrl.cod_vrs_vet = vde.COD_VRS_VET
 	 GROUP BY vrl.cod_etp,
       		 vrl.cod_vrs_vet,
       		 vde.cod_dip,
@@ -538,32 +504,29 @@ DECLARE
 	then
 		for main_by_cmp_rec in  main_by_cmp_cur(cod_cmp_in, cod_anu_in)
 		loop
-		  fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
-		  linebuffer := main_by_cmp_rec.cod_dip || '-' || main_by_cmp_rec.cod_vrs_vdi ||'>' ||main_by_cmp_rec.cod_etp ||'-' ||  main_by_cmp_rec.cod_vrs_vet ;
-		  utl_file.put_line(fichier_sortie,linebuffer);
-		  utl_file.fclose(fichier_sortie);
+			linebuffer := main_by_cmp_rec.cod_dip || '-' || main_by_cmp_rec.cod_vrs_vdi ||'>' ||main_by_cmp_rec.cod_etp ||'-' ||  main_by_cmp_rec.cod_vrs_vet ;
+			dbms_output.put_line(linebuffer);
 		end loop;
 	end if;
-	if type_recherche = 'VETALL' 
+	if type_recherche = 'VETALL'
 	then
 	    for main_by_vet_rec in main_by_vet_cur(cod_anu_in)
 	    loop
-		 fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
 		 linebuffer := main_by_vet_rec.cod_dip || '-' ||main_by_vet_rec.cod_vrs_vdi ||'>' ||   main_by_vet_rec.cod_etp ||'-' || main_by_vet_rec.cod_vrs_vet;
-		 utl_file.put_line(fichier_sortie,linebuffer);
-		 utl_file.fclose(fichier_sortie);
+		 dbms_output.put_line(linebuffer);
 	    end loop;
 	end if;
 		
    END;
 END;
 /
-PRINT 
+PRINT
+SPOOL OFF
 EXIT
 FIN_SQL
 
-echo -e "  >>>   Fin du traitement de la g n ration des etapes pour cmp et vetall ">> $FIC_LOG
-echo "  >>>   Fin du traitement de la g n ration des etapes pour cmp et vetall "
+echo -e "  >>>   Fin du traitement de la generation des etapes pour cmp et vetall ">> $FIC_LOG
+echo "  >>>   Fin du traitement de la generation des etapes pour cmp et vetall "
 
 fi
 
@@ -572,8 +535,8 @@ echo "  >>>   Suppression des espaces vides"
 # suppresion des espaces vides
 if test ${COD_TYP_DETECT} = 'CMP' || test ${COD_TYP_DETECT} = 'VETALL'
 then
- awk 'NF > 0'  ${path_directory}/${FIC_NAME_TMP} > ${DIR_FIC_TMP}/temp
- rm  -f ${path_directory}/${FIC_NAME_TMP} 
+ awk 'NF > 0'  ${DIR_FIC_TMP}/${FIC_NAME_TMP} > ${DIR_FIC_TMP}/temp
+ rm  -f ${DIR_FIC_TMP}/${FIC_NAME_TMP} 
  cp ${DIR_FIC_TMP}/temp ${DIR_FIC_TMP}/${FIC_NAME_TMP}
  rm ${DIR_FIC_TMP}/temp
 fi
@@ -614,7 +577,7 @@ echo  "  >>>    Traitement pour la VET :  ${COD_OBJ_FIC} - ${COD_VRS_OBJ} "
 # ETAPE 3 1  : generation des vacs apogees
 # --------------------------------------------
 
-echo -e "  >>>   Debut du traitement de la g n ration des cles vac " >> $FIC_LOG
+echo -e "  >>>   Debut du traitement de la generation des cles vac " >> $FIC_LOG
 
 # recherche des resultats et des prc pour chaque VET pour chaque etudiant inscrit sur cette ann e (iae en cours)
 sqlplus -s <<FIN_SQL 
@@ -638,6 +601,7 @@ SET FEEDBACK OFF
 set linesize 70
 set pagesize 1
 VARIABLE ret_code NUMBER
+SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT} append
 BEGIN
 
 DECLARE
@@ -650,11 +614,6 @@ DECLARE
 	cod_anu_in		INS_ADM_ANU.cod_anu%TYPE :='${COD_ANU}';
 	cod_cip_vet 	IND_CONTRAT_ELP.cod_cip%TYPE := '';
 	
-	-- utl file config
-	repertoire  varchar2(100)       := '${DIRECTORY}';
-   	fichier varchar2(100)           := '${FIC_NAME_APOGEE_INSERT}';
-	fichier_sortie UTL_FILE.FILE_TYPE;
-		
 	-- recuperation des prc
    CURSOR recherche_prc_cur (cod_etp_in IN varchar2, cod_vrs_vet_in IN varchar2,cod_anu_in IN varchar2)
 		IS
@@ -727,10 +686,8 @@ DECLARE
 	-- RECHERCHE PAR PRC
 	FOR recherche_prc_rec IN recherche_prc_cur(cod_etp_in,cod_vrs_vet_in,cod_anu_in)
 	LOOP
-			fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
 			linebuffer := ''||REPLACE(cod_anu_in,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_ind,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_etp,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_vrs_vet,'NULL',NULL)||';'||REPLACE(recherche_prc_rec.cod_elp,'','NULL')||';SYSDATE;'||REPLACE(cod_cip_vet,'','NULL')||';' ||recherche_prc_rec.note|| ';' ||recherche_prc_rec.bareme ||';';
-			utl_file.put_line(fichier_sortie,linebuffer);
-			utl_file.fclose(fichier_sortie);
+			dbms_output.put_line(linebuffer);
 	END LOOP;
 	
    	
@@ -738,10 +695,12 @@ DECLARE
   	
 END;
 /
+PRINT
+SPOOL OFF
 EXIT
 FIN_SQL
 
-echo -e "  >>>   Fin du traitement de la g n ration des cles vac" >> $FIC_LOG
+echo -e "  >>>   Fin du traitement de la generation des cles vac" >> $FIC_LOG
 
 
  >> $FIC_LOG
@@ -756,7 +715,7 @@ echo -e "  >>>   Debut de la suppression des espaces vides dans le fichier inser
 echo -e "  >>>   Debut de la suppression des espaces vides dans le fichier insert">> $FIC_LOG
 
 
-if [ ! -e ${path_directory}/${FIC_NAME_APOGEE_INSERT} ];
+if [ ! -e ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT} ];
 then
 	echo -e "  >>>   Erreur fichier"
 	echo -e "  >>>   Pas de Vac"
@@ -765,10 +724,11 @@ then
 
 fi
 
-awk 'NF > 0' ${path_directory}/${FIC_NAME_APOGEE_INSERT}  >> ${DIR_FIC_TMP}/cle_tmp.dat
-rm -f ${path_directory}/${FIC_NAME_APOGEE_INSERT}
+awk 'NF > 0' ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT}  >> ${DIR_FIC_TMP}/cle_tmp.dat
+rm -f ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT}
 echo '' >> ${DIR_FIC_TMP}/cle_tmp.dat
 cp ${DIR_FIC_TMP}/cle_tmp.dat ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT} 
+sed -i 's/[[:blank:]]*$//' ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT} 
 #rm -f ${DIR_FIC_TMP}/cle_tmp.dat
 
 echo -e "  >>>   Fin de la suppression des espaces vides dans le fichier insert"

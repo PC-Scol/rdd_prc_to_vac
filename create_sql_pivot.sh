@@ -17,10 +17,10 @@
 exit_if_error() {
   local exit_code=$1
   shift
-  [[ $exit_code ]] &&               
-    ((exit_code != 0)) && {         
-      printf 'ERROR: %s\n' "$@" >&2 
-      exit "$exit_code"             
+  [[ $exit_code ]] &&
+    ((exit_code != 0)) && {
+      printf 'ERROR: %s\n' "$@" >&2
+      exit "$exit_code"
                                     
     }
 }
@@ -45,16 +45,15 @@ confirm_menu()
 # -----------------------------------------
 echo "-------------------------------------------------"
 echo "Recapitulatif :"
-echo "  >>>   Code Année universitaire : ${COD_ANU} "	
-echo "  >>>   Fichier choisi : ${fic_insert##*/}"	        	    
+echo "  >>>   Code Année universitaire : ${COD_ANU} "
+echo "  >>>   Fichier choisi : ${fic_insert##*/}"
 echo "  >>>   PDB : $PDB	"
-echo "  >>>   Identifiant base de donnee : ${LOGIN_APOGEE} "	 
+echo "  >>>   Identifiant base de donnee : ${LOGIN_APOGEE} "
 echo "  >>>   Mot de passe base de donnee : ${MDP_APOGEE} "
 echo "  >>>   Activation prefix : ${PREFIXON} "
-echo "  >>>   Prefix VDI : ${PREFIX_VDI} "	
-echo "  >>>   Prefix VET : ${PREFIX_VET} "	
+echo "  >>>   Prefix VDI : ${PREFIX_VDI} "
+echo "  >>>   Prefix VET : ${PREFIX_VET} "
 echo "  >>>   Code établissement : ${COD_ETB} "
-echo "  >>>   Directory Cree : ${DIRECTORY} "
 echo "  >>>   Nombre de Thread: ${NBTHR} "
 echo "  >>>   En mode génération des VAC d'insertion !!"
 
@@ -65,11 +64,10 @@ if [ ! "${COD_ANU}" ] || [ ! "${COD_ETB}" ]  || [ ! "${MDP_APOGEE}" ] || [ ! "${
 fi
 
 if [ ! "${NBTHR}" ] ;then
-   echo "  >>> Probleme paramètre"
+   echo "  >>> Probleme paramètre NBTHR non-renseigné"
    exit
 fi
 
-	        
 echo "-------------------------------------------------"
 # -----------------------------------------
 # Confirmation
@@ -93,12 +91,12 @@ choix_menu()
 
 echo "-------------------------------------------------"
 echo " Listes des fichiers disponibles :  "
-number=0		        	    
+number=0
 for fic in  `ls ${DIR_FIC_SORTIE}/cle_vac*`; do 
  	fichier=${fic##*/}
  	number=$(( ++number ))
        echo "  >>>  ${number} - ${fichier}"  
-done		        
+done
 echo "-------------------------------------------------"
 
 
@@ -134,21 +132,28 @@ DIR_FIC_ARCH=`printenv | grep ^PWD= | cut -d\= -f2`
 DIR_FIC_SORTIE=${DIR_FIC_ARCH}/fichier_sortie_sql
 
 
-     #FICHIER INI (chemin à ajouter)
+    #FICHIER INI (chemin à ajouter)
 FIC_INI=${DIR_FIC_ARCH}/rdd_vac.ini
 
-# Modification Identifiant
-echo -e "Login APOGEE ?  : \c"
-      read LOGIN_APOGEE_SAISI
+# Récupération Identifiant
+LOGIN_APOGEE_SAISI=`grep "^LOGIN_APOGEE" $FIC_INI | cut -d\: -f2`
+if  [[  -z ${LOGIN_APOGEE_SAISI} ]]
+then
+	echo -e "Login APOGEE ?  : \c"
+	read LOGIN_APOGEE_SAISI
+fi
+LOGIN_APOGEE=${LOGIN_APOGEE_SAISI}
 
-LOGIN_APOGEE=$LOGIN_APOGEE_SAISI
 
-#Modification  Mot de passe
-
-echo -e "Mot de passe APOGEE ?: \c"
-      read MDP_APOGEE_SAISI
-
+# Récupération Mot de passe
+MDP_APOGEE_SAISI=`grep "^MDP_APOGEE" $FIC_INI | cut -d\: -f2`
+if  [[  -z ${MDP_APOGEE_SAISI} ]]
+then
+	echo -e "Mot de passe APOGEE ?: \c"
+	read MDP_APOGEE_SAISI
+fi
 MDP_APOGEE=${MDP_APOGEE_SAISI}
+
 
     # chaine de connexion
 STR_CONX=${LOGIN_APOGEE}/${MDP_APOGEE}
@@ -192,23 +197,17 @@ then
 fi
 
 
+PDB=`grep "^PDB" $FIC_INI | cut -d\: -f2`
 if [[  -z ${PDB} ]]
 then
-  PDB=FIC_NAME_FILTRE=`grep "^PDB" $FIC_INI | cut -d\: -f2`
-  if [[  -z ${PDB} ]]
-  then
-  	echo "Probleme PDB ou TWO_TASK"
-       exit
-  fi
+  PDB=`printenv | grep ^TWO_TASK= | cut -d\= -f2`
 fi
-
-#Modification  Directory
-
-echo -e "Nom Directory cree ?: \c"
-      read DIRECTORY_SAISI
-
-DIRECTORY=${DIRECTORY_SAISI}
-
+if [[  -z ${PDB} ]]
+then
+echo "Probleme PDB ou TWO_TASK non positionnés"
+	exit
+fi
+export TWO_TASK=${PDB}
 
 
  # log du programme
@@ -279,17 +278,6 @@ confirm_menu
 sleep 1
 
 
-path_directory=`sqlplus -s ${STR_CONX} <<EOF
-set pages 0
-set head off
-set feed off
-SELECT directory_path
-	  FROM dba_directories
-	 WHERE directory_name = '${DIRECTORY}';
-exit
-EOF`
-
-
 process_coc() {
 local ligne=$1
 local str_conx=$2
@@ -306,7 +294,6 @@ echo "  >>>  Genération de la VAC d'insertion (coc) pour le pivot :  ${sql_cond
 
 echo "  >>>  Genération de la VAC pour module COC d'insertion  pour le pivot :${sql_condition_string}" >> $FIC_LOG
 
-
 #recuperation des valeurs dans les clés
 
 IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA <<< "$sql_condition_string"
@@ -317,13 +304,15 @@ ${str_conx}
 set serveroutput on
 SET HEADING OFF
 SET FEEDBACK OFF 
+set linesize 870
 set pagesize 1
 VARIABLE ret_code NUMBER
+SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC} append
 BEGIN
 	DECLARE 
-	 	ANNEE_VAL varchar2(4) := '${ANNEE}';
-		COD_IND_VAL number(8,0) := '${COD_IND}';	
-		COD_ETU_VAL number(8,0) := null;	
+		ANNEE_VAL varchar2(4) := '${ANNEE}';
+		COD_IND_VAL number(8,0) := '${COD_IND}';
+		COD_ETU_VAL number(8,0) := null;
 		COD_ETP_VAL varchar2(6) := '${COD_ETP}';
 		COD_VRS_VET_VAL number(3,0) := '${COD_VRS_VET}';
 		COD_ELP_VAL varchar2(10) := '${COD_ELP}';
@@ -345,7 +334,6 @@ BEGIN
 		LINEBUFFER varchar2(1000) := '';
 		CLE_CHC varchar2(50) := '';
 		CLE_COC varchar2(100) := '';
-		key_ins varchar2(20000) := '';
 		code_filtre_formation varchar2(50) := '';
 		EXCEPTION_PROGRAMME EXCEPTION;
 		tem_capitalise varchar2(2) := null;
@@ -357,33 +345,14 @@ BEGIN
 		note_session2 varchar2(10) := null;
 		bareme_session2 varchar2(10) := null;
 
-
-		-- utl file config
-	       repertoire  varchar2(100)  := '${DIRECTORY}';
-   	       fichier  varchar2(100)     := '${FIC_NAME_PIVOT_INSERT_COC}';
-		fichier_sortie UTL_FILE.FILE_TYPE;
-
-		fexists   BOOLEAN;
-		file_length  NUMBER;
-  		block_size   BINARY_INTEGER;
-		entete varchar2(2000) :='"id";"code_formation";"code_objet_formation";"code_filtre_formation";"code_periode";"code_structure";"id_apprenant";"code_apprenant";"type_objet_formation";"code_mention";"grade_ects";"gpa";"note_retenue";"bareme_note_retenue";"point_jury_retenu";"note_session1";"bareme_note_session1";"point_jury_session1";"credit_ects_session1";"rang_session1";"note_session2";"bareme_note_session2";"point_jury_session2";"resultat_final";"resultat_session1";"resultat_session2";"rang_final";"credit_ects_final";"statut_deliberation_session1";"statut_deliberation_session2_final";"session_retenue";"absence_finale";"absence_session1";"absence_session2";"temoin_concerne_session2";"statut_publication_session1";"statut_publication_session2";"statut_publication_final";"temoin_capitalise";"temoin_conserve";"duree_conservation";"note_minimale_conservation";"temoin_validation_acquis"';
-
 	BEGIN
-
-		UTL_FILE.FGETATTR(repertoire  , fichier  , fexists, file_length, block_size);
-    		IF not fexists THEN       	
-			fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
-			utl_file.put_line(fichier_sortie,entete);
-			utl_file.fclose(fichier_sortie);
-			
-   		END IF;
 
 		 --Récupération des valeurs pour créer les clés et les ordres SQL
 					
 		DECLARE
 			 custom_exception EXCEPTION;
-		BEGIN	
-	
+		BEGIN
+		
 		SELECT cod_dip
 		INTO COD_DIP_VAL
 		FROM (
@@ -394,16 +363,16 @@ BEGIN
 				 	and cod_anu = ANNEE_VAL
 				 	and cod_ind = COD_IND_VAL
 			)
-			WHERE ROWNUM = 1;			
+			WHERE ROWNUM = 1;
 		 	
 			IF COD_DIP_VAL IS NULL
-			then 
+			then
 				raise custom_exception;
 			end if;
 
 		EXCEPTION
         	WHEN OTHERS
-			THEN 
+			THEN
 				SELECT cod_dip
 				INTO COD_DIP_VAL
 				FROM (
@@ -415,11 +384,11 @@ BEGIN
 					and daa_fin_rct_vet >  ANNEE_VAL
 				)
 				WHERE ROWNUM = 1;
-		END;		
+		END;
 
 		DECLARE
 			 custom_exception EXCEPTION;
-		BEGIN	
+		BEGIN
 		SELECT cod_vrs_vdi
 		INTO  COD_VRS_VDI_VAL
 		FROM (
@@ -430,11 +399,11 @@ BEGIN
 			and cod_anu = ANNEE_VAL
 			and cod_ind = COD_IND_VAL
 		)
-		WHERE ROWNUM = 1;	
+		WHERE ROWNUM = 1;
 			
 			
 		IF COD_VRS_VDI_VAL IS NULL
-		then 			
+		then
 			RAISE custom_exception;
 			
 		END IF;
@@ -451,7 +420,7 @@ BEGIN
 					and daa_deb_rct_vet <=  ANNEE_VAL
 					and daa_fin_rct_vet >  ANNEE_VAL
  			)
-			WHERE ROWNUM = 1;		
+			WHERE ROWNUM = 1;
 		END;
 
 		
@@ -471,7 +440,7 @@ BEGIN
 
 		EXCEPTION
         	WHEN OTHERS
-			THEN 
+			THEN
 		 	dbms_output.put_line('CODE ETU' || SQLERRM);
 		END;
 
@@ -480,7 +449,7 @@ BEGIN
 
 		BEGIN
 			SELECT cod_nel
-				INTO COD_NEL_VAL				
+				INTO COD_NEL_VAL
 				FROM (
   					SELECT cod_nel
  					from element_pedagogi
@@ -489,7 +458,7 @@ BEGIN
 				WHERE ROWNUM = 1;
 		EXCEPTION
         	WHEN OTHERS
-			THEN 
+			THEN
 		 	dbms_output.put_line('CODE NEL' ||SQLERRM);
 		END;
 		
@@ -519,7 +488,7 @@ BEGIN
 		
 			
 		Select max(elp.not_min_con_elp)
-			into note_minimale_conservation 
+			into note_minimale_conservation
 			from ELEMENT_PEDAGOGI elp
 			where cod_elp = COD_ELP_VAL;
 
@@ -536,7 +505,7 @@ BEGIN
 
 		Select max(CASE WHEN relp.cod_ses='2' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
 			WHEN relp.cod_ses='2' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
-				END) 
+				END)
 		into resultat_session2
 		from resultat_elp relp
 		where  cod_elp = COD_ELP_VAL
@@ -544,16 +513,16 @@ BEGIN
 			and cod_ses = '2'
 			and cod_adm = '1';
 		Begin
-			Select not_elp 
-			into note_session2 
+			Select not_elp
+			into note_session2
 			from resultat_elp relp
 			where  cod_elp = COD_ELP_VAL
 			and COD_IND = COD_IND_VAL
 			and cod_ses = '2'
 			and cod_adm = '1';
 
-			Select bar_not_elp 
-			into bareme_session2 
+			Select bar_not_elp
+			into bareme_session2
 			from resultat_elp relp
 			where  cod_elp = COD_ELP_VAL
 			and COD_IND = COD_IND_VAL
@@ -561,9 +530,9 @@ BEGIN
 			and cod_adm = '1';
 		exception
 			when others
-				then 
-				 bareme_session2  := 'NULL';
-				 note_session2 := 'NULL';
+				then
+				bareme_session2  := 'NULL';
+				note_session2 := 'NULL';
 		end;
 
 		
@@ -579,8 +548,8 @@ BEGIN
 		END IF;
 	
 		--  Création de l'ordre d'insertion des coc en fonction des PRC trouvées dans APOGEE
-		LINEBUFFER := LINEBUFFER ||  CLE_COC||';';	
-		LINEBUFFER := LINEBUFFER ||  code_filtre_formation||';';				
+		LINEBUFFER := LINEBUFFER ||  CLE_COC||';';
+		LINEBUFFER := LINEBUFFER ||  code_filtre_formation||';';
 		LINEBUFFER := LINEBUFFER ||  COD_ELP_VAL||';';
 		LINEBUFFER := LINEBUFFER ||  COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||';';
 		LINEBUFFER := LINEBUFFER ||  ANNEE_VAL||';';
@@ -595,23 +564,23 @@ BEGIN
 		LINEBUFFER := LINEBUFFER || BAR_NOT_VAA_VAL||';';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || NOT_VAA_VAL||';';
-		LINEBUFFER := LINEBUFFER ||BAR_NOT_VAA_VAL||';';		
+		LINEBUFFER := LINEBUFFER ||BAR_NOT_VAA_VAL||';';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		IF NUM_SESSION = 2
-		then 
+		then
 			LINEBUFFER := LINEBUFFER || NOT_VAA_VAL||';';
-			LINEBUFFER := LINEBUFFER ||BAR_NOT_VAA_VAL||';';	
+			LINEBUFFER := LINEBUFFER ||BAR_NOT_VAA_VAL||';';
 		else
 			LINEBUFFER := LINEBUFFER || 'NULL;';
 			LINEBUFFER := LINEBUFFER || 'NULL;';
 
-		end if;		
+		end if;
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		IF  resultat_session2 is not null
-			then 
-				LINEBUFFER := LINEBUFFER || resultat_session2 ||';';	
+			then
+				LINEBUFFER := LINEBUFFER || resultat_session2 ||';';
 			else
 				IF  resultat_session1 is not null
 				then
@@ -620,23 +589,23 @@ BEGIN
 					LINEBUFFER := LINEBUFFER || 'NULL;';
 				end if;
 
-		end if;			
+		end if;
 	
 
 
 		IF  resultat_session1 is not null
 		then 
-			LINEBUFFER := LINEBUFFER || resultat_session1 ||';';	
+			LINEBUFFER := LINEBUFFER || resultat_session1 ||';';
 		else
 			LINEBUFFER := LINEBUFFER || 'NULL;';
 		end if;
 
 		IF  resultat_session2 is not null
-		then 
-			LINEBUFFER := LINEBUFFER || resultat_session2 ||';';	
+		then
+			LINEBUFFER := LINEBUFFER || resultat_session2 ||';';
 		else
 			LINEBUFFER := LINEBUFFER || 'NULL;';
-		end if;		
+		end if;
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'T;';
@@ -677,23 +646,18 @@ BEGIN
 		end if;
 		LINEBUFFER := LINEBUFFER || 'NULL';
 
-
-		fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A',32767);
-		utl_file.put_line(fichier_sortie,LINEBUFFER);
-		utl_file.fclose(fichier_sortie);
-
-
-
-
+		dbms_output.put_line(LINEBUFFER);
 
 	EXCEPTION
         WHEN OTHERS
-		THEN 
+		THEN
 		 ROLLBACK;
 	END;
 	
 END;
 /
+PRINT
+SPOOL OFF
 EXIT
 FIN_SQL
 
@@ -766,11 +730,13 @@ ${STR_CONX}
 set serveroutput on
 SET HEADING OFF
 SET FEEDBACK OFF
+set linesize 1000
 set pagesize 1
+SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC} append
 VARIABLE ret_code NUMBER
 BEGIN
 	DECLARE 
-	 	ANNEE_VAL varchar2(4) := '${ANNEE}';
+		ANNEE_VAL varchar2(4) := '${ANNEE}';
 		COD_IND_VAL number(8,0) := '${COD_IND}';	
 		COD_ETU_VAL number(8,0) := null;	
 		COD_ETP_VAL varchar2(6) := '${COD_ETP}';
@@ -791,33 +757,23 @@ BEGIN
 		PREFIXON_VAC varchar2(10) := '${PREFIXON}';
 		PREFIX_VET_VAC varchar2(10) := '${PREFIX_VET}';
 		PREFIX_VDI_VAC varchar2(10) := '${PREFIX_VDI}';
-		LINEBUFFER varchar2(10000) := '';
+		LINEBUFFER varchar2(1000) := '';
 		CLE_CHC varchar2(50) := '';
 		code_filtre_formation varchar2(25) := '';
 		chemin_element varchar2(5000) := '';
 		count_elp number(8,0) := 0;
 		first_elp varchar2(10) := 0;
 		isExists number(8,0) := 0;
- 		COD_ANU_out varchar2(10) := null;
+		COD_ANU_out varchar2(10) := null;
 		cod_typ_lse_out varchar2(2) := null;
 		cod_ind_out varchar2(10) := null;
 		EXCEPTION_PROGRAMME EXCEPTION;
 		
-		entete varchar2(2000) := '"id";"code_periode";"id_apprenant";"code_apprenant";"code_formation";"code_objet_formation";"code_chemin";"code_type_objet_maquette";"code_structure";"type_chc";"nombre_credit_formation";"nombre_credit_objet_formation";"temoin_objet_capitalisable";"temoin_objet_conservable";"duree_conservation";"etat_objet_dispense";"operation";"type_amenagement";"temoin_injection_chc"';
-		-- utl file config
-	       repertoire  varchar2(100)  := '${DIRECTORY}';
-   	       fichier  varchar2(100)     := '${FIC_NAME_PIVOT_INSERT_CHC}';
-		fichier_sortie UTL_FILE.FILE_TYPE;
-
-		fexists   BOOLEAN;
-		file_length  NUMBER;
-  		block_size   BINARY_INTEGER;
-
 	BEGIN
-	  DECLARE
+		DECLARE
 		-- curseur de creation du chemin
-		cursor create_chemin_cur 
-		is 		
+		cursor create_chemin_cur
+		is
 		   SELECT  DISTINCT  replace(SYS_CONNECT_BY_PATH(DECODE(lse.cod_typ_lse,'O','','L-'||ice.cod_lse||'>')||ice.cod_elp, '>>'),'>>','>') AS CHEMIN
 				      ,ice.cod_elp AS cod_elp_fils
 				      ,connect_by_root(ice.cod_anu) AS COD_ANU,
@@ -830,8 +786,8 @@ BEGIN
 							AND PRIOR ice.cod_anu = ice.cod_anu
 							AND PRIOR ice.cod_etp=ice.cod_etp
 							AND PRIOR ice.cod_vrs_vet=ice.cod_vrs_vet
-							AND PRIOR ice.cod_ind=ice.cod_ind							
-				START WITH 	ice.cod_anu= ANNEE_VAL 
+							AND PRIOR ice.cod_ind=ice.cod_ind
+				START WITH 	ice.cod_anu= ANNEE_VAL
 						AND ice.cod_ind = COD_IND_VAL
 						AND ice.cod_etp = COD_ETP_VAL
 						AND ice.cod_vrs_vet = COD_VRS_VET
@@ -842,19 +798,10 @@ BEGIN
 		tem_prc_ice varchar2(1);
 	BEGIN
 
-		UTL_FILE.FGETATTR(repertoire  , fichier  , fexists, file_length, block_size);
-    		IF not fexists THEN       	
-			fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
-			utl_file.put_line(fichier_sortie,entete);
-			utl_file.fclose(fichier_sortie);
-			
-   		END IF;
-
-	
-		 --Récupération des valeurs pour créer les clés et les ordres SQL
+		--Récupération des valeurs pour créer les clés et les ordres SQL
 					
 		DECLARE
-			 custom_exception EXCEPTION;
+			custom_exception EXCEPTION;
 		BEGIN	
 	
 		SELECT cod_dip
@@ -1019,9 +966,7 @@ BEGIN
 			LINEBUFFER := LINEBUFFER || 'false'; 			
 			LINEBUFFER := LINEBUFFER;
 		
-			fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A',32767);
-			utl_file.put_line(fichier_sortie,LINEBUFFER);
-			utl_file.fclose(fichier_sortie);
+			dbms_output.put_line(LINEBUFFER);
 	
 		EXCEPTION
         	WHEN OTHERS
@@ -1045,6 +990,8 @@ BEGIN
 	
 END;
 /
+PRINT 
+SPOOL OFF
 EXIT
 FIN_SQL
 }
@@ -1086,10 +1033,16 @@ if [ ! -d ${DIR_FIC_TMP} ]; then
   mkdir ${DIR_FIC_TMP}
 fi
 
-awk 'NF > 0' ${path_directory}/${FIC_NAME_PIVOT_INSERT_COC}  > ${DIR_FIC_TMP}/fichier_tempo.tmp
-awk 'NF > 0' ${path_directory}/${FIC_NAME_PIVOT_INSERT_CHC}  > ${DIR_FIC_TMP}/fichier_tempo_2.tmp
-rm -f ${path_directory}/${FIC_NAME_PIVOT_INSERT_COC} 
-rm -f ${path_directory}/${FIC_NAME_PIVOT_INSERT_CHC}
+#ajout ligne entête fichier COC
+sed -i '1s/^/"id";"code_formation";"code_objet_formation";"code_filtre_formation";"code_periode";"code_structure";"id_apprenant";"code_apprenant";"type_objet_formation";"code_mention";"grade_ects";"gpa";"note_retenue";"bareme_note_retenue";"point_jury_retenu";"note_session1";"bareme_note_session1";"point_jury_session1";"credit_ects_session1";"rang_session1";"note_session2";"bareme_note_session2";"point_jury_session2";"resultat_final";"resultat_session1";"resultat_session2";"rang_final";"credit_ects_final";"statut_deliberation_session1";"statut_deliberation_session2_final";"session_retenue";"absence_finale";"absence_session1";"absence_session2";"temoin_concerne_session2";"statut_publication_session1";"statut_publication_session2";"statut_publication_final";"temoin_capitalise";"temoin_conserve";"duree_conservation";"note_minimale_conservation";"temoin_validation_acquis"\n/' ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC}
+
+#ajout ligne entête fichier CHC
+sed -i '1s/^/"id";"code_periode";"id_apprenant";"code_apprenant";"code_formation";"code_objet_formation";"code_chemin";"code_type_objet_maquette";"code_structure";"type_chc";"nombre_credit_formation";"nombre_credit_objet_formation";"temoin_objet_capitalisable";"temoin_objet_conservable";"duree_conservation";"etat_objet_dispense";"operation";"type_amenagement";"temoin_injection_chc"\n/' ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC}
+
+awk 'NF > 0' ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC}  > ${DIR_FIC_TMP}/fichier_tempo.tmp
+awk 'NF > 0' ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC}  > ${DIR_FIC_TMP}/fichier_tempo_2.tmp
+rm -f ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC} 
+rm -f ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC}
 mv ${DIR_FIC_TMP}/fichier_tempo.tmp ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC}
 mv ${DIR_FIC_TMP}/fichier_tempo_2.tmp ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC}
 if [ -d ${DIR_FIC_TMP} ]; then
