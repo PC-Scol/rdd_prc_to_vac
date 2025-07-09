@@ -157,7 +157,7 @@ fi
 
 if [[  -z ${PDB} ]]
 then
-  PDB=FIC_NAME_FILTRE=`grep "^PDB" $FIC_INI | cut -d\: -f2`
+  PDB=`grep "^PDB" $FIC_INI | cut -d\: -f2`
   if [[  -z ${PDB} ]]
   then
   	echo "Probleme PDB ou TWO_TASK"
