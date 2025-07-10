@@ -308,353 +308,235 @@ SET FEEDBACK OFF
 SET TRIMSPOOL ON
 set linesize 870
 set pagesize 1
-VARIABLE ret_code NUMBER
 SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC} append
+DECLARE
+	ANNEE_VAL varchar2(4) := '${ANNEE}';
+	COD_IND_VAL number(8,0) := '${COD_IND}';
+	COD_ETU_VAL number(8,0) := null;
+	COD_ETP_VAL varchar2(6) := '${COD_ETP}';
+	COD_VRS_VET_VAL number(3,0) := '${COD_VRS_VET}';
+	COD_ELP_VAL varchar2(10) := '${COD_ELP}';
+	COD_ETB_VAL varchar2(10) := '${COD_ETB}';
+	COD_DIP_VAL varchar2(10) :=	NULL;
+	COD_VRS_VDI_VAL varchar2(10) := NULL;
+	COD_NEL_VAL varchar2(10) := NULL;
+	NOT_VAA_VAL varchar2(10) := '${NOT_VAA}';
+	BAR_NOT_VAA_VAL varchar2(10) := '${BAR_NOT_VAA}';
+	COD_DEP_PAY_VAC varchar2(10) := NULL;
+	COD_TYP_DEP_PAY_VAC varchar2(10) := NULL;
+	COD_ETB varchar2(10) := NULL;
+	COD_PRG varchar2(10) := NULL;
+	NUM_SESSION  varchar2(2) := NULL;
+	TEM_SNS_PRG varchar2(10) := NULL;
+	PREFIXON_VAC varchar2(10) := '${PREFIXON}';
+	PREFIX_VET_VAC varchar2(10) := '${PREFIX_VET}';
+	PREFIX_VDI_VAC varchar2(10) := '${PREFIX_VDI}';
+	LINEBUFFER varchar2(870) := '';
+	CLE_CHC varchar2(50) := '';
+	CLE_COC varchar2(100) := '';
+	code_filtre_formation varchar2(50) := '';
+	tem_capitalise varchar2(2) := null;
+	tem_conservation varchar2(2) := null;
+	duree_conservation number(8,0)  := null;
+	note_minimale_conservation number(8,0)  := null;
+	resultat_session1  varchar2(4)  := null;
+	resultat_session2  varchar2(4) := null;	
+	note_session2 varchar2(10) := null;
+	bareme_session2 varchar2(10) := null;
+
 BEGIN
-	DECLARE
-		ANNEE_VAL varchar2(4) := '${ANNEE}';
-		COD_IND_VAL number(8,0) := '${COD_IND}';
-		COD_ETU_VAL number(8,0) := null;
-		COD_ETP_VAL varchar2(6) := '${COD_ETP}';
-		COD_VRS_VET_VAL number(3,0) := '${COD_VRS_VET}';
-		COD_ELP_VAL varchar2(10) := '${COD_ELP}';
-		COD_ETB_VAL varchar2(10) := '${COD_ETB}';
-		COD_DIP_VAL varchar2(10) :=	NULL;
-		COD_VRS_VDI_VAL varchar2(10) := NULL;
-		COD_NEL_VAL varchar2(10) := NULL;
-		NOT_VAA_VAL varchar2(10) := '${NOT_VAA}';
-		BAR_NOT_VAA_VAL varchar2(10) := '${BAR_NOT_VAA}';
-		COD_DEP_PAY_VAC varchar2(10) := NULL;
-		COD_TYP_DEP_PAY_VAC varchar2(10) := NULL;
-		COD_ETB varchar2(10) := NULL;
-		COD_PRG varchar2(10) := NULL;
-		NUM_SESSION  varchar2(2) := NULL;
-		TEM_SNS_PRG varchar2(10) := NULL;
-		PREFIXON_VAC varchar2(10) := '${PREFIXON}';
-		PREFIX_VET_VAC varchar2(10) := '${PREFIX_VET}';
-		PREFIX_VDI_VAC varchar2(10) := '${PREFIX_VDI}';
-		LINEBUFFER varchar2(870) := '';
-		CLE_CHC varchar2(50) := '';
-		CLE_COC varchar2(100) := '';
-		code_filtre_formation varchar2(50) := '';
-		EXCEPTION_PROGRAMME EXCEPTION;
-		tem_capitalise varchar2(2) := null;
-		tem_conservation varchar2(2) := null;
-		duree_conservation number(8,0)  := null;
-		note_minimale_conservation number(8,0)  := null;
-		resultat_session1  varchar2(4)  := null;
-		resultat_session2  varchar2(4) := null;	
-		note_session2 varchar2(10) := null;
-		bareme_session2 varchar2(10) := null;
 
-	BEGIN
-
-		--Récupération des valeurs pour créer les clés et les ordres SQL
-					
-		DECLARE
-			custom_exception EXCEPTION;
-		BEGIN
-		
-		SELECT cod_dip
-		INTO COD_DIP_VAL
-		FROM (
-			SELECT cod_dip
-			FROM ins_adm_etp
-			where cod_etp = COD_ETP_VAL
-				and cod_vrs_vet = COD_VRS_VET_VAL
-				and cod_anu = ANNEE_VAL
-				and cod_ind = COD_IND_VAL
-			)
-			WHERE ROWNUM = 1;
-
-			IF COD_DIP_VAL IS NULL
-			then
-				raise custom_exception;
-			end if;
-
-		EXCEPTION
-			WHEN OTHERS
-			THEN
-				SELECT cod_dip
-				INTO COD_DIP_VAL
-				FROM (
-					SELECT cod_dip
-					FROM vdi_fractionner_vet
-					where cod_etp = COD_ETP_VAL
-						and cod_vrs_vet = COD_VRS_VET_VAL
-						and daa_deb_rct_vet <=  ANNEE_VAL
-						and daa_fin_rct_vet >  ANNEE_VAL
-				)
-				WHERE ROWNUM = 1;
-		END;
-
-		DECLARE
-			custom_exception EXCEPTION;
-		BEGIN
-		SELECT cod_vrs_vdi
-		INTO  COD_VRS_VDI_VAL
-		FROM (
-			SELECT cod_vrs_vdi
-			FROM ins_adm_etp
-			where cod_etp = COD_ETP_VAL
-				and cod_vrs_vet = COD_VRS_VET_VAL
-				and cod_anu = ANNEE_VAL
-				and cod_ind = COD_IND_VAL
+	--Récupération des valeurs pour créer les clés et les ordres SQL
+	SELECT cod_dip, cod_vrs_vdi, cod_etu
+	INTO COD_DIP_VAL, COD_VRS_VDI_VAL, COD_ETU_VAL
+	FROM (
+		SELECT iae.cod_dip, iae.cod_vrs_vdi, ind.cod_etu
+		FROM ins_adm_etp iae,
+			individu ind
+		where iae.cod_etp = COD_ETP_VAL
+			and iae.cod_vrs_vet = COD_VRS_VET_VAL
+			and iae.cod_anu = ANNEE_VAL
+			and iae.cod_ind = COD_IND_VAL
+			and iae.cod_ind=ind.cod_ind
 		)
 		WHERE ROWNUM = 1;
-			
-			
-		IF COD_VRS_VDI_VAL IS NULL
-		then
-			RAISE custom_exception;
-			
-		END IF;
-		EXCEPTION
-			WHEN OTHERS
-			THEN 
-			SELECT cod_vrs_vdi
-			INTO  COD_VRS_VDI_VAL
-			FROM (
-				SELECT cod_vrs_vdi
-				FROM vdi_fractionner_vet
-				where cod_etp = COD_ETP_VAL
-					and cod_vrs_vet = COD_VRS_VET_VAL
-					and daa_deb_rct_vet <=  ANNEE_VAL
-					and daa_fin_rct_vet >  ANNEE_VAL
-			)
-			WHERE ROWNUM = 1;
-		END;
 
-		
+	SELECT cod_nel
+	INTO COD_NEL_VAL
+	FROM (
+		SELECT cod_nel
+		from element_pedagogi
+		where cod_elp = COD_ELP_VAL
+	)
+	WHERE ROWNUM = 1;
 	
-		DECLARE
-			custom_exception EXCEPTION;
-		BEGIN
+	Select max(cod_ses)
+		into NUM_SESSION
+		from resultat_elp
+		where COD_ADM = 1
+		and cod_elp = COD_ELP_VAL
+		and COD_IND = COD_IND_VAL;
+	
+	Select elp.tem_cap_elp, elp.tem_con_elp, elp.dur_con_elp, elp.not_min_con_elp
+		into tem_capitalise, tem_conservation, duree_conservation, note_minimale_conservation
+		from ELEMENT_PEDAGOGI elp
+		where cod_elp = COD_ELP_VAL;
+	
+	Select max(CASE WHEN relp.cod_ses='1' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
+					WHEN relp.cod_ses='1' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
+			END)
+	into resultat_session1
+	from resultat_elp relp
+	where   cod_elp = COD_ELP_VAL
+		and COD_IND = COD_IND_VAL
+		and cod_ses = '1'
+		and cod_adm = '1';
 
-		SELECT cod_etu
-		INTO COD_ETU_VAL
-		FROM (
-			SELECT cod_etu
-			from individu
-			where cod_ind  = COD_IND_VAL
-		)
-		WHERE ROWNUM = 1;
-
-		EXCEPTION
-			WHEN OTHERS
-			THEN
-			dbms_output.put_line('CODE ETU' || SQLERRM);
-		END;
-
-		DECLARE
-			custom_exception EXCEPTION;
-		BEGIN
-			SELECT cod_nel
-				INTO COD_NEL_VAL
-				FROM (
-					SELECT cod_nel
-					from element_pedagogi
-					where cod_elp = COD_ELP_VAL
-				)
-				WHERE ROWNUM = 1;
-		EXCEPTION
-			WHEN OTHERS
-			THEN
-			dbms_output.put_line('CODE NEL' ||SQLERRM);
-		END;
-		
-		Select max(cod_ses)
-			into NUM_SESSION
-			from resultat_elp
-			where COD_ADM = 1
-			and cod_elp = COD_ELP_VAL
-			and COD_IND = COD_IND_VAL;
-
-		
-		Select max(elp.tem_cap_elp) as temoin_capitalise
-			into tem_capitalise
-			from ELEMENT_PEDAGOGI elp
-			where cod_elp = COD_ELP_VAL;
-		
-			
-		Select max(elp.tem_con_elp)
-			into tem_conservation
-			from ELEMENT_PEDAGOGI elp
-			where cod_elp = COD_ELP_VAL;
-
-		Select max(elp.dur_con_elp)
-			into duree_conservation
-			from ELEMENT_PEDAGOGI elp
-			where cod_elp = COD_ELP_VAL;
-		
-			
-		Select max(elp.not_min_con_elp)
-			into note_minimale_conservation
-			from ELEMENT_PEDAGOGI elp
-			where cod_elp = COD_ELP_VAL;
-
-
-		Select max(CASE WHEN relp.cod_ses='1' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
-						WHEN relp.cod_ses='1' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
-				END)
-		into resultat_session1
-		from resultat_elp relp
-		where   cod_elp = COD_ELP_VAL
-			and COD_IND = COD_IND_VAL
-			and cod_ses = '1'
-			and cod_adm = '1';
-
-		Select max(CASE WHEN relp.cod_ses='2' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
-			WHEN relp.cod_ses='2' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
-				END)
-		into resultat_session2
+	Select max(CASE WHEN relp.cod_ses='2' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
+		WHEN relp.cod_ses='2' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
+			END)
+	into resultat_session2
+	from resultat_elp relp
+	where  cod_elp = COD_ELP_VAL
+		and COD_IND = COD_IND_VAL
+		and cod_ses = '2'
+		and cod_adm = '1';
+	Begin
+		Select not_elp
+		into note_session2
 		from resultat_elp relp
 		where  cod_elp = COD_ELP_VAL
-			and COD_IND = COD_IND_VAL
-			and cod_ses = '2'
-			and cod_adm = '1';
-		Begin
-			Select not_elp
-			into note_session2
-			from resultat_elp relp
-			where  cod_elp = COD_ELP_VAL
-			and COD_IND = COD_IND_VAL
-			and cod_ses = '2'
-			and cod_adm = '1';
+		and COD_IND = COD_IND_VAL
+		and cod_ses = '2'
+		and cod_adm = '1';
 
-			Select bar_not_elp
-			into bareme_session2
-			from resultat_elp relp
-			where  cod_elp = COD_ELP_VAL
-			and COD_IND = COD_IND_VAL
-			and cod_ses = '2'
-			and cod_adm = '1';
-		exception
-			when others
-				then
-				bareme_session2  := 'NULL';
-				note_session2 := 'NULL';
-		end;
+		Select bar_not_elp
+		into bareme_session2
+		from resultat_elp relp
+		where  cod_elp = COD_ELP_VAL
+		and COD_IND = COD_IND_VAL
+		and cod_ses = '2'
+		and cod_adm = '1';
+	exception
+		when others
+			then
+			bareme_session2  := 'NULL';
+			note_session2 := 'NULL';
+	end;
 
-		
-	
-		CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
-		code_filtre_formation := COD_DIP_VAL||'-'|| COD_VRS_VDI_VAL;
 
-		-- Création de la clé pour les COC et le filtre formation en fonction du préfixage
-		IF PREFIXON_VAC = 'Y'
-		THEN
-			CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'||PREFIX_VDI_VAC||'-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL ||'-'||PREFIX_VET_VAC||'-'||PREFIX_VET_VAC||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
-			code_filtre_formation := PREFIX_VET_VAC||'-'||COD_ETP_VAL||'-'|| COD_VRS_VET_VAL;
-		END IF;
-	
-		--  Création de l'ordre d'insertion des coc en fonction des PRC trouvées dans APOGEE
-		LINEBUFFER := LINEBUFFER ||  CLE_COC||';';
-		LINEBUFFER := LINEBUFFER ||  code_filtre_formation||';';
-		LINEBUFFER := LINEBUFFER ||  COD_ELP_VAL||';';
-		LINEBUFFER := LINEBUFFER ||  COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||';';
-		LINEBUFFER := LINEBUFFER ||  ANNEE_VAL||';';
-		LINEBUFFER := LINEBUFFER ||  COD_ETB_VAL||';';
-		LINEBUFFER := LINEBUFFER ||  COD_IND_VAL||';';
-		LINEBUFFER := LINEBUFFER ||  COD_ETU_VAL||';';
-		LINEBUFFER := LINEBUFFER || COD_NEL_VAL||';';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER ||	NOT_VAA_VAL||';';
-		LINEBUFFER := LINEBUFFER || BAR_NOT_VAA_VAL||';';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
+	CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
+	code_filtre_formation := COD_DIP_VAL||'-'|| COD_VRS_VDI_VAL;
+
+	-- Création de la clé pour les COC et le filtre formation en fonction du préfixage
+	IF PREFIXON_VAC = 'Y'
+	THEN
+		CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'||PREFIX_VDI_VAC||'-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL ||'-'||PREFIX_VET_VAC||'-'||PREFIX_VET_VAC||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
+		code_filtre_formation := PREFIX_VET_VAC||'-'||COD_ETP_VAL||'-'|| COD_VRS_VET_VAL;
+	END IF;
+
+	--  Création de l'ordre d'insertion des coc en fonction des PRC trouvées dans APOGEE
+	LINEBUFFER := LINEBUFFER ||  CLE_COC||';';
+	LINEBUFFER := LINEBUFFER ||  code_filtre_formation||';';
+	LINEBUFFER := LINEBUFFER ||  COD_ELP_VAL||';';
+	LINEBUFFER := LINEBUFFER ||  COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||';';
+	LINEBUFFER := LINEBUFFER ||  ANNEE_VAL||';';
+	LINEBUFFER := LINEBUFFER ||  COD_ETB_VAL||';';
+	LINEBUFFER := LINEBUFFER ||  COD_IND_VAL||';';
+	LINEBUFFER := LINEBUFFER ||  COD_ETU_VAL||';';
+	LINEBUFFER := LINEBUFFER || COD_NEL_VAL||';';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER ||	NOT_VAA_VAL||';';
+	LINEBUFFER := LINEBUFFER || BAR_NOT_VAA_VAL||';';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || NOT_VAA_VAL||';';
+	LINEBUFFER := LINEBUFFER ||BAR_NOT_VAA_VAL||';';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	IF NUM_SESSION = 2
+	then
 		LINEBUFFER := LINEBUFFER || NOT_VAA_VAL||';';
 		LINEBUFFER := LINEBUFFER ||BAR_NOT_VAA_VAL||';';
+	else
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		IF NUM_SESSION = 2
-		then
-			LINEBUFFER := LINEBUFFER || NOT_VAA_VAL||';';
-			LINEBUFFER := LINEBUFFER ||BAR_NOT_VAA_VAL||';';
-		else
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-			LINEBUFFER := LINEBUFFER || 'NULL;';
 
-		end if;
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		IF  resultat_session2 is not null
-			then
-				LINEBUFFER := LINEBUFFER || resultat_session2 ||';';
-			else
-				IF  resultat_session1 is not null
-				then
-					LINEBUFFER := LINEBUFFER || resultat_session1 ||';';
-				else
-					LINEBUFFER := LINEBUFFER || 'NULL;';
-				end if;
-
-		end if;
-	
-
-
-		IF  resultat_session1 is not null
-		then
-			LINEBUFFER := LINEBUFFER || resultat_session1 ||';';
-		else
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-		end if;
-
-		IF  resultat_session2 is not null
+	end if;
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	IF  resultat_session2 is not null
 		then
 			LINEBUFFER := LINEBUFFER || resultat_session2 ||';';
 		else
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-		end if;
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'T;';
-		LINEBUFFER := LINEBUFFER || 'T;';
-		IF NUM_SESSION = 2
-		then
-			LINEBUFFER := LINEBUFFER || '2;';
-		else
-			LINEBUFFER := LINEBUFFER || '1;';
-		end if;
-		
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
+			IF  resultat_session1 is not null
+			then
+				LINEBUFFER := LINEBUFFER || resultat_session1 ||';';
+			else
+				LINEBUFFER := LINEBUFFER || 'NULL;';
+			end if;
 
-		IF NUM_SESSION = 2
-		then
-			LINEBUFFER := LINEBUFFER || 'O;';
-		else
-			LINEBUFFER := LINEBUFFER || 'N;';
-		end if;
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || tem_capitalise||';';
-		LINEBUFFER := LINEBUFFER || tem_conservation||';';
-		if duree_conservation is not null
-		then
-			LINEBUFFER := LINEBUFFER || duree_conservation||';';
-		else
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-		end if;
-		if note_minimale_conservation is not null
-		then
-			LINEBUFFER := LINEBUFFER || note_minimale_conservation||';';
-		else
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-		end if;
-		LINEBUFFER := LINEBUFFER || 'NULL';
+	end if;
 
-		dbms_output.put_line(LINEBUFFER);
+	IF  resultat_session1 is not null
+	then
+		LINEBUFFER := LINEBUFFER || resultat_session1 ||';';
+	else
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+	end if;
 
-	EXCEPTION
-        WHEN OTHERS
-		THEN
-			ROLLBACK;
-	END;
+	IF  resultat_session2 is not null
+	then
+		LINEBUFFER := LINEBUFFER || resultat_session2 ||';';
+	else
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+	end if;
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || 'T;';
+	LINEBUFFER := LINEBUFFER || 'T;';
+	IF NUM_SESSION = 2
+	then
+		LINEBUFFER := LINEBUFFER || '2;';
+	else
+		LINEBUFFER := LINEBUFFER || '1;';
+	end if;
 	
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+
+	IF NUM_SESSION = 2
+	then
+		LINEBUFFER := LINEBUFFER || 'O;';
+	else
+		LINEBUFFER := LINEBUFFER || 'N;';
+	end if;
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || tem_capitalise||';';
+	LINEBUFFER := LINEBUFFER || tem_conservation||';';
+	if duree_conservation is not null
+	then
+		LINEBUFFER := LINEBUFFER || duree_conservation||';';
+	else
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+	end if;
+	if note_minimale_conservation is not null
+	then
+		LINEBUFFER := LINEBUFFER || note_minimale_conservation||';';
+	else
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+	end if;
+	LINEBUFFER := LINEBUFFER || 'NULL';
+
+	dbms_output.put_line(LINEBUFFER);
+EXCEPTION
+	WHEN OTHERS
+	THEN
+		ROLLBACK;
 END;
 /
 SPOOL OFF
@@ -684,7 +566,7 @@ for ((i=0; i<${#lines[@]}; i+=$items_per_packet)); do
     (
         for item in "${packet[@]}"; do
             process_coc "${item}" "${STR_CONX}"
-	 done
+		done
     ) & 
     pids+=($!)  # Store the process ID
     
@@ -734,258 +616,151 @@ SET TRIMSPOOL ON
 set linesize 4000
 set pagesize 1
 SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC} append
-VARIABLE ret_code NUMBER
+DECLARE
+	ANNEE_VAL varchar2(4) := '${ANNEE}';
+	COD_IND_VAL		number(8,0) := '${COD_IND}';
+	COD_ETU_VAL		number(8,0) := null;
+	COD_ETP_VAL		varchar2(6) := '${COD_ETP}';
+	COD_VRS_VET_VAL	number(3,0) := '${COD_VRS_VET}';
+	COD_ELP_VAL		varchar2(10) := '${COD_ELP}';
+	COD_ETB_VAL		varchar2(10) := '${COD_ETB}';
+	COD_DIP_VAL		varchar2(10) :=	NULL;
+	COD_VRS_VDI_VAL	varchar2(10) := NULL;
+	CREDIT_VAL		number(8,0) := null;
+	COD_NEL_VAL		varchar2(10) := NULL;
+	NOT_VAA_VAL		varchar2(10) := '${NOT_VAA}';
+	BAR_NOT_VAA_VAL	varchar2(10) := '${BAR_NOT_VAA}';
+	COD_DEP_PAY_VAC	varchar2(3) := NULL;
+	COD_TYP_DEP_PAY_VAC varchar2(10) := NULL;
+	COD_ETB			varchar2(10) := NULL;
+	COD_PRG			varchar2(10) := NULL;
+	TEM_SNS_PRG		varchar2(10) := NULL;
+	PREFIXON_VAC	varchar2(10) := '${PREFIXON}';
+	PREFIX_VET_VAC	varchar2(10) := '${PREFIX_VET}';
+	PREFIX_VDI_VAC	varchar2(10) := '${PREFIX_VDI}';
+	LINEBUFFER		varchar2(4000) := '';
+	CLE_CHC			varchar2(50) := '';
+	code_filtre_formation varchar2(25) := '';
+	chemin_element	varchar2(5000) := '';
+	count_elp		number(8,0) := 0;
+	first_elp		varchar2(10) := 0;
+	isExists		number(8,0) := 0;
+	COD_ANU_out		varchar2(10) := null;
+	cod_typ_lse_out	varchar2(2) := null;
+	cod_ind_out		varchar2(10) := null;
+	type_amenagement	varchar2(20) := '';
+
+	-- curseur de creation du chemin
+	cursor create_chemin_cur
+	is
+		SELECT  DISTINCT  replace(SYS_CONNECT_BY_PATH(DECODE(lse.cod_typ_lse,'O','','L-'||ice.cod_lse||'>')||ice.cod_elp, '>>'),'>>','>') AS CHEMIN
+					,ice.cod_elp AS cod_elp_fils
+					,connect_by_root(ice.cod_anu) AS COD_ANU,
+					lse.cod_typ_lse,
+					ice.cod_ind
+			FROM IND_CONTRAT_ELP ice
+					,LISTE_ELP lse
+			WHERE lse.cod_lse=ice.cod_lse
+			CONNECT BY PRIOR ice.cod_elp = ice.cod_elp_sup
+					AND PRIOR ice.cod_anu = ice.cod_anu
+					AND PRIOR ice.cod_etp=ice.cod_etp
+					AND PRIOR ice.cod_vrs_vet=ice.cod_vrs_vet
+					AND PRIOR ice.cod_ind=ice.cod_ind
+			START WITH 	ice.cod_anu= ANNEE_VAL
+					AND ice.cod_ind = COD_IND_VAL
+					AND ice.cod_etp = COD_ETP_VAL
+					AND ice.cod_vrs_vet = COD_VRS_VET
+					AND ice.cod_elp_sup IS NULL;
+	chemin varchar2(2000);
+	cod_elp_fils_chemin varchar2(10);
+	cod_ind_cursor varchar2(10);
+	tem_prc_ice varchar2(1);
+
 BEGIN
-	DECLARE 
-		ANNEE_VAL varchar2(4) := '${ANNEE}';
-		COD_IND_VAL number(8,0) := '${COD_IND}';
-		COD_ETU_VAL number(8,0) := null;
-		COD_ETP_VAL varchar2(6) := '${COD_ETP}';
-		COD_VRS_VET_VAL number(3,0) := '${COD_VRS_VET}';
-		COD_ELP_VAL varchar2(10) := '${COD_ELP}';
-		COD_ETB_VAL varchar2(10) := '${COD_ETB}';
-		COD_DIP_VAL varchar2(10) :=	NULL;
-		COD_VRS_VDI_VAL varchar2(10) := NULL;
-		CREDIT_VAL number(8,0) := null;
-		COD_NEL_VAL varchar2(10) := NULL;
-		NOT_VAA_VAL varchar2(10) := '${NOT_VAA}';
-		BAR_NOT_VAA_VAL varchar2(10) := '${BAR_NOT_VAA}';
-		COD_DEP_PAY_VAC varchar2(3) := NULL;
-		COD_TYP_DEP_PAY_VAC varchar2(10) := NULL;
-		COD_ETB varchar2(10) := NULL;
-		COD_PRG varchar2(10) := NULL;
-		TEM_SNS_PRG varchar2(10) := NULL;
-		PREFIXON_VAC varchar2(10) := '${PREFIXON}';
-		PREFIX_VET_VAC varchar2(10) := '${PREFIX_VET}';
-		PREFIX_VDI_VAC varchar2(10) := '${PREFIX_VDI}';
-		LINEBUFFER varchar2(4000) := '';
-		CLE_CHC varchar2(50) := '';
-		code_filtre_formation varchar2(25) := '';
-		chemin_element varchar2(5000) := '';
-		count_elp number(8,0) := 0;
-		first_elp varchar2(10) := 0;
-		isExists number(8,0) := 0;
-		COD_ANU_out varchar2(10) := null;
-		cod_typ_lse_out varchar2(2) := null;
-		cod_ind_out varchar2(10) := null;
-		EXCEPTION_PROGRAMME EXCEPTION;
-		
-	BEGIN
-		DECLARE
-		-- curseur de creation du chemin
-		cursor create_chemin_cur
-		is
-			SELECT  DISTINCT  replace(SYS_CONNECT_BY_PATH(DECODE(lse.cod_typ_lse,'O','','L-'||ice.cod_lse||'>')||ice.cod_elp, '>>'),'>>','>') AS CHEMIN
-						,ice.cod_elp AS cod_elp_fils
-						,connect_by_root(ice.cod_anu) AS COD_ANU,
-						lse.cod_typ_lse,
-						ice.cod_ind
-				FROM IND_CONTRAT_ELP ice
-						,LISTE_ELP lse
-				WHERE lse.cod_lse=ice.cod_lse
-				CONNECT BY PRIOR ice.cod_elp = ice.cod_elp_sup
-						AND PRIOR ice.cod_anu = ice.cod_anu
-						AND PRIOR ice.cod_etp=ice.cod_etp
-						AND PRIOR ice.cod_vrs_vet=ice.cod_vrs_vet
-						AND PRIOR ice.cod_ind=ice.cod_ind
-				START WITH 	ice.cod_anu= ANNEE_VAL
-						AND ice.cod_ind = COD_IND_VAL
-						AND ice.cod_etp = COD_ETP_VAL
-						AND ice.cod_vrs_vet = COD_VRS_VET
-						AND ice.cod_elp_sup IS NULL;
-		chemin varchar2(2000);
-		cod_elp_fils_chemin varchar2(10);
-		cod_ind_cursor varchar2(10);
-		tem_prc_ice varchar2(1);
-	BEGIN
-
-		--Récupération des valeurs pour créer les clés et les ordres SQL
-					
-		DECLARE
-			custom_exception EXCEPTION;
-		BEGIN
-	
-		SELECT cod_dip
-		INTO COD_DIP_VAL
-		FROM (
-			SELECT cod_dip
-			FROM ins_adm_etp
-			where cod_etp = COD_ETP_VAL
-				and cod_vrs_vet = COD_VRS_VET_VAL
-				and cod_anu = ANNEE_VAL
-				and cod_ind = COD_IND_VAL
-			)
-			WHERE ROWNUM = 1;
-
-			IF COD_DIP_VAL IS NULL
-			then
-				raise custom_exception;
-			end if;
-
-		EXCEPTION
-			WHEN OTHERS
-			THEN
-				SELECT cod_dip
-				INTO COD_DIP_VAL
-				FROM (
-					SELECT cod_dip
-					FROM vdi_fractionner_vet
-					where cod_etp = COD_ETP_VAL
-						and cod_vrs_vet = COD_VRS_VET_VAL
-						and daa_deb_rct_vet <=  ANNEE_VAL
-						and daa_fin_rct_vet >  ANNEE_VAL
-				)
-				WHERE ROWNUM = 1;
-		END;
-		
-		DECLARE
-			custom_exception EXCEPTION;
-		BEGIN
-		SELECT cod_vrs_vdi
-		INTO  COD_VRS_VDI_VAL
-		FROM (
-			SELECT cod_vrs_vdi
-			FROM ins_adm_etp
-			where cod_etp = COD_ETP_VAL
-				and cod_vrs_vet = COD_VRS_VET_VAL
-				and cod_anu = ANNEE_VAL
-				and cod_ind = COD_IND_VAL
-		)
-		WHERE ROWNUM = 1;
-			
-			
-		IF COD_VRS_VDI_VAL IS NULL
-		then
-			RAISE custom_exception;
-			
-		END IF;
-		EXCEPTION
-			WHEN OTHERS
-			THEN 
-			SELECT cod_vrs_vdi
-			INTO  COD_VRS_VDI_VAL
-			FROM (
-				SELECT cod_vrs_vdi
-				FROM vdi_fractionner_vet
-				where cod_etp = COD_ETP_VAL
-					and cod_vrs_vet = COD_VRS_VET_VAL
-					and daa_deb_rct_vet <=  ANNEE_VAL
-					and daa_fin_rct_vet >  ANNEE_VAL
-			)
-			WHERE ROWNUM = 1;
-		END;
-
-		
-	
-		DECLARE
-			custom_exception EXCEPTION;
-		BEGIN
-
-		SELECT cod_etu
-		INTO COD_ETU_VAL
-		FROM (
-			SELECT cod_etu
-			from individu
-			where cod_ind  = COD_IND_VAL
+	--Récupération des valeurs pour créer les clés et les ordres SQL
+	SELECT cod_dip, cod_vrs_vdi, cod_etu
+	INTO COD_DIP_VAL, COD_VRS_VDI_VAL, COD_ETU_VAL
+	FROM (
+		SELECT iae.cod_dip, iae.cod_vrs_vdi, ind.cod_etu
+		FROM ins_adm_etp iae,
+			individu ind
+		where iae.cod_etp = COD_ETP_VAL
+			and iae.cod_vrs_vet = COD_VRS_VET_VAL
+			and iae.cod_anu = ANNEE_VAL
+			and iae.cod_ind = COD_IND_VAL
+			and iae.cod_ind=ind.cod_ind
 		)
 		WHERE ROWNUM = 1;
 
-		EXCEPTION
-			WHEN OTHERS
-			THEN
-			dbms_output.put_line('CODE ETU' || SQLERRM);
-		END;
+	SELECT cod_nel
+	INTO COD_NEL_VAL
+	FROM (
+		SELECT cod_nel
+		from element_pedagogi
+		where cod_elp = COD_ELP_VAL
+	)
+	WHERE ROWNUM = 1;
 
-		DECLARE
-			custom_exception EXCEPTION;
+	chemin_element  := COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
+	IF PREFIXON_VAC = 'Y'
+	THEN
+		chemin_element := PREFIX_VDI_VAC||'-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL ||'>'||PREFIX_VET_VAC||'-'|| COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
+	END IF;
+	
+	count_elp := 0;
+	open create_chemin_cur;
+	LOOP
+	fetch create_chemin_cur into chemin, cod_elp_fils_chemin,COD_ANU_out ,cod_typ_lse_out,cod_ind_out  ;
+		EXIT WHEN  create_chemin_cur%NOTFOUND;
 
-		BEGIN
-			SELECT cod_nel
-				INTO COD_NEL_VAL
-				FROM (
-					SELECT cod_nel
-					from element_pedagogi
-					where cod_elp = COD_ELP_VAL
-				)
-				WHERE ROWNUM = 1;
-		EXCEPTION
-			WHEN OTHERS
-			THEN 
-			dbms_output.put_line('CODE NEL' ||SQLERRM);
-		END;
-
-		count_elp := 0;
-		
-
-		chemin_element  := COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
-		IF PREFIXON_VAC = 'Y'
+		IF cod_elp_fils_chemin = COD_ELP_VAL and count_elp < 1
 		THEN
-			chemin_element := PREFIX_VDI_VAC||'-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL ||'>'||PREFIX_VET_VAC||'-'|| COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
+			chemin_element := chemin_element ||''||chemin;
+			count_elp := count_elp + 1;
 		END IF;
-		
-		open create_chemin_cur;
-		LOOP
-		fetch create_chemin_cur into chemin, cod_elp_fils_chemin,COD_ANU_out ,cod_typ_lse_out,cod_ind_out  ;
-			EXIT WHEN  create_chemin_cur%NOTFOUND;
+	END LOOP;
+	close create_chemin_cur;
 
-			IF cod_elp_fils_chemin = COD_ELP_VAL and count_elp < 1
-			THEN
-				chemin_element := chemin_element ||''||chemin;
-				count_elp := count_elp + 1;
-			END IF;
-		END LOOP;
-		close create_chemin_cur;
+	-- generation des clés
+	CLE_CHC  := COD_IND_VAL || '-'|| ANNEE_VAL ||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL||'-'|| COD_ELP_VAL;
+	code_filtre_formation := COD_DIP_VAL ||'-'|| COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
 
+	-- generation du SQL
+	LINEBUFFER := '' || CLE_CHC||';';
+	LINEBUFFER := LINEBUFFER || '' || ANNEE_VAL||';';
+	LINEBUFFER := LINEBUFFER || '' || COD_IND_VAL||';';
+	LINEBUFFER := LINEBUFFER || '' || COD_ETU_VAL||';';
+	LINEBUFFER := LINEBUFFER || '' || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||';';	
+	LINEBUFFER := LINEBUFFER || '' || COD_ELP_VAL||';';
+	LINEBUFFER := LINEBUFFER || '' || chemin_element||';';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || '' || COD_ETB_VAL||';';
+	LINEBUFFER := LINEBUFFER || 'N;';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || 'O;';
+	LINEBUFFER := LINEBUFFER || 'N;';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || 'NULL;';
+	LINEBUFFER := LINEBUFFER || 'AM;';
+	-- choix du type d'aménagement :
+	--	- présence de note => EVAL
+	--	- pas de note => DISPENSE
+	IF NOT_VAA_VAL IS NOT NULL THEN
+		type_amenagement := 'EVAL';
+	ELSE
+		type_amenagement := 'DISPENSE';
+	END IF;
+	LINEBUFFER := LINEBUFFER || type_amenagement||';';
+	LINEBUFFER := LINEBUFFER || 'false';
 
-		-- generation des clés
-		CLE_CHC  := COD_IND_VAL || '-'|| ANNEE_VAL ||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL||'-'|| COD_ELP_VAL;
-		code_filtre_formation := COD_DIP_VAL ||'-'|| COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
+	dbms_output.put_line(LINEBUFFER);
 
-		BEGIN
-		-- generation du SQL
-			LINEBUFFER := '' || CLE_CHC||';';
-			LINEBUFFER := LINEBUFFER || '' || ANNEE_VAL||';';
-			LINEBUFFER := LINEBUFFER || '' || COD_IND_VAL||';';
-			LINEBUFFER := LINEBUFFER || '' || COD_ETU_VAL||';';
-			LINEBUFFER := LINEBUFFER || '' || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||';';	
-			LINEBUFFER := LINEBUFFER || '' || COD_ELP_VAL||';';
-			LINEBUFFER := LINEBUFFER || '' || chemin_element||';';
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-			LINEBUFFER := LINEBUFFER || '' || COD_ETB_VAL||';';
-			LINEBUFFER := LINEBUFFER || 'N;';
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-			LINEBUFFER := LINEBUFFER || 'O;';
-			LINEBUFFER := LINEBUFFER || 'N;';
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-			LINEBUFFER := LINEBUFFER || 'AM;';
-			LINEBUFFER := LINEBUFFER || 'EVAL;';
-			LINEBUFFER := LINEBUFFER || 'false';
-			LINEBUFFER := LINEBUFFER;
-		
-			dbms_output.put_line(LINEBUFFER);
-	
-		EXCEPTION
-			WHEN OTHERS
-			THEN
-			dbms_output.put_line(SQLERRM);
-		END;
-
-		
-		EXCEPTION
-			WHEN OTHERS
-			THEN
-			dbms_output.put_line(SQLERRM);
-		END;
-
-
-	EXCEPTION
-		WHEN OTHERS
-		THEN
-			ROLLBACK;
-	END;
-	
+EXCEPTION
+	WHEN OTHERS
+	THEN
+		dbms_output.put_line(SQLERRM);
+		ROLLBACK;
 END;
 /
 SPOOL OFF
@@ -1019,7 +794,6 @@ for pid in ${pids[*]}; do
 done
 
 sleep 1
-
 
 end=`date +%s`
 runtime_2=$((end-start))
