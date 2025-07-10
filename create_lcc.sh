@@ -1,3 +1,4 @@
+#!/bin/bash
 # 
 # Auteurs : j-luc.nizieux@uca.fr
 #	     tristan.blanc@uca.fr 

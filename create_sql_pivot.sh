@@ -1,7 +1,8 @@
-# 
+#!/bin/bash
+#
 # Auteurs : j-luc.nizieux@uca.fr
-#	     tristan.blanc@uca.fr 
-# 
+#	     tristan.blanc@uca.fr
+#
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # License-Filename: LICENSE
 
@@ -176,28 +177,28 @@ NBTHR=`grep "^NB_THREAD" $FIC_INI | cut -d\: -f2`
 #  Vérification existance du dossier log
 if  ! test -d ${DIR_FIC_LOG}
 then
-  echo "  >>>    Dossier ${DIR_FIC_LOG} non existant"
-  exit
+	echo "  >>>    Dossier ${DIR_FIC_LOG} non existant"
+	exit
 fi
 
 #  Vérification existance du dossier log
 if  [[ -z ${LOGIN_APOGEE} ]]
 then
-  echo "  >>>    Login non existant"
-  exit
+	echo "  >>>    Login non existant"
+	exit
 fi
 
 if  [[  -z ${MDP_APOGEE} ]]
 then
-  echo "  >>>   Mot de passe non existant"
-  exit
+	echo "  >>>   Mot de passe non existant"
+	exit
 fi
 
 
 PDB=`grep "^PDB" $FIC_INI | cut -d\: -f2`
 if [[  -z ${PDB} ]]
 then
-  PDB=`printenv | grep ^TWO_TASK= | cut -d\= -f2`
+	PDB=`printenv | grep ^TWO_TASK= | cut -d\= -f2`
 fi
 if [[  -z ${PDB} ]]
 then
@@ -207,7 +208,7 @@ fi
 export TWO_TASK=${PDB}
 
 
- # log du programme
+# log du programme
 BASE_FIC_LOG=${NOM_BASE}
 
 FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}.log
@@ -217,19 +218,19 @@ FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}.log
 number=0
 number=`ls ${DIR_FIC_LOG} | grep  "${BASE_FIC_LOG}*" | wc -l`
 
- # Appel du menu
+# Appel du menu
 choix_menu
 
 if [ "${choice}" -gt "$number" ]
 then
-   echo "  >>>   Impossible nombre fichier trop grand" >&2; exit 1
+	echo "  >>>   Impossible nombre fichier trop grand" >&2; exit 1
 fi 
 
 # Vérification existance du dossier log
 if  ! test -d ${DIR_FIC_SORTIE}
 then
-  echo "  >>>   Dossier ${DIR_FIC_SORTIE} non existant"
-  exit
+	echo "  >>>   Dossier ${DIR_FIC_SORTIE} non existant"
+	exit
 fi
 
 
@@ -240,9 +241,9 @@ for fic in  `ls ${DIR_FIC_SORTIE}/cle_vac*`; do
 	number=$(( ++number ))
 	fic_insert=${fic}
 	BASE_FIC_LOG=${BASE_FIC_LOG}_${fic##*/}
- 	if [ "${number}" -eq " ${choice}" ];
+	if [ "${number}" -eq " ${choice}" ];
 	then
-	  break
+		break
 	fi
 done
 echo "trace BASE_FIC_LOG : ${BASE_FIC_LOG}"
@@ -263,15 +264,15 @@ number_fic=0
 # sequence fic log
 if [ $number_fic -ne 0 ];
 then
-  number=$(( ++number ))
-  FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}_${$number_fic}.log
-  echo "  >>>   Fichier avec masque ${FIC_LOG} existant"  
+	number=$(( ++number ))
+	FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}_${$number_fic}.log
+	echo "  >>>   Fichier avec masque ${FIC_LOG} existant"  
 
 else
-  FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}.log
+	FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}.log
 fi
 
- # Appel du menu
+# Appel du menu
 confirm_menu
 
 
@@ -286,7 +287,7 @@ sql_condition_string=${ligne}
 
 if [  -z ${sql_condition_string} ]
 then
-  exit
+	exit
 fi
 
 
@@ -299,18 +300,18 @@ echo "  >>>  Genération de la VAC pour module COC d'insertion  pour le pivot :$
 IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA <<< "$sql_condition_string"
 
 COD_ELP=$(echo "${COD_ELP}" | sed "s/'/''/g")
-sqlplus -s <<FIN_SQL 
+sqlplus -s <<FIN_SQL
 ${str_conx}
 set serveroutput on
 SET HEADING OFF
-SET FEEDBACK OFF 
+SET FEEDBACK OFF
 SET TRIMSPOOL ON
 set linesize 870
 set pagesize 1
 VARIABLE ret_code NUMBER
 SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC} append
 BEGIN
-	DECLARE 
+	DECLARE
 		ANNEE_VAL varchar2(4) := '${ANNEE}';
 		COD_IND_VAL number(8,0) := '${COD_IND}';
 		COD_ETU_VAL number(8,0) := null;
@@ -348,57 +349,57 @@ BEGIN
 
 	BEGIN
 
-		 --Récupération des valeurs pour créer les clés et les ordres SQL
+		--Récupération des valeurs pour créer les clés et les ordres SQL
 					
 		DECLARE
-			 custom_exception EXCEPTION;
+			custom_exception EXCEPTION;
 		BEGIN
 		
 		SELECT cod_dip
 		INTO COD_DIP_VAL
 		FROM (
- 				SELECT cod_dip
- 				FROM ins_adm_etp
- 				 where cod_etp = COD_ETP_VAL
-			 		and cod_vrs_vet = COD_VRS_VET_VAL
-				 	and cod_anu = ANNEE_VAL
-				 	and cod_ind = COD_IND_VAL
+			SELECT cod_dip
+			FROM ins_adm_etp
+			where cod_etp = COD_ETP_VAL
+				and cod_vrs_vet = COD_VRS_VET_VAL
+				and cod_anu = ANNEE_VAL
+				and cod_ind = COD_IND_VAL
 			)
 			WHERE ROWNUM = 1;
-		 	
+
 			IF COD_DIP_VAL IS NULL
 			then
 				raise custom_exception;
 			end if;
 
 		EXCEPTION
-        	WHEN OTHERS
+			WHEN OTHERS
 			THEN
 				SELECT cod_dip
 				INTO COD_DIP_VAL
 				FROM (
-  					SELECT cod_dip
- 					FROM vdi_fractionner_vet
- 				 	where cod_etp = COD_ETP_VAL
-					and cod_vrs_vet = COD_VRS_VET_VAL
-					and daa_deb_rct_vet <=  ANNEE_VAL
-					and daa_fin_rct_vet >  ANNEE_VAL
+					SELECT cod_dip
+					FROM vdi_fractionner_vet
+					where cod_etp = COD_ETP_VAL
+						and cod_vrs_vet = COD_VRS_VET_VAL
+						and daa_deb_rct_vet <=  ANNEE_VAL
+						and daa_fin_rct_vet >  ANNEE_VAL
 				)
 				WHERE ROWNUM = 1;
 		END;
 
 		DECLARE
-			 custom_exception EXCEPTION;
+			custom_exception EXCEPTION;
 		BEGIN
 		SELECT cod_vrs_vdi
 		INTO  COD_VRS_VDI_VAL
 		FROM (
-  			SELECT cod_vrs_vdi
- 			FROM ins_adm_etp
- 			where cod_etp = COD_ETP_VAL
-			and cod_vrs_vet = COD_VRS_VET_VAL
-			and cod_anu = ANNEE_VAL
-			and cod_ind = COD_IND_VAL
+			SELECT cod_vrs_vdi
+			FROM ins_adm_etp
+			where cod_etp = COD_ETP_VAL
+				and cod_vrs_vet = COD_VRS_VET_VAL
+				and cod_anu = ANNEE_VAL
+				and cod_ind = COD_IND_VAL
 		)
 		WHERE ROWNUM = 1;
 			
@@ -409,45 +410,44 @@ BEGIN
 			
 		END IF;
 		EXCEPTION
-        	WHEN OTHERS
+			WHEN OTHERS
 			THEN 
-		 	SELECT cod_vrs_vdi
+			SELECT cod_vrs_vdi
 			INTO  COD_VRS_VDI_VAL
 			FROM (
-  				SELECT cod_vrs_vdi
- 				FROM vdi_fractionner_vet
- 				 	where cod_etp = COD_ETP_VAL
+				SELECT cod_vrs_vdi
+				FROM vdi_fractionner_vet
+				where cod_etp = COD_ETP_VAL
 					and cod_vrs_vet = COD_VRS_VET_VAL
 					and daa_deb_rct_vet <=  ANNEE_VAL
 					and daa_fin_rct_vet >  ANNEE_VAL
- 			)
+			)
 			WHERE ROWNUM = 1;
 		END;
 
 		
 	
 		DECLARE
-			 custom_exception EXCEPTION;
+			custom_exception EXCEPTION;
 		BEGIN
 
 		SELECT cod_etu
 		INTO COD_ETU_VAL
 		FROM (
- 			 SELECT cod_etu
-			 from individu
-			 where cod_ind  = COD_IND_VAL
-		   )
-		 WHERE ROWNUM = 1;
+			SELECT cod_etu
+			from individu
+			where cod_ind  = COD_IND_VAL
+		)
+		WHERE ROWNUM = 1;
 
 		EXCEPTION
-        	WHEN OTHERS
+			WHEN OTHERS
 			THEN
-		 	dbms_output.put_line('CODE ETU' || SQLERRM);
+			dbms_output.put_line('CODE ETU' || SQLERRM);
 		END;
 
 		DECLARE
-			 custom_exception EXCEPTION;
-
+			custom_exception EXCEPTION;
 		BEGIN
 			SELECT cod_nel
 				INTO COD_NEL_VAL
@@ -714,7 +714,7 @@ sql_condition_string=${ligne}
 
 if [  -z ${sql_condition_string} ]
 then
-  exit
+	exit
 fi
 
 echo "  >>>  Genération de la VAC d'insertion (chc) pour le pivot :  ${sql_condition_string}"
@@ -725,7 +725,7 @@ echo "  >>>  Genération de la VAC pour module CHC d'insertion  pour le pivot :$
 IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA <<< "$sql_condition_string"
 
 COD_ELP=$(echo "${COD_ELP}" | sed "s/'/''/g")
-sqlplus -s <<FIN_SQL 
+sqlplus -s <<FIN_SQL
 ${STR_CONX}
 set serveroutput on
 SET HEADING OFF
@@ -738,8 +738,8 @@ VARIABLE ret_code NUMBER
 BEGIN
 	DECLARE 
 		ANNEE_VAL varchar2(4) := '${ANNEE}';
-		COD_IND_VAL number(8,0) := '${COD_IND}';	
-		COD_ETU_VAL number(8,0) := null;	
+		COD_IND_VAL number(8,0) := '${COD_IND}';
+		COD_ETU_VAL number(8,0) := null;
 		COD_ETP_VAL varchar2(6) := '${COD_ETP}';
 		COD_VRS_VET_VAL number(3,0) := '${COD_VRS_VET}';
 		COD_ELP_VAL varchar2(10) := '${COD_ELP}';
@@ -775,19 +775,19 @@ BEGIN
 		-- curseur de creation du chemin
 		cursor create_chemin_cur
 		is
-		   SELECT  DISTINCT  replace(SYS_CONNECT_BY_PATH(DECODE(lse.cod_typ_lse,'O','','L-'||ice.cod_lse||'>')||ice.cod_elp, '>>'),'>>','>') AS CHEMIN
-				      ,ice.cod_elp AS cod_elp_fils
-				      ,connect_by_root(ice.cod_anu) AS COD_ANU,
-		 	             lse.cod_typ_lse,
-	    	       	      ice.cod_ind
+			SELECT  DISTINCT  replace(SYS_CONNECT_BY_PATH(DECODE(lse.cod_typ_lse,'O','','L-'||ice.cod_lse||'>')||ice.cod_elp, '>>'),'>>','>') AS CHEMIN
+						,ice.cod_elp AS cod_elp_fils
+						,connect_by_root(ice.cod_anu) AS COD_ANU,
+						lse.cod_typ_lse,
+						ice.cod_ind
 				FROM IND_CONTRAT_ELP ice
-							,LISTE_ELP lse
+						,LISTE_ELP lse
 				WHERE lse.cod_lse=ice.cod_lse
 				CONNECT BY PRIOR ice.cod_elp = ice.cod_elp_sup
-							AND PRIOR ice.cod_anu = ice.cod_anu
-							AND PRIOR ice.cod_etp=ice.cod_etp
-							AND PRIOR ice.cod_vrs_vet=ice.cod_vrs_vet
-							AND PRIOR ice.cod_ind=ice.cod_ind
+						AND PRIOR ice.cod_anu = ice.cod_anu
+						AND PRIOR ice.cod_etp=ice.cod_etp
+						AND PRIOR ice.cod_vrs_vet=ice.cod_vrs_vet
+						AND PRIOR ice.cod_ind=ice.cod_ind
 				START WITH 	ice.cod_anu= ANNEE_VAL
 						AND ice.cod_ind = COD_IND_VAL
 						AND ice.cod_etp = COD_ETP_VAL
@@ -803,53 +803,53 @@ BEGIN
 					
 		DECLARE
 			custom_exception EXCEPTION;
-		BEGIN	
+		BEGIN
 	
 		SELECT cod_dip
 		INTO COD_DIP_VAL
 		FROM (
- 				SELECT cod_dip
- 				FROM ins_adm_etp
- 				 where cod_etp = COD_ETP_VAL
-			 		and cod_vrs_vet = COD_VRS_VET_VAL
-				 	and cod_anu = ANNEE_VAL
-				 	and cod_ind = COD_IND_VAL
+			SELECT cod_dip
+			FROM ins_adm_etp
+			where cod_etp = COD_ETP_VAL
+				and cod_vrs_vet = COD_VRS_VET_VAL
+				and cod_anu = ANNEE_VAL
+				and cod_ind = COD_IND_VAL
 			)
-			WHERE ROWNUM = 1;			
-		 	
+			WHERE ROWNUM = 1;
+
 			IF COD_DIP_VAL IS NULL
-			then 
+			then
 				raise custom_exception;
 			end if;
 
 		EXCEPTION
-        	WHEN OTHERS
-			THEN 
+			WHEN OTHERS
+			THEN
 				SELECT cod_dip
 				INTO COD_DIP_VAL
 				FROM (
-  					SELECT cod_dip
- 					FROM vdi_fractionner_vet
- 				 	where cod_etp = COD_ETP_VAL
-					and cod_vrs_vet = COD_VRS_VET_VAL
-					and daa_deb_rct_vet <=  ANNEE_VAL
-					and daa_fin_rct_vet >  ANNEE_VAL
+					SELECT cod_dip
+					FROM vdi_fractionner_vet
+					where cod_etp = COD_ETP_VAL
+						and cod_vrs_vet = COD_VRS_VET_VAL
+						and daa_deb_rct_vet <=  ANNEE_VAL
+						and daa_fin_rct_vet >  ANNEE_VAL
 				)
 				WHERE ROWNUM = 1;
 		END;
 		
 		DECLARE
-			 custom_exception EXCEPTION;
-		BEGIN	
+			custom_exception EXCEPTION;
+		BEGIN
 		SELECT cod_vrs_vdi
 		INTO  COD_VRS_VDI_VAL
 		FROM (
-  			SELECT cod_vrs_vdi
- 			FROM ins_adm_etp
- 			where cod_etp = COD_ETP_VAL
-			and cod_vrs_vet = COD_VRS_VET_VAL
-			and cod_anu = ANNEE_VAL
-			and cod_ind = COD_IND_VAL
+			SELECT cod_vrs_vdi
+			FROM ins_adm_etp
+			where cod_etp = COD_ETP_VAL
+				and cod_vrs_vet = COD_VRS_VET_VAL
+				and cod_anu = ANNEE_VAL
+				and cod_ind = COD_IND_VAL
 		)
 		WHERE ROWNUM = 1;
 			
@@ -860,38 +860,38 @@ BEGIN
 			
 		END IF;
 		EXCEPTION
-        	WHEN OTHERS
+			WHEN OTHERS
 			THEN 
-		 	SELECT cod_vrs_vdi
+			SELECT cod_vrs_vdi
 			INTO  COD_VRS_VDI_VAL
 			FROM (
-  				SELECT cod_vrs_vdi
- 				FROM vdi_fractionner_vet
- 				 	where cod_etp = COD_ETP_VAL
+				SELECT cod_vrs_vdi
+				FROM vdi_fractionner_vet
+				where cod_etp = COD_ETP_VAL
 					and cod_vrs_vet = COD_VRS_VET_VAL
 					and daa_deb_rct_vet <=  ANNEE_VAL
 					and daa_fin_rct_vet >  ANNEE_VAL
- 			)
+			)
 			WHERE ROWNUM = 1;
 		END;
 
 		
 	
 		DECLARE
-			 custom_exception EXCEPTION;
+			custom_exception EXCEPTION;
 		BEGIN
 
 		SELECT cod_etu
 		INTO COD_ETU_VAL
 		FROM (
- 			 SELECT cod_etu
-			 from individu
-			 where cod_ind  = COD_IND_VAL
-		   )
-		   WHERE ROWNUM = 1;
+			SELECT cod_etu
+			from individu
+			where cod_ind  = COD_IND_VAL
+		)
+		WHERE ROWNUM = 1;
 
 		EXCEPTION
-        	WHEN OTHERS
+			WHEN OTHERS
 			THEN
 			dbms_output.put_line('CODE ETU' || SQLERRM);
 		END;

@@ -1,7 +1,8 @@
-# 
+#!/bin/bash
+#
 # Auteurs : j-luc.nizieux@uca.fr
-#	     tristan.blanc@uca.fr 
-# 
+#	     tristan.blanc@uca.fr
+#
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # License-Filename: LICENSE
 
@@ -17,10 +18,10 @@
 exit_if_error() {
   local exit_code=$1
   shift
-  [[ $exit_code ]] &&               
-    ((exit_code != 0)) && {         
-      printf 'ERROR: %s\n' "$@" >&2 
-      exit "$exit_code"             
+  [[ $exit_code ]] &&
+    ((exit_code != 0)) && {
+      printf 'ERROR: %s\n' "$@" >&2
+      exit "$exit_code"
                                     
     }
 }
@@ -45,11 +46,11 @@ confirm_menu()
 # -----------------------------------------
 echo "-------------------------------------------------"
 echo "Recapitulatif :"
-echo "  >>>   Code Année universitaire : ${COD_ANU} "	
-echo "  >>>   Fichier choisi : ${fic_insert##*/}"	        	    
+echo "  >>>   Code Année universitaire : ${COD_ANU} "
+echo "  >>>   Fichier choisi : ${fic_insert##*/}"
 echo "  >>>   PDB : $PDB	"
-echo "  >>>   Identifiant base de donnee : ${LOGIN_APOGEE} "	 
-echo "  >>>   Mot de passe base de donnee : ${MDP_APOGEE} "	
+echo "  >>>   Identifiant base de donnee : ${LOGIN_APOGEE} "
+echo "  >>>   Mot de passe base de donnee : ${MDP_APOGEE} "
 echo "  >>>   Directory Cree : ${DIRECTORY} "
 
 if [ "$TEM_DELETE" = "Y" ];
@@ -91,12 +92,12 @@ choix_menu()
 
 echo "-------------------------------------------------"
 echo " Listes des fichiers disponibles :  "
-number=0		        	    
+number=0
 for fic in  `ls ${DIR_FIC_SORTIE}/cle_vac*`; do 
  	fichier=${fic##*/}
  	number=$(( ++number ))
        echo "  >>>  ${number} - ${fichier}"  
-done		        
+done
 echo "-------------------------------------------------"
 
 
@@ -132,24 +133,24 @@ DIR_FIC_ARCH=`printenv | grep ^PWD= | cut -d\= -f2`
 DIR_FIC_SORTIE=${DIR_FIC_ARCH}/fichier_sortie_sql
 
 
-     #FICHIER INI (chemin à ajouter)
+    #FICHIER INI (chemin à ajouter)
 FIC_INI=${DIR_FIC_ARCH}/rdd_vac.ini
 
 # Modification Identifiant
 echo -e "Login APOGEE ?  : \c"
-      read LOGIN_APOGEE_SAISI
+    read LOGIN_APOGEE_SAISI
 
 LOGIN_APOGEE=$LOGIN_APOGEE_SAISI
 
 #Modification  Mot de passe
 
 echo -e "Mot de passe APOGEE ?: \c"
-      read MDP_APOGEE_SAISI
+    read MDP_APOGEE_SAISI
 
 #Modification  Directory
 
 echo -e "Mot de passe Directory ?: \c"
-      read DIRECTORY_SAISI
+    read DIRECTORY_SAISI
 
 DIRECTORY=${DIRECTORY_SAISI}
 
@@ -172,39 +173,39 @@ TEM_DELETE=`grep "^TEM_DELETE" $FIC_INI | cut -d\: -f2`
 #  Vérification existance du dossier log
 if  ! test -d ${DIR_FIC_LOG}
 then
-  echo "  >>>    Dossier ${DIR_FIC_LOG} non existant"
-  exit
+	echo "  >>>    Dossier ${DIR_FIC_LOG} non existant"
+	exit
 fi
 
 #  Vérification existance du dossier log
 if  [[ -z ${LOGIN_APOGEE} ]]
 then
-  echo "  >>>    Login non existant"
-  exit
+	echo "  >>>    Login non existant"
+	exit
 fi
 
 if  [[  -z ${MDP_APOGEE} ]]
 then
-  echo "  >>>   Mot de passe non existant"
-  exit
+	echo "  >>>   Mot de passe non existant"
+	exit
 fi
 
 
 if  [[  -z ${DIRECTORY} ]]
 then
-  echo "Directory non existant"
-  exit
+	echo "Directory non existant"
+	exit
 fi
 
 
 if [[  -z ${PDB} ]]
 then
-  PDB=`grep "^PDB" $FIC_INI | cut -d\: -f2`
-  if [[  -z ${PDB} ]]
-  then
-  	echo "Probleme PDB ou TWO_TASK"
-       exit
-  fi
+	PDB=`grep "^PDB" $FIC_INI | cut -d\: -f2`
+	if [[  -z ${PDB} ]]
+	then
+		echo "Probleme PDB ou TWO_TASK"
+		exit
+	fi
 fi
 
 path_directory=`sqlplus -s ${STR_CONX} <<EOF
@@ -234,14 +235,14 @@ choix_menu
 
 if [ "${choice}" -gt "$number" ]
 then
-   echo "  >>>   Impossible nombre fichier trop grand" >&2; exit 1
+	echo "  >>>   Impossible nombre fichier trop grand" >&2; exit 1
 fi 
 
 # Vérification existance du dossier log
 if  ! test -d ${DIR_FIC_SORTIE}
 then
-  echo "  >>>   Dossier ${DIR_FIC_SORTIE} non existant"
-  exit
+	echo "  >>>   Dossier ${DIR_FIC_SORTIE} non existant"
+	exit
 fi
 
 
@@ -252,9 +253,9 @@ for fic in  `ls ${DIR_FIC_SORTIE}/cle_vac*`; do
 	number=$(( ++number ))
 	fic_insert=${fic}
 	BASE_FIC_LOG=${BASE_FIC_LOG}_${fic##*/}
- 	if [ "${number}" -eq " ${choice}" ];
+	if [ "${number}" -eq " ${choice}" ];
 	then
-	  break
+		break
 	fi
 done
 
@@ -262,17 +263,17 @@ number_fic=0
 # sequence fic log
 if [ $number_fic -ne 0 ];
 then
-  number=$(( ++number ))
-  FIC_LOG=${BASE_FIC_LOG}_${$number_fic}.log
-  FIC_ERREUR=${BASE_FIC_LOG}_erreurs_${$number_fic}.log
-  echo "  >>>   Fichier avec masque ${FIC_LOG} existant"  
+	number=$(( ++number ))
+	FIC_LOG=${BASE_FIC_LOG}_${$number_fic}.log
+	FIC_ERREUR=${BASE_FIC_LOG}_erreurs_${$number_fic}.log
+	echo "  >>>   Fichier avec masque ${FIC_LOG} existant"  
 
 else
-  FIC_LOG=${BASE_FIC_LOG}.log
-  FIC_ERREUR=${BASE_FIC_LOG}_erreurs.log
+	FIC_LOG=${BASE_FIC_LOG}.log
+	FIC_ERREUR=${BASE_FIC_LOG}_erreurs.log
 fi
 
- # Appel du menu
+# Appel du menu
 confirm_menu
 
 
@@ -323,7 +324,7 @@ set pagesize 1
 VARIABLE ret_code NUMBER
 BEGIN
 	DECLARE 
-	 	ANNEE varchar2(4) := '${ANNEE}';
+		ANNEE varchar2(4) := '${ANNEE}';
 		COD_IND number(8,0) := '${COD_IND}';		
 		COD_ETP varchar2(6) := '${COD_ETP}';
 		COD_VRS_VET number(3,0) := '${COD_VRS_VET}';
@@ -340,23 +341,23 @@ BEGIN
 		LINEBUFFER varchar2(2000) := '';
 		
 		-- utl file config
-	       repertoire  varchar2(100)  := '${DIRECTORY}';
-   	       fichier  varchar2(100)     := '${FIC_ERREUR}';
+		repertoire  varchar2(100)  := '${DIRECTORY}';
+		fichier  varchar2(100)     := '${FIC_ERREUR}';
 		fichier_sortie UTL_FILE.FILE_TYPE;
 
 		
 	BEGIN
 		IF '${NOT_VAA}' <> 'NULL' THEN
 			NOT_VAA :='${NOT_VAA}';
-   		end if;
+		end if;
 
 		IF '${BAR_NOT_VAA}' <> 'NULL' THEN
- 			BAR_NOT_VAA :='${BAR_NOT_VAA}';
+			BAR_NOT_VAA :='${BAR_NOT_VAA}';
 		END IF;
 
 
 		execute immediate 
-      			'INSERT INTO IND_DISPENSE_ELP(COD_ANU,COD_IND,COD_ETP,COD_VRS_VET,COD_ELP,DAT_DEC_ELP_VAA,COD_CIP,NOT_VAA,BAR_NOT_VAA,COD_DEP_PAY_VAC,COD_TYP_DEP_PAY_VAC,COD_ETB,COD_PRG,TEM_SNS_PRG)
+			'INSERT INTO IND_DISPENSE_ELP(COD_ANU,COD_IND,COD_ETP,COD_VRS_VET,COD_ELP,DAT_DEC_ELP_VAA,COD_CIP,NOT_VAA,BAR_NOT_VAA,COD_DEP_PAY_VAC,COD_TYP_DEP_PAY_VAC,COD_ETB,COD_PRG,TEM_SNS_PRG)
 			VALUES
 			(:b1,:b2,:b3,:b4,:b5,:b6,:b7,:b8,:b9,:b10,:b11,:b12,:b13,:b14)'
 			using ANNEE, COD_IND,COD_ETP,COD_VRS_VET,COD_ELP,DAT_DEC_ELP_VAA,COD_CIP,NOT_VAA,BAR_NOT_VAA,COD_DEP_PAY_VAC,COD_TYP_DEP_PAY_VAC,COD_ETB ,COD_PRG,TEM_SNS_PRG;
@@ -365,12 +366,12 @@ BEGIN
 	EXCEPTION
         WHEN OTHERS
 		THEN 
-		 LINEBUFFER := 'Erreur sur ${sql_condition_string}';
-		 LINEBUFFER := LINEBUFFER ||'-'|| SQLERRM;
-		 fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
-		 utl_file.put_line(fichier_sortie,LINEBUFFER);
-		 utl_file.fclose(fichier_sortie);
-		 ROLLBACK;
+			LINEBUFFER := 'Erreur sur ${sql_condition_string}';
+			LINEBUFFER := LINEBUFFER ||'-'|| SQLERRM;
+			fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
+			utl_file.put_line(fichier_sortie,LINEBUFFER);
+			utl_file.fclose(fichier_sortie);
+			ROLLBACK;
 	END;
 	
 END;
@@ -396,13 +397,13 @@ for sql_condition_string in  $(cat <  ${fic_insert}); do
 
 echo "  >>>  Suppression de la VAC ${sql_condition_string}"
 
-echo "  >>>  Suppression de la VAC ${sql_condition_string}" >> ${DIR_FIC_LOG}/${FIC_LOG}	
+echo "  >>>  Suppression de la VAC ${sql_condition_string}" >> ${DIR_FIC_LOG}/${FIC_LOG}
 echo "  >>>>   Suppression de la VAC " >> ${DIR_FIC_LOG}/${FIC_LOG}
 ANNEE="$(cut -d';' -f1 <<< ${sql_condition_string})"
 COD_IND="$(cut -d';'  -f2 <<< ${sql_condition_string})"
-COD_ETP="$(cut -d';'  -f3 <<< ${sql_condition_string})" 
+COD_ETP="$(cut -d';'  -f3 <<< ${sql_condition_string})"
 COD_VRS_VET="$(cut -d';'  -f4 <<< ${sql_condition_string})"
-COD_ELP="$(cut -d';'  -f5 <<< ${sql_condition_string})" 
+COD_ELP="$(cut -d';'  -f5 <<< ${sql_condition_string})"
 
 
 
@@ -416,35 +417,35 @@ set pagesize 1
 VARIABLE ret_code NUMBER
 BEGIN
 	DECLARE 
-	 	ANNEE varchar2(4) := '${ANNEE}';
-		COD_IND number(8,0) := '${COD_IND}';		
+		ANNEE varchar2(4) := '${ANNEE}';
+		COD_IND number(8,0) := '${COD_IND}';
 		COD_ETP varchar2(6) := '${COD_ETP}';
 		COD_VRS_VET number(3,0) := '${COD_VRS_VET}';
-		COD_ELP varchar2(20000) := '${COD_ELP}';		
+		COD_ELP varchar2(20000) := '${COD_ELP}';
 		LINEBUFFER varchar2(2000) := '';
 
 		-- utl file config
-	       repertoire  varchar2(100)  := '${DIRECTORY}';
-   	       fichier  varchar2(100)     := '${FIC_ERREUR}';
+		repertoire  varchar2(100)  := '${DIRECTORY}';
+		fichier  varchar2(100)     := '${FIC_ERREUR}';
 		fichier_sortie UTL_FILE.FILE_TYPE;
 
 	BEGIN
 		
 					
 		execute immediate 
-      		'DELETE FROM IND_DISPENSE_ELP WHERE COD_ANU = :b1 AND COD_IND = :b2 AND COD_ETP = :b3 AND COD_VRS_VET= :b4 AND COD_ELP = :b5'
+			'DELETE FROM IND_DISPENSE_ELP WHERE COD_ANU = :b1 AND COD_IND = :b2 AND COD_ETP = :b3 AND COD_VRS_VET= :b4 AND COD_ELP = :b5'
 			using annee, cod_ind,COD_ETP,COD_VRS_VET,COD_ELP;
 			commit;
 
-	 EXCEPTION
+	EXCEPTION
         WHEN OTHERS
 		THEN 
-		 LINEBUFFER := 'Erreur sur ${sql_condition_string}';
-		 LINEBUFFER := LINEBUFFER ||'-'|| SQLERRM;
-		 fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
-		 utl_file.put_line(fichier_sortie,LINEBUFFER);
-		 utl_file.fclose(fichier_sortie);		
-		 ROLLBACK;
+			LINEBUFFER := 'Erreur sur ${sql_condition_string}';
+			LINEBUFFER := LINEBUFFER ||'-'|| SQLERRM;
+			fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
+			utl_file.put_line(fichier_sortie,LINEBUFFER);
+			utl_file.fclose(fichier_sortie);		
+			ROLLBACK;
 	END;
 	
 END;
@@ -469,9 +470,8 @@ echo "  >>>>   Fin Suppression des VAC" >> ${DIR_FIC_LOG}/${FIC_LOG}
     echo "  >   Fichier non present" 
 
 }
- 
+
 # -----------------------------------------
 # Fin du programme
 # -----------------------------------------
 echo "  >   Fin de l'execution du programme" 
-

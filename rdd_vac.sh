@@ -1,3 +1,4 @@
+#!/bin/bash
 #
 # Auteurs : j-luc.nizieux@uca.fr
 #	     tristan.blanc@uca.fr
@@ -317,7 +318,7 @@ chmod go+w $FIC_LOG
 if  test ${COD_TYP_DETECT} = 'VET'
 then
 
-	echo "${COD_OBJ}" > ${DIR_FIC_TMP}/${FIC_NAME_TMP}	
+	echo "${COD_OBJ}" > ${DIR_FIC_TMP}/${FIC_NAME_TMP}
 	
 	for i in  $(cat < `find ${DIR_FIC_TMP}/${FIC_NAME_TMP} -maxdepth 1 -type f -not -path '*/\.*' | sort`); do 
 
@@ -351,7 +352,7 @@ if test ${COD_TYP_DETECT} = 'LISTES_VET'
 then
 
 	number=0
-	number=`ls ${DIR_FIC_VET_IN} | wc -l` 
+	number=`ls ${DIR_FIC_VET_IN} | wc -l`
 	if [ $number  -eq  0 ];
 	then
 		echo "  >>>   Pas de filtre dans  ${DIR_FIC_VET_IN}"
@@ -567,7 +568,7 @@ echo "  >>>    Traitement de la VET :  ${COD_OBJ_FIC} - ${COD_VRS_OBJ} "
 # ETAPE 3 1  : generation des vacs apogees
 # --------------------------------------------
 
-# recherche des resultats et des prc pour chaque VET pour chaque etudiant inscrit sur cette ann e (iae en cours)
+# recherche des resultats et des prc pour chaque VET pour chaque etudiant inscrit sur cette annee (iae en cours)
 sqlplus -s <<FIN_SQL
 ${STR_CONX}
 set serveroutput on
@@ -612,11 +613,6 @@ DECLARE
 				ma_table.cod_vrs_vet,
 				ma_table.cod_ind,
 				ma_table.cod_elp,
-				ma_table.cod_dip,
-				ma_table.cod_vrs_vdi,
-				ma_table.tem_prc_ice,
-				ma_table.cod_nel,
-				ma_table.cod_lcc_ice,
 				ma_table.note, ma_table.bareme
 		FROM (
 				SELECT ice.cod_anu,
@@ -624,26 +620,15 @@ DECLARE
 					ice.cod_vrs_vet,
 					ice.cod_ind,
 					ice.cod_elp,
-					vde.cod_dip,
-					vde.cod_vrs_vdi,
-					ice.tem_prc_ice,
-					elp.cod_nel,
-					ice.cod_lcc_ice,
-					relp.cod_ses,
 					to_char(relp.not_elp) note, to_char(relp.bar_not_elp) bareme,
 					-- SELECTION DES NOTES/RESULTATS OBTENUS LE PLUS RECEMMENT
 					row_number() OVER (PARTITION BY ice.cod_etp,
 													ice.cod_vrs_vet,
 													ice.cod_ind,
-													ice.cod_elp,
-													vde.cod_dip,
-													vde.cod_vrs_vdi,
-													ice.tem_prc_ice,
-													elp.cod_nel,
-													ice.cod_lcc_ice ORDER BY relp.cod_anu DESC,relp.cod_ses DESC) as rownnumber
+													ice.cod_elp
+										ORDER BY relp.cod_anu DESC,relp.cod_ses DESC) as rownnumber
 				FROM  element_pedagogi elp,
 					ind_contrat_elp ice,
-					vdi_fractionner_vet vde,
 					resultat_elp relp
 				WHERE ice.cod_etp = cod_etp_in
 					AND ice.cod_vrs_vet = cod_vrs_vet_in
@@ -651,8 +636,6 @@ DECLARE
 					AND ice.cod_elp = elp.cod_elp
 					-- seuls les ELP capitalisable sont récupérés ou ceux conservables si explicitement demandés
 					AND (elp.tem_cap_elp='O' OR (elp.tem_con_elp='O' AND transformation_conservation_capitalisation_in='Y'))
-					AND vde.cod_etp = ice.cod_etp
-					AND vde.cod_vrs_vet = ice.cod_vrs_vet
 					AND ice.tem_prc_ice = 'O'
 					AND ice.cod_anu = cod_anu_in
 					-- exclusion des validation d'acquis
@@ -726,6 +709,14 @@ then
 	exit
 
 fi
+
+#dedoublonnage des VACs :
+#	une liste de VAC par VET et apprenant est générée. Etant donné que le fichier en entrée liste les VETs par VDI
+#	, pour une VET donnée, il y a autant de VACs en doublons que de VDI auxquelles appartient la VET
+#		=> il est nécessaire après les requêtes de dédoublonner le fichier
+#		=> une autre alternative non choisie ici (+ impactante) serait de générer en plus du fichier "VDI>VET", un
+#			, fichier avec uniquement la liste des VETs, fichier qui serait le point de départ de la requête ci-dessus
+sort -o ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT} -u ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT}
 
 echo -e "  >>>   Copie du fichier temporaire dans le dossier archive"
 echo -e "  >>>   Copie du fichier temporaire dans le dossier archive" >> $FIC_LOG
