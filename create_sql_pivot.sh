@@ -436,30 +436,30 @@ BEGIN
 	END IF;
 
 	--  Création de l'ordre d'insertion des coc en fonction des PRC trouvées dans APOGEE
-	LINEBUFFER := LINEBUFFER ||  CLE_COC||';';
-	LINEBUFFER := LINEBUFFER ||  code_filtre_formation||';';
-	LINEBUFFER := LINEBUFFER ||  COD_ELP_VAL||';';
-	LINEBUFFER := LINEBUFFER ||  COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||';';
-	LINEBUFFER := LINEBUFFER ||  ANNEE_VAL||';';
-	LINEBUFFER := LINEBUFFER ||  COD_ETB_VAL||';';
-	LINEBUFFER := LINEBUFFER ||  COD_IND_VAL||';';
-	LINEBUFFER := LINEBUFFER ||  COD_ETU_VAL||';';
+	LINEBUFFER := LINEBUFFER || CLE_COC||';';
+	LINEBUFFER := LINEBUFFER || code_filtre_formation||';';
+	LINEBUFFER := LINEBUFFER || COD_ELP_VAL||';';
+	LINEBUFFER := LINEBUFFER || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||';';
+	LINEBUFFER := LINEBUFFER || ANNEE_VAL||';';
+	LINEBUFFER := LINEBUFFER || COD_ETB_VAL||';';
+	LINEBUFFER := LINEBUFFER || COD_IND_VAL||';';
+	LINEBUFFER := LINEBUFFER || COD_ETU_VAL||';';
 	LINEBUFFER := LINEBUFFER || COD_NEL_VAL||';';
 	LINEBUFFER := LINEBUFFER || 'NULL;';
 	LINEBUFFER := LINEBUFFER || 'NULL;';
 	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER ||	NOT_VAA_VAL||';';
-	LINEBUFFER := LINEBUFFER || BAR_NOT_VAA_VAL||';';
+	LINEBUFFER := LINEBUFFER ||	nvl(NOT_VAA_VAL,'NULL')||';';
+	LINEBUFFER := LINEBUFFER || nvl(BAR_NOT_VAA_VAL,'NULL')||';';
 	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || NOT_VAA_VAL||';';
-	LINEBUFFER := LINEBUFFER ||BAR_NOT_VAA_VAL||';';
+	LINEBUFFER := LINEBUFFER || nvl(NOT_VAA_VAL,'NULL')||';';
+	LINEBUFFER := LINEBUFFER || nvl(BAR_NOT_VAA_VAL,'NULL')||';';
 	LINEBUFFER := LINEBUFFER || 'NULL;';
 	LINEBUFFER := LINEBUFFER || 'NULL;';
 	LINEBUFFER := LINEBUFFER || 'NULL;';
 	IF NUM_SESSION = 2
 	then
-		LINEBUFFER := LINEBUFFER || NOT_VAA_VAL||';';
-		LINEBUFFER := LINEBUFFER ||BAR_NOT_VAA_VAL||';';
+		LINEBUFFER := LINEBUFFER || nvl(NOT_VAA_VAL,'NULL')||';';
+		LINEBUFFER := LINEBUFFER ||nvl(BAR_NOT_VAA_VAL,'NULL')||';';
 	else
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
@@ -648,7 +648,7 @@ DECLARE
 	COD_ANU_out		varchar2(10) := null;
 	cod_typ_lse_out	varchar2(2) := null;
 	cod_ind_out		varchar2(10) := null;
-	type_amenagement	varchar2(20) := '';
+	type_amenagement	varchar2(10) := '';
 
 	-- curseur de creation du chemin
 	cursor create_chemin_cur
@@ -706,7 +706,7 @@ BEGIN
 	THEN
 		chemin_element := PREFIX_VDI_VAC||'-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL ||'>'||PREFIX_VET_VAC||'-'|| COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
 	END IF;
-	
+
 	count_elp := 0;
 	open create_chemin_cur;
 	LOOP
