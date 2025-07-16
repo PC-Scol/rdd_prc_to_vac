@@ -28,13 +28,6 @@ Ce programme permet de générer des validations d'acquis d'expérience pour rep
 > 1. tnsnames.ora déclaré et utilisable par sqlplus
 > 2. tnsnames.ora renseigné avec les éléments pour atteindre la PDB renseignée dans rdd_vac.ini (qui primera sur TWO_TASK)
 
-### Paramétrage du répertoire de dépôt
-> [!WARNING]
-> Une fois connecté à la base Apogée sur laquelle l'outil va s'appuyer, creer un directory pour le dépôt des fichiers générés par l'outil
-
-	CREATE OR REPLACE DIRECTORY my_dir_vac AS '/applications/apogee/apo_6_00/batch/fic/APOTPDB';
-	GRANT READ, WRITE ON DIRECTORY my_dir_vac TO apogee;	
-
 ## Fichiers générés
 
 Dans un premier temps, le programme génère six fichiers en sortie:
