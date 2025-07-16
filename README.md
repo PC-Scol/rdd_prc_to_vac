@@ -70,8 +70,11 @@ Dans un premier temps, le programme génère six fichiers en sortie:
  
                 - VETALL : pour toutes les versions d'étapes qui sont ouvertes lors de l'année universitaire mises en paramètre
 	        
-                - LISTES_VET : pour toutes les versions d'étapes presentes dans votre fichier FIC_NAME_FILTRE ( à ajouter dans rdd_vac.ini)
-                
+                - LISTES_VET : pour toutes les versions d'étapes presentes dans votre fichier dans le dossier "filtre_formation_a_deposer"
+				1. Lancer en mode LISTES_VET  pour générer le dossier "filtre_formation_a_deposer" (à faire à la première éxécution)
+				2. Mettre le filtre formation sous la forme du fichier en exemple
+				3. Relancer le programme avec dans ce mode
+               
    	    - COD_OBJ : soit une version d'étape si le critère COD_TYP_OBJ est égale à VET , soit un code composante si le critère COD_TYP_OBJ est égale à CMP
 
         - TEM_DELETE : (Y/N) pour interchanger le mode suppression (N) et le mode insertion (Y) 

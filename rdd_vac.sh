@@ -139,9 +139,6 @@ COD_VRS_OBJ=`grep "^COD_VRS_OBJ" $FIC_INI | cut -d\: -f2`
     # repertoires de depot et d'archive
 FIC_NAME_APOGEE=`grep "^FIC_NAME_APOGEE" $FIC_INI | cut -d\: -f2`
 
-    # repertoire depot du filtre de formation pour LISTE_VET
-FIC_NAME_FILTRE=`grep "^FIC_NAME_FILTRE" $FIC_INI | cut -d\: -f2`
-
 	# Choix de transformer les conservations en capitalisations (O) ou pas (N)
 	#  <=> les conservations (uniquement, pas de capitalisation) font-elles partie du périmètre de simulation des PRC ou pas ?
 TRANSFORMATION_CONSERVATION_CAPITALISATION=`grep "^TRANSFORMATION_CONSERVATION_CAPITALISATION" $FIC_INI | cut -d\: -f2`
