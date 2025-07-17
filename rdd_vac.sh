@@ -35,6 +35,27 @@ echo -e "Usage : $0  [-admin] ..."
 exit 10
 }
 
+#Initialisation log
+init_log()
+{
+echo "  =======================================" >> ${FIC_LOG}
+echo "  Log du passage de rdd_vac" >> ${FIC_LOG}
+echo "  Date d'execution : $(date  -I)" >> ${FIC_LOG}
+echo "  Code Annee universitaire : ${COD_ANU}" >> ${FIC_LOG}
+echo "  Type Detection : ${COD_TYP_DETECT}" >> ${FIC_LOG}
+echo "  Code Objet : ${COD_OBJ}" >> ${FIC_LOG}
+echo "  Code Version Objet : ${COD_VRS_OBJ}" >> ${FIC_LOG}
+echo "  Transformation des conservations en capitalisations : ${TRANSFORMATION_CONSERVATION_CAPITALISATION}" >> ${FIC_LOG}
+echo "  Dossier racine : ${DIR_FIC_ARCH}" >> ${FIC_LOG}
+echo "  PDB : $PDB" >> ${PDB}
+echo "  =======================================" >> ${FIC_LOG}
+echo "  Processus d'execution : " >> ${FIC_LOG}
+echo "  =======================================" >> ${FIC_LOG}
+echo "  " >> ${FIC_LOG}
+}
+
+
+
 # -----------------------------------------------------------------------------
 # MENU CONFIRMATION
 # -----------------------------------------------------------------------------
@@ -192,14 +213,10 @@ vet_archive=vets_${COD_ANU}_${COD_TYP_DETECT}_${GEN_TIMESTAMP}
 # log du programme
 BASE_FIC_LOG=log_${NOM_BASE}_${COD_TYP_DETECT}_${GEN_TIMESTAMP}
 
-
-echo "  >   Debut de l'execution du programme"
-
-
 # repertoire de log
 if  ! test -d ${DIR_FIC_LOG}
 then
-	echo "  >>>   Creation du repertoire ${DIR_FIC_LOG}"
+	echo "  >   Creation du repertoire ${DIR_FIC_LOG}"
 	mkdir ${DIR_FIC_LOG}
 fi
 
@@ -213,7 +230,7 @@ number=`ls ${DIR_FIC_LOG} | grep  "${BASE_FIC_LOG}*" | wc -l`
 if [ $number -ne 0 ];
 then
 	number=$(( ++number ))
-	echo "  >>>   Fichier avec masque ${FIC_LOG} existant"
+	echo "  >  Fichier avec masque ${FIC_LOG} existant"
 	FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}_${number}.log
 else
 	FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}.log
@@ -222,6 +239,18 @@ fi
 echo "  >>>   Fichier LOG SQL cree  -> ${FIC_SQL_LOG}"
 echo "  >>>   Fichier LOG cree  -> ${FIC_LOG}"
 
+# -----------------------------------------
+# initialisation de la log
+# (capture erreurs possible)
+# -----------------------------------------
+
+init_log
+
+
+echo "  >     Debut de l'execution du programme" >> ${FIC_LOG}
+
+echo "  >>    Fichier LOG SQL cree  -> ${FIC_SQL_LOG}" >> ${FIC_LOG}
+echo "  >>    Fichier LOG cree  -> ${FIC_LOG}" >> ${FIC_LOG}
 
     #  creation du repertoire d'archive des vets
 if  ! test -d ${DIR_FIC_IN}
@@ -295,20 +324,10 @@ sleep 1
 test -r $FIC_SQL_LOG && rm $FIC_SQL_LOG
 
 # -----------------------------------------
-# initialisation de la log
-# (capture erreurs possible)
-# -----------------------------------------
-
-echo -e "------------------------------------------------------" > $FIC_LOG
-echo -e "Debut de $0 :" >> $FIC_LOG
-date '+%d/%m/%Y a %H:%M' >> $FIC_LOG
-echo -e "------------------------------------------------------" >> $FIC_LOG
-
-# -----------------------------------------
 # droits en ecriture a la log
 # -----------------------------------------
 
-echo -e "  >>>   droits en ecriture a la log" >> $FIC_LOG
+echo -e "  >>>   Droits en ecriture a la log" >> $FIC_LOG
 chmod go+w $FIC_LOG
 
 
@@ -471,9 +490,7 @@ DECLARE
 		GROUP BY vrl.cod_etp,
 				vrl.cod_vrs_vet,
 				vde.cod_dip,
-				vde.cod_vrs_vdi,
-				vet.cod_cmp,
-				vrl.cod_lse;
+				vde.cod_vrs_vdi;
 
 	-- curseur de recherche de VET et VDI par annee (toutes les vets)
 	cursor main_by_vet_cur(cod_anu_in in varchar2) is

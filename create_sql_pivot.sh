@@ -35,6 +35,33 @@ echo -e "Usage : $0  [-admin] ..."
 exit 10
 }
 
+init_log()
+{
+echo "  =======================================" >> ${FIC_LOG}
+echo "  Log du passage de create_pivot_sql" >> ${FIC_LOG}
+echo "  Date d'execution : $(date  -I)" >> ${FIC_LOG}
+echo "  Code Annee universitaire : ${COD_ANU}" >> ${FIC_LOG}
+echo "  Type Detection : ${COD_TYP_DETECT}" >> ${FIC_LOG}
+echo "  Code Objet : ${COD_OBJ}" >> ${FIC_LOG}
+echo "  Code Version Objet : ${COD_VRS_OBJ}" >> ${FIC_LOG}
+echo "  Transformation des conservations en capitalisations : ${TRANSFORMATION_CONSERVATION_CAPITALISATION}" >> ${FIC_LOG}
+echo "  Dossier racine : ${DIR_FIC_ARCH}" >> ${FIC_LOG}
+echo "  PDB : $PDB" >> ${PDB}
+echo "  Fichier choisi Cle: ${fic_insert##*/}"
+echo "  Fichier choisi Filtre formation: ${fic_vet##*/}"
+echo "  PDB : $PDB	"
+echo "  Activation prefix : ${PREFIXON} "
+echo "  Prefix VDI : ${PREFIX_VDI} "
+echo "  Prefix VET : ${PREFIX_VET} "
+echo "  Code établissement : ${COD_ETB} "
+echo "  Nombre de Thread: ${NBTHR}"
+echo "  =======================================" >> ${FIC_LOG}
+echo "  Processus d'execution : " >> ${FIC_LOG}
+echo "  =======================================" >> ${FIC_LOG}
+echo "  " >> ${FIC_LOG}
+}
+
+
 # -----------------------------------------------------------------------------
 # MENU CONFIRMATION
 # -----------------------------------------------------------------------------
@@ -47,7 +74,8 @@ confirm_menu()
 echo "-------------------------------------------------"
 echo "Recapitulatif :"
 echo "  >>>   Code Année universitaire : ${COD_ANU} "
-echo "  >>>   Fichier choisi : ${fic_insert##*/}"
+echo "  >>>   Fichier choisi Cle: ${fic_insert##*/}"
+echo "  >>>   Fichier choisi Filtre formation: ${fic_vet##*/}"
 echo "  >>>   PDB : $PDB	"
 echo "  >>>   Identifiant base de donnee : ${LOGIN_APOGEE} "
 echo "  >>>   Mot de passe base de donnee : ${MDP_APOGEE} "
@@ -114,6 +142,38 @@ fi
 
 }
 
+
+choix_menu_vet()
+{
+
+# -----------------------------------------
+# Affichage des parametres
+# -----------------------------------------
+
+echo "-------------------------------------------------"
+echo " Listes des fichiers disponibles :  "
+number2=0
+for fic in  `ls ${DIR_FIC_ARCHIVE}/vets_*`; do
+	fichier=${fic##*/}
+	number2=$(( ++number2))
+	echo "  >>>  ${number2} - ${fichier}"
+done
+echo "-------------------------------------------------"
+
+
+# -----------------------------------------
+# Confirmation
+# -----------------------------------------
+
+read -p "Votre choix ? (1,2,..): " choice_vet
+
+re='^[0-9]+$'
+if ! [[ $choice_vet =~ $re ]] ; then
+	echo "  >>>   Saisie invalide" >&2; exit 1
+fi
+
+}
+
 # -----------------------------------------------------------------------------
 # ETAPE 1 : INITIALISATION DE VARIABLES DE TRAVAIL, DE LA LOG ET DES DROITS DE LA LOG
 # -----------------------------------------------------------------------------
@@ -131,6 +191,7 @@ NOM_BASE=`basename ${0} .sh`
 DIR_FIC_ARCH=`printenv | grep ^PWD= | cut -d\= -f2`
     # dossier archive
 DIR_FIC_SORTIE=${DIR_FIC_ARCH}/fichier_sortie_sql
+DIR_FIC_ARCHIVE=${DIR_FIC_ARCH}/archives/filtre_sortie
 
 
     #FICHIER INI (chemin à ajouter)
@@ -215,11 +276,35 @@ FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}.log
     # Variables du fichier d'environnement
     # Code annee universitaire
 
-number=0
-number=`ls ${DIR_FIC_LOG} | grep  "${BASE_FIC_LOG}*" | wc -l`
+GEN_TIMESTAMP=$(date  -I)
+
+number_fic=`ls ${DIR_FIC_LOG} | grep  "${BASE_FIC_LOG}*" | wc -l`
+# sequence fic log
+if [ $number_fic -ne 0 ];
+then
+	number_fic=$(( ++number_fic ))
+	FIC_LOG=${DIR_FIC_LOG}/log_${BASE_FIC_LOG}_${GEN_TIMESTAMP}_${number_fic}.log
+
+	echo "  >>>   Fichier avec masque ${FIC_LOG} existant"  
+
+else
+	FIC_LOG=${DIR_FIC_LOG}/log_${BASE_FIC_LOG}_${GEN_TIMESTAMP}.log
+fi
+
+
+
+
+
 
 # Appel du menu
 choix_menu
+choix_menu_vet
+
+
+init_log
+
+echo "  >   Debut programme"
+echo "  >   Debut programme" >> ${FIC_LOG}
 
 if [ "${choice}" -gt "$number" ]
 then
@@ -233,44 +318,52 @@ then
 	exit
 fi
 
+# Vérification existance du dossier log
+if  ! test -d ${DIR_FIC_ARCHIVE}
+then
+	echo "  >>>   Dossier ${DIR_FIC_ARCHIVE} non existant"
+	exit
+fi
+
 
 # recuperation du chemin du fichier
 number=0
 #choix du fichier
 for fic in  `ls ${DIR_FIC_SORTIE}/cle_vac*`; do 
 	number=$(( ++number ))
-	fic_insert=${fic}
-	BASE_FIC_LOG=${BASE_FIC_LOG}_${fic##*/}
+	fic_insert=${fic}	
 	if [ "${number}" -eq " ${choice}" ];
 	then
 		break
 	fi
 done
-echo "trace BASE_FIC_LOG : ${BASE_FIC_LOG}"
+
+#choix du fichier de vet à tester
+number2=0
+for fic in  `ls ${DIR_FIC_ARCHIVE}/vets_*`; do 
+	number2=$(( ++number2 ))
+	fic_vet=${fic}
+	DIR_FIC_ARCHIVE=${DIR_FIC_ARCHIVE}/${fic##*/}
+	if [ "${number2}" -eq " ${choice_vet}" ];
+	then
+		break
+	fi
+done
+
+
+
+echo "trace BASE_FIC_LOG : ${FIC_LOG}"
 echo "trace fic_insert : ${fic_insert}"
 echo "trace number : ${number}"
-
+echo "trace fic_vet : ${DIR_FIC_ARCHIVE}"
+echo "trace number2 : ${number2}"
 GEN_TIMESTAMP=$(date  +%s)
 
     # Fichier de stockage SQL pour requete generation de VAC dans APOGEE
 FIC_NAME_PIVOT_INSERT_CHC=insert_CHC_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.csv
-
 FIC_NAME_PIVOT_INSERT_COC=insert_COC_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.csv
-
 FIC_NAME_PIVOT_DELETE=delete_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.sql
 
-
-number_fic=0
-# sequence fic log
-if [ $number_fic -ne 0 ];
-then
-	number=$(( ++number ))
-	FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}_${$number_fic}.log
-	echo "  >>>   Fichier avec masque ${FIC_LOG} existant"  
-
-else
-	FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}.log
-fi
 
 # Appel du menu
 confirm_menu
@@ -278,6 +371,14 @@ confirm_menu
 
 sleep 1
 
+test_filtre_formation()
+{
+ COD_ETP=$1
+ COD_VRS_VET=$2
+ FIC=$3
+ FILTRE_FORMATION=`grep ">$COD_ETP-$COD_VRS_VET" $FIC `
+ echo $FILTRE_FORMATION
+}
 
 process_coc() {
 local ligne=$1
@@ -298,6 +399,13 @@ echo "  >>>  Genération de la VAC pour module COC d'insertion  pour le pivot :$
 #recuperation des valeurs dans les clés
 
 IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA <<< "$sql_condition_string"
+
+FILTRE_FORMATION="test_filtre_formation"
+result=$(${FILTRE_FORMATION} "$COD_ETP" "$COD_VRS_VET" "$DIR_FIC_ARCHIVE")
+echo "  >>>  Filtre formation trouve (coc) dans le fichier archive : ${result}" 
+echo "  >>>  Filtre formation trouve (coc) dans le fichier archive : ${result}"  >> ${FIC_LOG}
+IFS='>' read -r part1 part2 <<< "${result}"
+IFS='-' read -r COD_DIP_FILTRE COD_VRS_VDI_FILTRE <<< "${part1}"
 
 COD_ELP=$(echo "${COD_ELP}" | sed "s/'/''/g")
 sqlplus -s <<FIN_SQL
@@ -343,6 +451,8 @@ DECLARE
 	resultat_session2  varchar2(4) := null;	
 	note_session2 varchar2(10) := null;
 	bareme_session2 varchar2(10) := null;
+	COD_DIP_FILTRE_FILTRE_FORMATION varchar2(10) := '${COD_DIP_FILTRE}';
+	COD_VRS_VDI_FILTRE_FORMATION varchar2(10) := '${COD_VRS_VDI_FILTRE}';
 
 BEGIN
 
@@ -360,6 +470,14 @@ BEGIN
 			and iae.cod_ind=ind.cod_ind
 		)
 		WHERE ROWNUM = 1;
+
+	IF
+	COD_DIP_VAL <> COD_DIP_FILTRE_FILTRE_FORMATION
+	OR
+	COD_VRS_VDI_FILTRE_FORMATION <>  COD_VRS_VDI_VAL
+	THEN
+		RAISE_APPLICATION_ERROR(-20001, 'VDI ou version diffèrente du filtre formation!');
+	END IF;
 
 	SELECT cod_nel
 	INTO COD_NEL_VAL
@@ -540,10 +658,14 @@ EXCEPTION
 END;
 /
 SPOOL OFF
+
 EXIT
 FIN_SQL
 
 }
+
+echo "  >> Debut Generation COC"
+echo "  >> Debut Generation COC" >> $FIC_LOG
 
 # Number of threads
 num_threads=${NBTHR}
@@ -584,6 +706,9 @@ done
 
 end=`date +%s`
 runtime=$((end-start))
+echo "  >> Fin Generation COC"
+echo "  >> Fin Generation COC" >> $FIC_LOG
+
 sleep 1
 
 start=`date +%s`
@@ -605,6 +730,14 @@ echo "  >>>  Genération de la VAC pour module CHC d'insertion  pour le pivot :$
 
 #recuperation des valeurs dans les clés
 IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA <<< "$sql_condition_string"
+
+
+FILTRE_FORMATION="test_filtre_formation"
+result=$(${FILTRE_FORMATION} "$COD_ETP" "$COD_VRS_VET" "$DIR_FIC_ARCHIVE")
+echo "  >>>  Filtre formation pour (chc) trouve dans le fichier archive : ${result}"
+echo "  >>>  Filtre formation pour (chc) trouve dans le fichier archive : ${result}" >> ${FIC_LOG}
+IFS='>' read -r part1 part2 <<< "${result}"
+IFS='-' read -r COD_DIP_FILTRE COD_VRS_VDI_FILTRE <<< "${part1}"
 
 COD_ELP=$(echo "${COD_ELP}" | sed "s/'/''/g")
 sqlplus -s <<FIN_SQL
@@ -649,7 +782,9 @@ DECLARE
 	cod_typ_lse_out	varchar2(2) := null;
 	cod_ind_out		varchar2(10) := null;
 	type_amenagement	varchar2(10) := '';
-
+	COD_DIP_FILTRE_FILTRE_FORMATION varchar2(10) := '${COD_DIP_FILTRE}';
+	COD_VRS_VDI_FILTRE_FORMATION varchar2(10) := '${COD_VRS_VDI_FILTRE}';
+	
 	-- curseur de creation du chemin
 	cursor create_chemin_cur
 	is
@@ -691,6 +826,15 @@ BEGIN
 			and iae.cod_ind=ind.cod_ind
 		)
 		WHERE ROWNUM = 1;
+
+	IF
+	COD_DIP_VAL <> COD_DIP_FILTRE_FILTRE_FORMATION
+	OR
+	COD_VRS_VDI_FILTRE_FORMATION <>  COD_VRS_VDI_VAL
+	THEN
+		RAISE_APPLICATION_ERROR(-20001, 'VDI ou version diffèrente du filtre formation!');
+	END IF;
+
 
 	SELECT cod_nel
 	INTO COD_NEL_VAL
@@ -768,6 +912,8 @@ EXIT
 FIN_SQL
 }
 
+echo "  >> Debut Generation CHC"
+echo "  >> Debut Generation CHC" >> $FIC_LOG
 
 for ((i=0; i<${#lines[@]}; i+=$items_per_packet)); do
 
@@ -797,6 +943,8 @@ sleep 1
 
 end=`date +%s`
 runtime_2=$((end-start))
+echo "  >> Fin Generation CHC"
+echo "  >> Fin Generation CHC" >> $FIC_LOG
 
 sleep 1
 
@@ -818,4 +966,6 @@ echo "temps chc : ${runtime_2}"
 # -----------------------------------------
 # Fin du programme
 # -----------------------------------------
-echo "  >   Fin de l'execution du programme"
+echo "  >   Fin de l'execution du programme" 
+echo "  >   Fin de l'execution du programme" >> ${FIC_LOG}
+echo "  =======================================" >> ${FIC_LOG}

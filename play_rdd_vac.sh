@@ -35,6 +35,30 @@ echo -e "Usage : $0  [-admin] ..."
 exit 10
 }
 
+#Initialisation log
+init_log()
+{
+echo "  =======================================" >> ${FIC_LOG}
+echo "  Log du passage de play_rdd_vac" >> ${FIC_LOG}
+echo "  Date d'execution : $(date  -I)" >> ${FIC_LOG}
+echo "  Code Année universitaire : ${COD_ANU} " >> ${FIC_LOG}
+echo "  Fichier choisi : ${fic_insert}" >> ${FIC_LOG}
+echo "  PDB : ${PDB}" >> ${FIC_LOG}
+if [ "$TEM_DELETE" = "Y" ];
+then
+	echo "  Mode : Mode Suppression !!" >> ${FIC_LOG}
+else
+	echo "  Mode : Mode Insertion !!" >> ${FIC_LOG}
+
+fi
+echo "  =======================================" >> ${FIC_LOG}
+echo "  Processus d'execution : " >> ${FIC_LOG}
+echo "  =======================================" >> ${FIC_LOG}
+echo "  " >> ${FIC_LOG}
+
+}
+
+
 # -----------------------------------------------------------------------------
 # MENU CONFIRMATION
 # -----------------------------------------------------------------------------
@@ -76,8 +100,9 @@ echo "-------------------------------------------------"
 echo "Continuer ? (Ctrl-c pour annuler) :"
 read pocpoc
 
-echo "  >   Debut de l'execution du programme"  
+echo "  >   Debut de l'execution du programme"   
 }
+
 
 # -----------------------------------------------------------------------------
 # MENU CHOIX FICHIER
@@ -190,8 +215,6 @@ then
 	fi
 fi
 
-
-
  # log du programme
 BASE_FIC_LOG=${NOM_BASE}
 
@@ -199,11 +222,41 @@ FIC_LOG=${BASE_FIC_LOG}.log
     # Variables du fichier d'environnement
     # Code annee universitaire
 
-number=0
-number=`ls ${DIR_FIC_LOG} | grep  "${BASE_FIC_LOG}*" | wc -l`
+GEN_TIMESTAMP=$(date  -I)
+
+number_fic=`ls ${DIR_FIC_LOG} | grep  "${BASE_FIC_LOG}*" | wc -l`
+# sequence fic log
+if [ $number_fic -ne 0 ];
+then
+	number_fic=$(( ++number_fic ))
+	FIC_LOG=${DIR_FIC_LOG}/log_${BASE_FIC_LOG}_${GEN_TIMESTAMP}_${number_fic}.log
+
+	echo "  >>>   Fichier avec masque ${FIC_LOG} existant"  
+
+else
+	FIC_LOG=${DIR_FIC_LOG}/log_${BASE_FIC_LOG}_${GEN_TIMESTAMP}.log
+fi
 
  # Appel du menu
 choix_menu
+
+# recuperation du chemin du fichier
+number=0
+#choix du fichier
+for fic in  `ls ${DIR_FIC_SORTIE}/cle_vac*`; do 
+	number=$(( ++number ))
+	fic_insert=${fic}
+	if [ "${number}" -eq " ${choice}" ];
+	then
+		break
+	fi
+done
+
+
+init_log
+
+
+echo "  >>  Debut Programme " >> ${FIC_LOG}
 
 
 if [ "${choice}" -gt "$number" ]
@@ -219,62 +272,19 @@ then
 fi
 
 
-# recuperation du chemin du fichier
-number=0
-#choix du fichier
-for fic in  `ls ${DIR_FIC_SORTIE}/cle_vac*`; do 
-	number=$(( ++number ))
-	fic_insert=${fic}
-	BASE_FIC_LOG=${BASE_FIC_LOG}_${fic##*/}
-	if [ "${number}" -eq " ${choice}" ];
-	then
-		break
-	fi
-done
 
 number_fic=0
-# sequence fic log
-if [ $number_fic -ne 0 ];
-then
-	number=$(( ++number ))
-	FIC_LOG=${BASE_FIC_LOG}_${$number_fic}.log
-	FIC_ERREUR=${BASE_FIC_LOG}_erreurs_${$number_fic}.log
-	echo "  >>>   Fichier avec masque ${FIC_LOG} existant"  
-
-else
-	FIC_LOG=${BASE_FIC_LOG}.log
-	FIC_ERREUR=${BASE_FIC_LOG}_erreurs.log
-fi
 
 # Appel du menu
 confirm_menu
-
-number=0
-number=`ls ${DIR_FIC_LOG} | grep  "${BASE_FIC_LOG}*" | wc -l`
-
-if [ $number -ne 0 ];
-then
-	number=$(( ++number ))
-	echo "  >>>   Fichier avec masque ${FIC_LOG} existant"
-	FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}_${number}.log
-else
-	FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}.log
-fi
-
 
 if test -f "${DIR_FIC_LOG}/${FIC_LOG}"; then
     rm -f ${DIR_FIC_LOG}/${FIC_LOG}
 fi
 
-
-if test -f "${DIR_FIC_LOG}/${FIC_ERREUR}"; then
-    rm -f ${DIR_FIC_LOG}/${FIC_ERREUR}
-fi
-
-
 sleep 1
 
-echo "  >>  Debut Programme " >> ${FIC_LOG}
+
 
 if [ "$TEM_DELETE" = "N" ];
 then
@@ -438,3 +448,4 @@ echo "  >>>>   Fin Suppression des VAC" >> ${FIC_LOG}
 # -----------------------------------------
 echo "  >   Fin de l'execution du programme" 
 echo "  >   Fin de l'execution du programme"  >> ${FIC_LOG}
+echo "  =======================================" >> ${FIC_LOG}
