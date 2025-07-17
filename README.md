@@ -65,7 +65,7 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 	        
                 - LISTES_VET : pour toutes les versions d'étapes presentes dans votre fichier dans le dossier "filtre_formation_a_deposer"
 				1. Lancer en mode LISTES_VET  pour générer le dossier "filtre_formation_a_deposer" (à faire à la première éxécution)
-				2. Mettre le filtre formation sous la forme du fichier en exemple
+				2. Mettre le filtre formation (écrit de la meme manière que le fichier d'exemple "fichier_filtre_test.txt" ) dans le dossier "filtre_formation_a_deposer"
 				3. Relancer le programme avec dans ce mode
                
    	    - COD_OBJ : soit une version d'étape si le critère COD_TYP_OBJ est égale à VET , soit un code composante si le critère COD_TYP_OBJ est égale à CMP
