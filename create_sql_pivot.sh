@@ -343,7 +343,7 @@ number2=0
 for fic in  `ls ${DIR_FIC_ARCHIVE}/vets_*`; do 
 	number2=$(( ++number2 ))
 	fic_vet=${fic}
-	DIR_FIC_ARCHIVE=${DIR_FIC_ARCHIVE}/${fic##*/}
+	DIR_FIC_ARCHIVE=${fic}
 	if [ "${number2}" -eq " ${choice_vet}" ];
 	then
 		break
@@ -391,7 +391,6 @@ then
 	exit
 fi
 
-
 echo "  >>>  Genération de la VAC d'insertion (coc) pour le pivot :  ${sql_condition_string}"
 
 echo "  >>>  Genération de la VAC pour module COC d'insertion  pour le pivot :${sql_condition_string}" >> $FIC_LOG
@@ -402,8 +401,8 @@ IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP N
 
 FILTRE_FORMATION="test_filtre_formation"
 result=$(${FILTRE_FORMATION} "$COD_ETP" "$COD_VRS_VET" "$DIR_FIC_ARCHIVE")
-echo "  >>>  Filtre formation trouve (coc) dans le fichier archive : ${result}" 
-echo "  >>>  Filtre formation trouve (coc) dans le fichier archive : ${result}"  >> ${FIC_LOG}
+echo "  >>>  Filtre formation trouve (coc) dans le fichier archive pour  ${sql_condition_string} : ${result}" 
+echo "  >>>  Filtre formation trouve (coc) dans le fichier archive pour ${sql_condition_string} : ${result}"  >> ${FIC_LOG}
 IFS='>' read -r part1 part2 <<< "${result}"
 IFS='-' read -r COD_DIP_FILTRE COD_VRS_VDI_FILTRE <<< "${part1}"
 
@@ -711,7 +710,7 @@ echo "  >> Fin Generation COC" >> $FIC_LOG
 
 sleep 1
 
-start=`date +%s`
+start_2=`date +%s`
 
 process_chc() {
 local ligne=$1
@@ -734,8 +733,8 @@ IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP N
 
 FILTRE_FORMATION="test_filtre_formation"
 result=$(${FILTRE_FORMATION} "$COD_ETP" "$COD_VRS_VET" "$DIR_FIC_ARCHIVE")
-echo "  >>>  Filtre formation pour (chc) trouve dans le fichier archive : ${result}"
-echo "  >>>  Filtre formation pour (chc) trouve dans le fichier archive : ${result}" >> ${FIC_LOG}
+echo "  >>>  Filtre formation pour (chc) trouve dans le fichier archive pour  ${sql_condition_string} : ${result}"
+echo "  >>>  Filtre formation pour (chc) trouve dans le fichier archive pour  ${sql_condition_string}  : ${result}" >> ${FIC_LOG}
 IFS='>' read -r part1 part2 <<< "${result}"
 IFS='-' read -r COD_DIP_FILTRE COD_VRS_VDI_FILTRE <<< "${part1}"
 
@@ -941,8 +940,8 @@ done
 
 sleep 1
 
-end=`date +%s`
-runtime_2=$((end-start))
+end_2=`date +%s`
+runtime_2=$((end_2-start_2))
 echo "  >> Fin Generation CHC"
 echo "  >> Fin Generation CHC" >> $FIC_LOG
 

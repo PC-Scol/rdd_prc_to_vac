@@ -64,11 +64,9 @@ Dans un premier temps, le programme génère six fichiers en sortie:
                 - VETALL : pour toutes les versions d'étapes qui sont ouvertes lors de l'année universitaire mises en paramètre
 	        
                 - LISTES_VET : pour toutes les versions d'étapes presentes dans votre fichier dans le dossier "filtre_formation_a_deposer"
-				1. Lancer en mode LISTES_VET  pour générer le dossier "filtre_formation_a_deposer" (à faire à la première éxécution)
-				2. Mettre le filtre formation (écrit de la meme manière que le fichier d'exemple "fichier_filtre_test.txt" ) dans le dossier "filtre_formation_a_deposer"
-				3. Relancer le programme avec dans ce mode
+				(soit il faut utiliser le fichier LISTES_VET.txt, ou mettre le nom du fichier dans le parametre COD_OBJ)
                
-   	    - COD_OBJ : soit une version d'étape si le critère COD_TYP_OBJ est égale à VET , soit un code composante si le critère COD_TYP_OBJ est égale à CMP
+   	    - COD_OBJ : soit une version d'étape si le critère COD_TYP_OBJ est égale à VET , soit un code composante si le critère COD_TYP_OBJ est égale à CMPn soit le nom du fichier pour LISTES_VET
 
         - TEM_DELETE : (Y/N) pour interchanger le mode suppression (N) et le mode insertion (Y) 
 	   pour passage (script play_rdd_vac.sh) ou pour génération (script create_sql_pivot.sh)

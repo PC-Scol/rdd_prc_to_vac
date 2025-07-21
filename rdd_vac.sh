@@ -139,8 +139,8 @@ DIR_FIC_IN=${DIR_FIC_ARCH}/archives
 # dossier archive sortie
 DIR_FIC_SORTIE_IN=${DIR_FIC_IN}/filtre_sortie
 
-# dossier fic in
-DIR_FIC_VET_IN=${DIR_FIC_ARCH}/filtre_formation_a_deposer
+# dossier fichier d'entree de la liste des VETs pour le type de LISTES_VET
+FIC_VET_IN=${DIR_FIC_ARCH}/LISTES_VETS.txt
 
     # fichier de log
 DIR_FIC_LOG=`grep "^DIR_FIC_ARCH" $FIC_INI | cut -d\: -f2`logs
@@ -279,22 +279,81 @@ then
 fi
 
 
-	# creation du repertoire de depot des vet si type detection = LISTES_VET
-if  ! test -d ${DIR_FIC_VET_IN} && test ${COD_TYP_DETECT} = 'LISTES_VET'
+if test ${COD_TYP_DETECT} = 'LISTES_VET'
 then
-	echo "  >>>   ${DIR_FIC_VET_IN} inexistant"
-	echo "  >>>   Creation du repertoire ${DIR_FIC_VET_IN}"
-	echo -e "  >>>   Creation du repertoire ${DIR_FIC_VET_IN}" >> "$FIC_LOG" 2>&1
-	mkdir ${DIR_FIC_VET_IN}
-	echo "  >>>   Veuillez ajouter votre filtre formation dans ${DIR_FIC_VET_IN}"
-	exit
+  if  test -f ${FIC_VET_IN}  
+  then
+	echo "  >>>   ${FIC_VET_IN} existant dans le dossier racine"
+
+	if test -f ${DIR_FIC_ARCH}/${COD_OBJ}
+	then	
+		FIC_VET_IN=${DIR_FIC_ARCH}/${COD_OBJ}
+				
+	 	echo "  >>>   Chemin ${COD_OBJ} existant sur le serveur"
+		echo "  >>>   Chemin ${COD_OBJ} existant sur le serveur" >>${FIC_LOG}	
+		
+		echo "  >>>   Presence du paramètre COD_OBJ et du fichier LISTES_VET"	
+		echo "  >>>   Presence du paramètre COD_OBJ et du fichier LISTES_VET" >> ${FIC_LOG}
+		echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}"
+		echo "  >>>   Utilisation du fichier mis dans le parametre COD_OBJ (pris en compte)" >> ${FIC_LOG}
+		echo "  >>>   Utilisation du fichier mis dans le parametre COD_OBJ (pris en compte)"	
+		echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}" >>  ${FIC_LOG}
+		
+
+		
+	else
+		echo "  >>>   Non presence ou valeur erronée du paramètre COD_OBJ"	
+		echo "  >>>   Presence du fichier LISTES_VET.TXT"	
+		echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}"
+		echo "  >>>   Utilisation de LISTES_VET.TXT"
+
+		echo "  >>>   Non presence du paramètre COD_OBJ"	>>  ${FIC_LOG}	
+		echo "  >>>   Presence du fichier LISTES_VET.TXT"	 >>  ${FIC_LOG}
+		echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}" >>  ${FIC_LOG}
+		echo "  >>>   Utilisation de LISTES_VET.TXT" >> ${FIC_LOG}
+
+	fi	
+
+  else
+	if test -f ${DIR_FIC_ARCH}/${COD_OBJ}
+	then
+		FIC_VET_IN=${DIR_FIC_ARCH}/${COD_OBJ}
+		
+	 	echo "  >>>   Chemin ${COD_OBJ} existant sur le serveur"
+		echo "  >>>   Chemin ${COD_OBJ} existant sur le serveur" >>${FIC_LOG}	
+
+		echo "  >>>   Presence du paramètre COD_OBJ"
+		echo "  >>>   Non presence du fichier LISTES_VET.TXT"	
+		echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}"
+		echo "  >>>   Utilisation du fichier mis dans le parametre COD_OBJ" 
+
+		echo "  >>>   Presence du paramètre COD_OBJ"	>>  ${FIC_LOG}	
+		echo "  >>>   Non presence du fichier LISTES_VET.TXT" >>  ${FIC_LOG}
+		echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}" >>  ${FIC_LOG}
+		echo "  >>>   Utilisation du fichier mis dans le parametre COD_OBJ" >> ${FIC_LOG}
+
+	else
+		echo "  >>>   Non presence du paramètre COD_OBJ"	>>  ${FIC_LOG}	
+		echo "  >>>   Non presence du fichier LISTES_VET.TXT" >>  ${FIC_LOG}
+
+		echo "  >>>   Non presence du paramètre COD_OBJ"	
+		echo "  >>>   Non presence du fichier LISTES_VET.TXT"
+
+		echo "  >>>   Veuillez ajouter votre filtre formation dans le dossier racine ou dans le chemin dans la variable COD_OBJ !!"
+		echo "  >>>   Veuillez ajouter votre filtre formation dans le dossier racine ou dans le chemin dans la variable COD_OBJ !!" >> ${FIC_LOG}
+
+		exit
+	fi	
+	
+ fi
 fi
+
 
 
     # creation du repertoire de tmp
 if  ! test -d ${DIR_FIC_TMP}
 then
-	echo "  >>>   ${DIR_FIC_TMP} inexistant"
+	echo "  >>>   $(echo "${DIR_FIC_TMP}" | sed 's/^./\U&/') inexistant"
 	echo "  >>>   Creation du repertoire ${DIR_FIC_TMP}"
 	echo -e "  >>>   Creation du repertoire ${DIR_FIC_TMP}">> "$FIC_LOG" 2>&1
 	mkdir ${DIR_FIC_TMP}
@@ -368,24 +427,24 @@ if test ${COD_TYP_DETECT} = 'LISTES_VET'
 then
 
 	number=0
-	number=`ls ${DIR_FIC_VET_IN} | wc -l`
+	number=`ls ${FIC_VET_IN} | wc -l`
 	if [ $number  -eq  0 ];
 	then
-		echo "  >>>   Pas de filtre dans  ${DIR_FIC_VET_IN}"
+		echo "  >>>   Pas de filtre dans  ${FIC_VET_IN}"
 		exit
 	fi
 
 
 	echo -e "  >>>    Debut du test des codes formations ">> $FIC_LOG
 
-	echo "  >>>  Debut du test des codes formations "
+	echo "  >>>   Debut du test des codes formations "
 	sleep 1
 
 	echo -e "  >>>   Test de(s) formation(s)" >> $FIC_LOG
 
 
 
-	for i in  $(cat < `find ${DIR_FIC_VET_IN} -maxdepth 1 -type f -not -path '*/\.*' | sort`); do 
+	for i in  $(cat < `find ${FIC_VET_IN} -maxdepth 1 -type f -not -path '*/\.*' | sort`); do 
 
 		for line in  ${i//,/ };
 		do
@@ -414,7 +473,7 @@ then
 	sleep 1
 
 
-	for i in  $(cat < `find ${DIR_FIC_VET_IN} -maxdepth 1 -type f -not -path '*/\.*' | sort`); do 
+	for i in  $(cat < `find ${FIC_VET_IN} -maxdepth 1 -type f -not -path '*/\.*' | sort`); do 
 
 		for line in  ${i//,/ };
 		do
@@ -573,7 +632,7 @@ COD_VRS_OBJ=`echo $ligne_etp | cut -f 2 -d "-"`
 
 echo -e "  >>>   Debut generation des cles vac pour l'etape' :  $ligne  ">> $FIC_LOG
 echo "  >>>   Debut generation des cles vac pour l'etape' :  $ligne  "
-echo "  >>>    Traitement de la VET :  ${COD_OBJ_FIC} - ${COD_VRS_OBJ} "
+echo "  >>>   Traitement de la VET :  ${COD_OBJ_FIC} - ${COD_VRS_OBJ} "
 ## --------------------------------------------
 # ETAPE 3 : TRAITEMENT DES VALEURS
 # --------------------------------------------
@@ -750,8 +809,10 @@ fi
 
 sleep 1
 
-number=0
-number=`ls ${DIR_FIC_IN} | grep  "${vet_archive}*" | wc -l`
+
+echo "  >>>   Fichier avec masque ${DIR_FIC_SORTIE_IN}/${vet_archive} existant"
+
+number=`ls ${DIR_FIC_SORTIE_IN} | grep  "${vet_archive}*" | wc -l`
 
 if [ $number -ne 0 ];
 then
@@ -772,10 +833,11 @@ rm -r  ${DIR_FIC_TMP}
 
 sleep 1
 
-echo "  >   Fin de l'execution du programme"
 
 # -----------------------------------------
 # Fin du programme
 # -----------------------------------------
 
-echo -e "Fin normale de $0 :\n" >> $FIC_LOG
+echo "  >   Fin de l'execution du programme" 
+echo "  >   Fin de l'execution du programme"  >> ${FIC_LOG}
+echo "  =======================================" >> ${FIC_LOG}
