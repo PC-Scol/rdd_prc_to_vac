@@ -49,7 +49,7 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 1. le programme fonctionne en utilisant plusieurs critères placés dans le fichier .ini  (ces données sont à remplir obligatoirement) :
 
 		- COD_ANU : à l'année universitaire au-delà de laquelle il n'y aura pas de RDD dans le passé et pour laquelle des VACs seront générées en lieu et place d'acquis capitalisés.
-		  Exemple : si le périmète de RDD va de 2022 à 2025 alors mettre 2022 dans COD_ANU. Les PRCs en 2022 sur des capitalisation ayant eu lieu en 2021 ou avant seront alors remplacés lors de la RDD par des VACs 2022.
+			Exemple : si le périmète de RDD va de 2022 à 2025 alors mettre 2022 dans COD_ANU. Les PRCs en 2022 sur des capitalisation ayant eu lieu en 2021 ou avant seront alors remplacés lors de la RDD par des VACs 2022.
  
 		- COD_TYP_OBJ : types de détection à utiliser. 4 types de detections sont disponibles :
  
@@ -61,10 +61,10 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 				- VETALL : pour toutes les versions d'étapes qui sont ouvertes lors de l'année universitaire en paramètre
 
 				- LISTES_VET : pour toutes les versions d'étapes presentes dans 1 des 2 fichiers suivants déposés à la racine du projet :
-						-> Soit "LISTES_VETS.txt" (un exemple est fourni)
-						-> Soit un fichier dont le nom est renseigné dans la variable COD_OBJ
-						Le fichier LISTES_VETS.txt prime sur le fichier paramétré dans COD_OBJ. Pour que le fichier indiqué dans COD_OBJ soit utilisé, il faut supprimer le fichier LISTES_VETS.txt
-						Ces fichiers doivent être renseignés à raison d'une VET par ligne et au format de l'outillage de reprise de données pegase "COD_DIP-COD_VRS_VDI>ETP-COD_VRS_ETP
+					-> Soit "LISTES_VETS.txt" (un exemple est fourni)
+					-> Soit un fichier dont le nom est renseigné dans la variable COD_OBJ
+					Le fichier LISTES_VETS.txt prime sur le fichier paramétré dans COD_OBJ. Pour que le fichier indiqué dans COD_OBJ soit utilisé, il faut supprimer le fichier LISTES_VETS.txt
+					Ces fichiers doivent être renseignés à raison d'une VET par ligne et au format de l'outillage de reprise de données pegase "COD_DIP-COD_VRS_VDI>ETP-COD_VRS_ETP
 
 		- COD_OBJ : soit une version d'étape si le critère COD_TYP_OBJ est égale à VET , soit un code composante si le critère COD_TYP_OBJ est égale à CMP, soit le nom du fichier pour LISTES_VET
 
