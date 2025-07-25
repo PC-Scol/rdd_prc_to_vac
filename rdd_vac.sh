@@ -281,71 +281,49 @@ fi
 
 if test ${COD_TYP_DETECT} = 'LISTES_VET'
 then
-  if  test -f ${FIC_VET_IN}  
-  then
-	echo "  >>>   ${FIC_VET_IN} existant dans le dossier racine"
-
-	if test -f ${DIR_FIC_ARCH}/${COD_OBJ}
-	then	
-		FIC_VET_IN=${DIR_FIC_ARCH}/${COD_OBJ}
-				
-	 	echo "  >>>   Chemin ${COD_OBJ} existant sur le serveur"
-		echo "  >>>   Chemin ${COD_OBJ} existant sur le serveur" >>${FIC_LOG}	
-		
-		echo "  >>>   Presence du paramètre COD_OBJ et du fichier LISTES_VET"	
-		echo "  >>>   Presence du paramètre COD_OBJ et du fichier LISTES_VET" >> ${FIC_LOG}
-		echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}"
-		echo "  >>>   Utilisation du fichier mis dans le parametre COD_OBJ (pris en compte)" >> ${FIC_LOG}
-		echo "  >>>   Utilisation du fichier mis dans le parametre COD_OBJ (pris en compte)"	
-		echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}" >>  ${FIC_LOG}
-		
-
-		
-	else
-		echo "  >>>   Non presence ou valeur erronée du paramètre COD_OBJ"	
-		echo "  >>>   Presence du fichier LISTES_VET.TXT"	
-		echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}"
-		echo "  >>>   Utilisation de LISTES_VET.TXT"
-
-		echo "  >>>   Non presence du paramètre COD_OBJ"	>>  ${FIC_LOG}	
-		echo "  >>>   Presence du fichier LISTES_VET.TXT"	 >>  ${FIC_LOG}
-		echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}" >>  ${FIC_LOG}
-		echo "  >>>   Utilisation de LISTES_VET.TXT" >> ${FIC_LOG}
-
-	fi	
-
-  else
-	if test -f ${DIR_FIC_ARCH}/${COD_OBJ}
+	if  test -f ${FIC_VET_IN}  
 	then
-		FIC_VET_IN=${DIR_FIC_ARCH}/${COD_OBJ}
-		
-	 	echo "  >>>   Chemin ${COD_OBJ} existant sur le serveur"
-		echo "  >>>   Chemin ${COD_OBJ} existant sur le serveur" >>${FIC_LOG}	
+		echo "  >>>   ${FIC_VET_IN} existant dans le dossier racine"
 
-		echo "  >>>   Presence du paramètre COD_OBJ"
-		echo "  >>>   Non presence du fichier LISTES_VET.TXT"	
-		echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}"
-		echo "  >>>   Utilisation du fichier mis dans le parametre COD_OBJ" 
+			echo "  >>>   Presence du fichier LISTES_VET.TXT"	
+			echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}"
+			echo "  >>>   Utilisation de LISTES_VET.TXT"
 
-		echo "  >>>   Presence du paramètre COD_OBJ"	>>  ${FIC_LOG}	
-		echo "  >>>   Non presence du fichier LISTES_VET.TXT" >>  ${FIC_LOG}
-		echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}" >>  ${FIC_LOG}
-		echo "  >>>   Utilisation du fichier mis dans le parametre COD_OBJ" >> ${FIC_LOG}
+			echo "  >>>   Presence du fichier LISTES_VET.TXT"	 >>  ${FIC_LOG}
+			echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}" >>  ${FIC_LOG}
+			echo "  >>>   Utilisation de LISTES_VET.TXT" >> ${FIC_LOG}
 
 	else
-		echo "  >>>   Non presence du paramètre COD_OBJ"	>>  ${FIC_LOG}	
-		echo "  >>>   Non presence du fichier LISTES_VET.TXT" >>  ${FIC_LOG}
+		if test -f ${DIR_FIC_ARCH}/${COD_OBJ}
+		then
+			FIC_VET_IN=${DIR_FIC_ARCH}/${COD_OBJ}
 
-		echo "  >>>   Non presence du paramètre COD_OBJ"	
-		echo "  >>>   Non presence du fichier LISTES_VET.TXT"
+			echo "  >>>   Chemin ${COD_OBJ} existant sur le serveur"
+			echo "  >>>   Chemin ${COD_OBJ} existant sur le serveur" >>${FIC_LOG}	
 
-		echo "  >>>   Veuillez ajouter votre filtre formation dans le dossier racine ou dans le chemin dans la variable COD_OBJ !!"
-		echo "  >>>   Veuillez ajouter votre filtre formation dans le dossier racine ou dans le chemin dans la variable COD_OBJ !!" >> ${FIC_LOG}
+			echo "  >>>   Presence du paramètre COD_OBJ"
+			echo "  >>>   Non presence du fichier LISTES_VET.TXT"	
+			echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}"
+			echo "  >>>   Utilisation du fichier mis dans le parametre COD_OBJ" 
 
-		exit
-	fi	
-	
- fi
+			echo "  >>>   Presence du paramètre COD_OBJ"	>>  ${FIC_LOG}	
+			echo "  >>>   Non presence du fichier LISTES_VET.TXT" >>  ${FIC_LOG}
+			echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}" >>  ${FIC_LOG}
+			echo "  >>>   Utilisation du fichier mis dans le parametre COD_OBJ" >> ${FIC_LOG}
+
+		else
+			echo "  >>>   Non presence du paramètre COD_OBJ"	>>  ${FIC_LOG}	
+			echo "  >>>   Non presence du fichier LISTES_VET.TXT" >>  ${FIC_LOG}
+
+			echo "  >>>   Non presence du paramètre COD_OBJ"	
+			echo "  >>>   Non presence du fichier LISTES_VET.TXT"
+
+			echo "  >>>   Veuillez ajouter votre filtre formation dans le dossier racine ou dans le chemin dans la variable COD_OBJ !!"
+			echo "  >>>   Veuillez ajouter votre filtre formation dans le dossier racine ou dans le chemin dans la variable COD_OBJ !!" >> ${FIC_LOG}
+
+			exit
+		fi
+	fi
 fi
 
 
