@@ -706,13 +706,14 @@ DECLARE
 				ma_table.cod_ind,
 				ma_table.cod_elp,
 				ma_table.note, ma_table.bareme,
+				-- TODO : manque point jury +nvl(relp.not_pnt_jur_elp,0)
 				ma_table.cod_cip
 		FROM (  SELECT lprc.cod_anu,
 						lprc.cod_etp,
 						lprc.cod_vrs_vet,
 						lprc.cod_ind,
 						lprc.cod_elp,
-						to_char(nvl2(relp.not_elp,relp.not_elp+nvl(relp.not_pnt_jur_elp,0),relp.not_elp)) note, to_char(relp.bar_not_elp) bareme,
+						to_char(relp.not_elp) note, to_char(relp.bar_not_elp) bareme,
 						-- SELECTION DES NOTES/RESULTATS OBTENUS LE PLUS RECEMMENT
 						row_number() OVER (PARTITION BY lprc.cod_etp,
 														lprc.cod_vrs_vet,

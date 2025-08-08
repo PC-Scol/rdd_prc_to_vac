@@ -453,201 +453,206 @@ DECLARE
 
 BEGIN
 
-	--Récupération des valeurs pour créer les clés et les ordres SQL
-	SELECT cod_dip, cod_vrs_vdi, cod_etu
-	INTO COD_DIP_VAL, COD_VRS_VDI_VAL, COD_ETU_VAL
-	FROM (
-		SELECT iae.cod_dip, iae.cod_vrs_vdi, ind.cod_etu
-		FROM ins_adm_etp iae,
-			individu ind
-		where iae.cod_etp = COD_ETP_VAL
-			and iae.cod_vrs_vet = COD_VRS_VET_VAL
-			and iae.cod_anu = ANNEE_VAL
-			and iae.cod_ind = COD_IND_VAL
-			and iae.cod_ind=ind.cod_ind
+	-- une ligne est ajoutée dans apprenant_coc si et seulement si une note est renseignée
+	IF NOT_VAA_VAL IS NOT NULL THEN
+	
+		--Récupération des valeurs pour créer les clés et les ordres SQL
+		SELECT cod_dip, cod_vrs_vdi, cod_etu
+		INTO COD_DIP_VAL, COD_VRS_VDI_VAL, COD_ETU_VAL
+		FROM (
+			SELECT iae.cod_dip, iae.cod_vrs_vdi, ind.cod_etu
+			FROM ins_adm_etp iae,
+				individu ind
+			where iae.cod_etp = COD_ETP_VAL
+				and iae.cod_vrs_vet = COD_VRS_VET_VAL
+				and iae.cod_anu = ANNEE_VAL
+				and iae.cod_ind = COD_IND_VAL
+				and iae.cod_ind=ind.cod_ind
+			)
+			WHERE ROWNUM = 1;
+
+		IF
+		COD_DIP_VAL <> COD_DIP_FILTRE_FILTRE_FORMATION
+		OR
+		COD_VRS_VDI_FILTRE_FORMATION <>  COD_VRS_VDI_VAL
+		THEN
+			RAISE_APPLICATION_ERROR(-20001, 'VDI ou version différente du filtre formation!');
+		END IF;
+
+		SELECT cod_nel
+		INTO COD_NEL_VAL
+		FROM (
+			SELECT cod_nel
+			from element_pedagogi
+			where cod_elp = COD_ELP_VAL
 		)
 		WHERE ROWNUM = 1;
+		
+		Select max(cod_ses)
+			into NUM_SESSION
+			from resultat_elp
+			where COD_ADM = 1
+			and cod_elp = COD_ELP_VAL
+			and COD_IND = COD_IND_VAL;
+		
+		Select elp.tem_cap_elp, elp.tem_con_elp, elp.dur_con_elp, elp.not_min_con_elp
+			into tem_capitalise, tem_conservation, duree_conservation, note_minimale_conservation
+			from ELEMENT_PEDAGOGI elp
+			where cod_elp = COD_ELP_VAL;
+		
+		Select max(CASE WHEN relp.cod_ses='1' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
+						WHEN relp.cod_ses='1' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
+				END)
+		into resultat_session1
+		from resultat_elp relp
+		where   cod_elp = COD_ELP_VAL
+			and COD_IND = COD_IND_VAL
+			and cod_ses = '1'
+			and cod_adm = '1';
 
-	IF
-	COD_DIP_VAL <> COD_DIP_FILTRE_FILTRE_FORMATION
-	OR
-	COD_VRS_VDI_FILTRE_FORMATION <>  COD_VRS_VDI_VAL
-	THEN
-		RAISE_APPLICATION_ERROR(-20001, 'VDI ou version différente du filtre formation!');
-	END IF;
-
-	SELECT cod_nel
-	INTO COD_NEL_VAL
-	FROM (
-		SELECT cod_nel
-		from element_pedagogi
-		where cod_elp = COD_ELP_VAL
-	)
-	WHERE ROWNUM = 1;
-	
-	Select max(cod_ses)
-		into NUM_SESSION
-		from resultat_elp
-		where COD_ADM = 1
-		and cod_elp = COD_ELP_VAL
-		and COD_IND = COD_IND_VAL;
-	
-	Select elp.tem_cap_elp, elp.tem_con_elp, elp.dur_con_elp, elp.not_min_con_elp
-		into tem_capitalise, tem_conservation, duree_conservation, note_minimale_conservation
-		from ELEMENT_PEDAGOGI elp
-		where cod_elp = COD_ELP_VAL;
-	
-	Select max(CASE WHEN relp.cod_ses='1' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
-					WHEN relp.cod_ses='1' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
-			END)
-	into resultat_session1
-	from resultat_elp relp
-	where   cod_elp = COD_ELP_VAL
-		and COD_IND = COD_IND_VAL
-		and cod_ses = '1'
-		and cod_adm = '1';
-
-	Select max(CASE WHEN relp.cod_ses='2' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
-		WHEN relp.cod_ses='2' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
-			END)
-	into resultat_session2
-	from resultat_elp relp
-	where  cod_elp = COD_ELP_VAL
-		and COD_IND = COD_IND_VAL
-		and cod_ses = '2'
-		and cod_adm = '1';
-	Begin
-		Select not_elp
-		into note_session2
+		Select max(CASE WHEN relp.cod_ses='2' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
+			WHEN relp.cod_ses='2' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
+				END)
+		into resultat_session2
 		from resultat_elp relp
 		where  cod_elp = COD_ELP_VAL
-		and COD_IND = COD_IND_VAL
-		and cod_ses = '2'
-		and cod_adm = '1';
+			and COD_IND = COD_IND_VAL
+			and cod_ses = '2'
+			and cod_adm = '1';
+		Begin
+			Select not_elp
+			into note_session2
+			from resultat_elp relp
+			where  cod_elp = COD_ELP_VAL
+			and COD_IND = COD_IND_VAL
+			and cod_ses = '2'
+			and cod_adm = '1';
 
-		Select bar_not_elp
-		into bareme_session2
-		from resultat_elp relp
-		where  cod_elp = COD_ELP_VAL
-		and COD_IND = COD_IND_VAL
-		and cod_ses = '2'
-		and cod_adm = '1';
-	exception
-		when others
-			then
-			bareme_session2  := 'NULL';
-			note_session2 := 'NULL';
-	end;
+			Select bar_not_elp
+			into bareme_session2
+			from resultat_elp relp
+			where  cod_elp = COD_ELP_VAL
+			and COD_IND = COD_IND_VAL
+			and cod_ses = '2'
+			and cod_adm = '1';
+		exception
+			when others
+				then
+				bareme_session2  := 'NULL';
+				note_session2 := 'NULL';
+		end;
 
 
-	CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
-	code_filtre_formation := COD_DIP_VAL||'-'|| COD_VRS_VDI_VAL;
+		CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
+		code_filtre_formation := COD_DIP_VAL||'-'|| COD_VRS_VDI_VAL;
 
-	-- Création de la clé pour les COC et le filtre formation en fonction du préfixage
-	IF PREFIXON_VAC = 'Y'
-	THEN
-		CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'||PREFIX_VDI_VAC||'-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL ||'-'||PREFIX_VET_VAC||'-'||PREFIX_VET_VAC||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
-		code_filtre_formation := PREFIX_VET_VAC||'-'||COD_ETP_VAL||'-'|| COD_VRS_VET_VAL;
-	END IF;
+		-- Création de la clé pour les COC et le filtre formation en fonction du préfixage
+		IF PREFIXON_VAC = 'Y'
+		THEN
+			CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'||PREFIX_VDI_VAC||'-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL ||'-'||PREFIX_VET_VAC||'-'||PREFIX_VET_VAC||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
+			code_filtre_formation := PREFIX_VET_VAC||'-'||COD_ETP_VAL||'-'|| COD_VRS_VET_VAL;
+		END IF;
 
-	--  Création de l'ordre d'insertion des coc en fonction des PRC trouvées dans APOGEE
-	LINEBUFFER := LINEBUFFER || CLE_COC||';';
-	LINEBUFFER := LINEBUFFER || code_filtre_formation||';';
-	LINEBUFFER := LINEBUFFER || COD_ELP_VAL||';';
-	LINEBUFFER := LINEBUFFER || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||';';
-	LINEBUFFER := LINEBUFFER || ANNEE_VAL||';';
-	LINEBUFFER := LINEBUFFER || COD_ETB_VAL||';';
-	LINEBUFFER := LINEBUFFER || COD_IND_VAL||';';
-	LINEBUFFER := LINEBUFFER || COD_ETU_VAL||';';
-	LINEBUFFER := LINEBUFFER || COD_NEL_VAL||';';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER ||	nvl(NOT_VAA_VAL,'NULL')||';';
-	LINEBUFFER := LINEBUFFER || nvl(BAR_NOT_VAA_VAL,'NULL')||';';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || nvl(NOT_VAA_VAL,'NULL')||';';
-	LINEBUFFER := LINEBUFFER || nvl(BAR_NOT_VAA_VAL,'NULL')||';';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	IF NUM_SESSION = 2
-	then
+		--  Création de l'ordre d'insertion des coc en fonction des PRC trouvées dans APOGEE
+		LINEBUFFER := LINEBUFFER || CLE_COC||';';
+		LINEBUFFER := LINEBUFFER || code_filtre_formation||';';
+		LINEBUFFER := LINEBUFFER || COD_ELP_VAL||';';
+		LINEBUFFER := LINEBUFFER || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||';';
+		LINEBUFFER := LINEBUFFER || ANNEE_VAL||';';
+		LINEBUFFER := LINEBUFFER || COD_ETB_VAL||';';
+		LINEBUFFER := LINEBUFFER || COD_IND_VAL||';';
+		LINEBUFFER := LINEBUFFER || COD_ETU_VAL||';';
+		LINEBUFFER := LINEBUFFER || COD_NEL_VAL||';';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER ||	nvl(NOT_VAA_VAL,'NULL')||';';
+		LINEBUFFER := LINEBUFFER || nvl(BAR_NOT_VAA_VAL,'NULL')||';';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || nvl(NOT_VAA_VAL,'NULL')||';';
-		LINEBUFFER := LINEBUFFER ||nvl(BAR_NOT_VAA_VAL,'NULL')||';';
-	else
+		LINEBUFFER := LINEBUFFER || nvl(BAR_NOT_VAA_VAL,'NULL')||';';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
 		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		IF NUM_SESSION = 2
+		then
+			LINEBUFFER := LINEBUFFER || nvl(NOT_VAA_VAL,'NULL')||';';
+			LINEBUFFER := LINEBUFFER ||nvl(BAR_NOT_VAA_VAL,'NULL')||';';
+		else
+			LINEBUFFER := LINEBUFFER || 'NULL;';
+			LINEBUFFER := LINEBUFFER || 'NULL;';
 
-	end if;
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	IF  resultat_session2 is not null
+		end if;
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		IF  resultat_session2 is not null
+			then
+				LINEBUFFER := LINEBUFFER || resultat_session2 ||';';
+			else
+				IF  resultat_session1 is not null
+				then
+					LINEBUFFER := LINEBUFFER || resultat_session1 ||';';
+				else
+					LINEBUFFER := LINEBUFFER || 'NULL;';
+				end if;
+
+		end if;
+
+		IF  resultat_session1 is not null
+		then
+			LINEBUFFER := LINEBUFFER || resultat_session1 ||';';
+		else
+			LINEBUFFER := LINEBUFFER || 'NULL;';
+		end if;
+
+		IF  resultat_session2 is not null
 		then
 			LINEBUFFER := LINEBUFFER || resultat_session2 ||';';
 		else
-			IF  resultat_session1 is not null
-			then
-				LINEBUFFER := LINEBUFFER || resultat_session1 ||';';
-			else
-				LINEBUFFER := LINEBUFFER || 'NULL;';
-			end if;
-
-	end if;
-
-	IF  resultat_session1 is not null
-	then
-		LINEBUFFER := LINEBUFFER || resultat_session1 ||';';
-	else
+			LINEBUFFER := LINEBUFFER || 'NULL;';
+		end if;
 		LINEBUFFER := LINEBUFFER || 'NULL;';
-	end if;
-
-	IF  resultat_session2 is not null
-	then
-		LINEBUFFER := LINEBUFFER || resultat_session2 ||';';
-	else
 		LINEBUFFER := LINEBUFFER || 'NULL;';
-	end if;
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || 'T;';
-	LINEBUFFER := LINEBUFFER || 'T;';
-	IF NUM_SESSION = 2
-	then
-		LINEBUFFER := LINEBUFFER || '2;';
-	else
-		LINEBUFFER := LINEBUFFER || '1;';
-	end if;
-	
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-
-	IF NUM_SESSION = 2
-	then
-		LINEBUFFER := LINEBUFFER || 'O;';
-	else
-		LINEBUFFER := LINEBUFFER || 'N;';
-	end if;
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || tem_capitalise||';';
-	LINEBUFFER := LINEBUFFER || tem_conservation||';';
-	if duree_conservation is not null
-	then
-		LINEBUFFER := LINEBUFFER || duree_conservation||';';
-	else
+		LINEBUFFER := LINEBUFFER || 'T;';
+		LINEBUFFER := LINEBUFFER || 'T;';
+		IF NUM_SESSION = 2
+		then
+			LINEBUFFER := LINEBUFFER || '2;';
+		else
+			LINEBUFFER := LINEBUFFER || '1;';
+		end if;
+		
 		LINEBUFFER := LINEBUFFER || 'NULL;';
-	end if;
-	if note_minimale_conservation is not null
-	then
-		LINEBUFFER := LINEBUFFER || note_minimale_conservation||';';
-	else
 		LINEBUFFER := LINEBUFFER || 'NULL;';
-	end if;
-	LINEBUFFER := LINEBUFFER || 'NULL';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
 
-	dbms_output.put_line(LINEBUFFER);
+		IF NUM_SESSION = 2
+		then
+			LINEBUFFER := LINEBUFFER || 'O;';
+		else
+			LINEBUFFER := LINEBUFFER || 'N;';
+		end if;
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || tem_capitalise||';';
+		LINEBUFFER := LINEBUFFER || tem_conservation||';';
+		if duree_conservation is not null
+		then
+			LINEBUFFER := LINEBUFFER || duree_conservation||';';
+		else
+			LINEBUFFER := LINEBUFFER || 'NULL;';
+		end if;
+		if note_minimale_conservation is not null
+		then
+			LINEBUFFER := LINEBUFFER || note_minimale_conservation||';';
+		else
+			LINEBUFFER := LINEBUFFER || 'NULL;';
+		end if;
+		LINEBUFFER := LINEBUFFER || 'NULL';
+
+		dbms_output.put_line(LINEBUFFER);
+	-- Fin SI note renseignée
+	END IF;
 EXCEPTION
 	WHEN OTHERS
 	THEN
