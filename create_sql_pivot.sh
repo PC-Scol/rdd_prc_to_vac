@@ -473,7 +473,7 @@ BEGIN
 	OR
 	COD_VRS_VDI_FILTRE_FORMATION <>  COD_VRS_VDI_VAL
 	THEN
-		RAISE_APPLICATION_ERROR(-20001, 'VDI ou version diffèrente du filtre formation!');
+		RAISE_APPLICATION_ERROR(-20001, 'VDI ou version différente du filtre formation!');
 	END IF;
 
 	SELECT cod_nel
