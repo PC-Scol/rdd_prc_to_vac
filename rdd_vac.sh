@@ -281,11 +281,11 @@ fi
 
 if test ${COD_TYP_DETECT} = 'LISTES_VET'
 then
-	if  test -f ${FIC_VET_IN}  
+	if  test -f ${FIC_VET_IN}
 	then
 		echo "  >>>   ${FIC_VET_IN} existant dans le dossier racine"
 
-			echo "  >>>   Presence du fichier LISTES_VET.TXT"	
+			echo "  >>>   Presence du fichier LISTES_VET.TXT"
 			echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}"
 			echo "  >>>   Utilisation de LISTES_VET.TXT"
 
@@ -299,23 +299,23 @@ then
 			FIC_VET_IN=${DIR_FIC_ARCH}/${COD_OBJ}
 
 			echo "  >>>   Chemin ${COD_OBJ} existant sur le serveur"
-			echo "  >>>   Chemin ${COD_OBJ} existant sur le serveur" >>${FIC_LOG}	
+			echo "  >>>   Chemin ${COD_OBJ} existant sur le serveur" >>${FIC_LOG}
 
 			echo "  >>>   Presence du paramètre COD_OBJ"
-			echo "  >>>   Non presence du fichier LISTES_VET.TXT"	
+			echo "  >>>   Non presence du fichier LISTES_VET.TXT"
 			echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}"
-			echo "  >>>   Utilisation du fichier mis dans le parametre COD_OBJ" 
+			echo "  >>>   Utilisation du fichier mis dans le parametre COD_OBJ"
 
-			echo "  >>>   Presence du paramètre COD_OBJ"	>>  ${FIC_LOG}	
+			echo "  >>>   Presence du paramètre COD_OBJ"	>>  ${FIC_LOG}
 			echo "  >>>   Non presence du fichier LISTES_VET.TXT" >>  ${FIC_LOG}
 			echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}" >>  ${FIC_LOG}
 			echo "  >>>   Utilisation du fichier mis dans le parametre COD_OBJ" >> ${FIC_LOG}
 
 		else
-			echo "  >>>   Non presence du paramètre COD_OBJ"	>>  ${FIC_LOG}	
+			echo "  >>>   Non presence du paramètre COD_OBJ"	>>  ${FIC_LOG}
 			echo "  >>>   Non presence du fichier LISTES_VET.TXT" >>  ${FIC_LOG}
 
-			echo "  >>>   Non presence du paramètre COD_OBJ"	
+			echo "  >>>   Non presence du paramètre COD_OBJ"
 			echo "  >>>   Non presence du fichier LISTES_VET.TXT"
 
 			echo "  >>>   Veuillez ajouter votre filtre formation dans le dossier racine ou dans le chemin dans la variable COD_OBJ !!"
@@ -344,7 +344,7 @@ number=`ls ${DIR_FIC_SORTIE} | grep  "${FIC_NAME_APOGEE_INSERT}*" | wc -l`
 if [ $number -ne 0 ];
 then
 	number=$(( ++number ))
-	echo "  >>>   Fichier avec masque ${FIC_NAME_APOGEE_INSERT} existant"  
+	echo "  >>>   Fichier avec masque ${FIC_NAME_APOGEE_INSERT} existant"
 	FIC_NAME_APOGEE_INSERT=${FIC_NAME_APOGEE_INSERT}_${number}.dat
 else
 	FIC_NAME_APOGEE_INSERT=${FIC_NAME_APOGEE_INSERT}.dat
@@ -422,7 +422,7 @@ then
 
 
 
-	for i in  $(cat < `find ${FIC_VET_IN} -maxdepth 1 -type f -not -path '*/\.*' | sort`); do 
+	for i in  $(cat < `find ${FIC_VET_IN} -maxdepth 1 -type f -not -path '*/\.*' | sort`); do
 
 		for line in  ${i//,/ };
 		do
@@ -451,7 +451,7 @@ then
 	sleep 1
 
 
-	for i in  $(cat < `find ${FIC_VET_IN} -maxdepth 1 -type f -not -path '*/\.*' | sort`); do 
+	for i in  $(cat < `find ${FIC_VET_IN} -maxdepth 1 -type f -not -path '*/\.*' | sort`); do
 
 		for line in  ${i//,/ };
 		do
@@ -816,6 +816,6 @@ sleep 1
 # Fin du programme
 # -----------------------------------------
 
-echo "  >   Fin de l'execution du programme" 
+echo "  >   Fin de l'execution du programme"
 echo "  >   Fin de l'execution du programme"  >> ${FIC_LOG}
 echo "  =======================================" >> ${FIC_LOG}

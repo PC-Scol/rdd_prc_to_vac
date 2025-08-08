@@ -119,7 +119,7 @@ choix_menu()
 # -----------------------------------------
 
 echo "-------------------------------------------------"
-echo " Listes des fichiers disponibles :  "
+echo " Listes des fichiers de données disponibles :  "
 number=0
 for fic in  `ls ${DIR_FIC_SORTIE}/cle_vac*`; do
 	fichier=${fic##*/}
@@ -151,7 +151,7 @@ choix_menu_vet()
 # -----------------------------------------
 
 echo "-------------------------------------------------"
-echo " Listes des fichiers disponibles :  "
+echo " Listes des fichiers de filtre des VET disponibles :  "
 number2=0
 for fic in  `ls ${DIR_FIC_ARCHIVE}/vets_*`; do
 	fichier=${fic##*/}
@@ -285,7 +285,7 @@ then
 	number_fic=$(( ++number_fic ))
 	FIC_LOG=${DIR_FIC_LOG}/log_${BASE_FIC_LOG}_${GEN_TIMESTAMP}_${number_fic}.log
 
-	echo "  >>>   Fichier avec masque ${FIC_LOG} existant"  
+	echo "  >>>   Fichier avec masque ${FIC_LOG} existant"
 
 else
 	FIC_LOG=${DIR_FIC_LOG}/log_${BASE_FIC_LOG}_${GEN_TIMESTAMP}.log
@@ -329,9 +329,9 @@ fi
 # recuperation du chemin du fichier
 number=0
 #choix du fichier
-for fic in  `ls ${DIR_FIC_SORTIE}/cle_vac*`; do 
+for fic in  `ls ${DIR_FIC_SORTIE}/cle_vac*`; do
 	number=$(( ++number ))
-	fic_insert=${fic}	
+	fic_insert=${fic}
 	if [ "${number}" -eq " ${choice}" ];
 	then
 		break
@@ -340,7 +340,7 @@ done
 
 #choix du fichier de vet à tester
 number2=0
-for fic in  `ls ${DIR_FIC_ARCHIVE}/vets_*`; do 
+for fic in  `ls ${DIR_FIC_ARCHIVE}/vets_*`; do
 	number2=$(( ++number2 ))
 	fic_vet=${fic}
 	DIR_FIC_ARCHIVE=${fic}
@@ -352,11 +352,9 @@ done
 
 
 
-echo "trace BASE_FIC_LOG : ${FIC_LOG}"
-echo "trace fic_insert : ${fic_insert}"
-echo "trace number : ${number}"
-echo "trace fic_vet : ${DIR_FIC_ARCHIVE}"
-echo "trace number2 : ${number2}"
+#echo "BASE_FIC_LOG : ${FIC_LOG}"
+#echo "fic_insert : ${fic_insert}"
+#echo "fic_vet : ${DIR_FIC_ARCHIVE}"
 GEN_TIMESTAMP=$(date  +%s)
 
     # Fichier de stockage SQL pour requete generation de VAC dans APOGEE
@@ -385,7 +383,7 @@ local ligne=$1
 local str_conx=$2
 
 sql_condition_string=${ligne}
-
+echo "test: ${sql_condition_string}"
 if [  -z ${sql_condition_string} ]
 then
 	exit
@@ -401,7 +399,7 @@ IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP N
 
 FILTRE_FORMATION="test_filtre_formation"
 result=$(${FILTRE_FORMATION} "$COD_ETP" "$COD_VRS_VET" "$DIR_FIC_ARCHIVE")
-echo "  >>>  Filtre formation trouve (coc) dans le fichier archive pour  ${sql_condition_string} : ${result}" 
+echo "  >>>  Filtre formation trouve (coc) dans le fichier archive pour  ${sql_condition_string} : ${result}"
 echo "  >>>  Filtre formation trouve (coc) dans le fichier archive pour ${sql_condition_string} : ${result}"  >> ${FIC_LOG}
 IFS='>' read -r part1 part2 <<< "${result}"
 IFS='-' read -r COD_DIP_FILTRE COD_VRS_VDI_FILTRE <<< "${part1}"
@@ -447,7 +445,7 @@ DECLARE
 	duree_conservation number(8,0)  := null;
 	note_minimale_conservation number(8,0)  := null;
 	resultat_session1  varchar2(4)  := null;
-	resultat_session2  varchar2(4) := null;	
+	resultat_session2  varchar2(4) := null;
 	note_session2 varchar2(10) := null;
 	bareme_session2 varchar2(10) := null;
 	COD_DIP_FILTRE_FILTRE_FORMATION varchar2(10) := '${COD_DIP_FILTRE}';
@@ -902,8 +900,12 @@ BEGIN
 EXCEPTION
 	WHEN OTHERS
 	THEN
-		dbms_output.put_line(SQLERRM);
-		ROLLBACK;
+		-- ne pas tracer l'exclusion d'une ligne dans le CSV !
+		IF SQLCODE=-20001 THEN
+			NULL;
+		ELSE
+			dbms_output.put_line(SQLCODE||SQLERRM);
+		END IF;
 END;
 /
 SPOOL OFF
