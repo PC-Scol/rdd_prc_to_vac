@@ -664,7 +664,8 @@ DECLARE
 				ma_table.cod_vrs_vet,
 				ma_table.cod_ind,
 				ma_table.cod_elp,
-				ma_table.note, ma_table.bareme
+				ma_table.note, ma_table.bareme,
+				ma_table.cod_cip
 		FROM (
 				SELECT ice.cod_anu,
 					ice.cod_etp,
@@ -677,7 +678,8 @@ DECLARE
 													ice.cod_vrs_vet,
 													ice.cod_ind,
 													ice.cod_elp
-										ORDER BY relp.cod_anu DESC,relp.cod_ses DESC) as rownnumber
+										ORDER BY relp.cod_anu DESC,relp.cod_ses DESC) as rownnumber,
+					ice.cod_cip
 				FROM  element_pedagogi elp,
 					ind_contrat_elp ice,
 					resultat_elp relp
@@ -724,17 +726,10 @@ DECLARE
 		WHERE ma_table.rownnumber=1;
 						
 	BEGIN
-		-- recherche du cip de la vet
-		SELECT DISTINCT FIRST_VALUE(cod_cip) OVER (ORDER BY COD_ETP) cod_cip
-		INTO cod_cip_vet
-		FROM vet_cip
-		WHERE cod_etp = cod_etp_in
-			AND cod_vrs_vet = cod_vrs_vet_in;
-		
 		-- RECHERCHE PAR PRC
 		FOR recherche_prc_rec IN recherche_prc_cur(cod_etp_in,cod_vrs_vet_in,cod_anu_in,transformation_conservation_capitalisation_in)
 		LOOP
-				linebuffer := ''||REPLACE(cod_anu_in,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_ind,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_etp,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_vrs_vet,'NULL',NULL)||';'||REPLACE(recherche_prc_rec.cod_elp,'','NULL')||';SYSDATE;'||REPLACE(cod_cip_vet,'','NULL')||';' ||recherche_prc_rec.note|| ';' ||recherche_prc_rec.bareme ||';';
+				linebuffer := ''||REPLACE(cod_anu_in,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_ind,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_etp,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_vrs_vet,'NULL',NULL)||';'||REPLACE(recherche_prc_rec.cod_elp,'','NULL')||';SYSDATE;'||REPLACE(recherche_prc_rec.cod_cip,'','NULL')||';' ||recherche_prc_rec.note|| ';' ||recherche_prc_rec.bareme ||';';
 				dbms_output.put_line(linebuffer);
 		END LOOP;
 	END;

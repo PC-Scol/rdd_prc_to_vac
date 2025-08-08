@@ -900,11 +900,11 @@ BEGIN
 EXCEPTION
 	WHEN OTHERS
 	THEN
-		-- ne pas tracer l'exclusion d'une ligne dans le CSV !
+		-- ne pas tracer l'exclusion d'une ligne dans le CSV, sinon CSV inexploitable
 		IF SQLCODE=-20001 THEN
 			NULL;
 		ELSE
-			dbms_output.put_line(SQLCODE||SQLERRM);
+			dbms_output.put_line(SQLERRM);
 		END IF;
 END;
 /
@@ -962,11 +962,11 @@ sed -i 's/\,/\./g'  ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC}
 echo -e "  >>>   Fin Genération des VACS d'insertion pour la base pivot" >> $FIC_LOG
 echo -e "  >>>   Fin Genération des VACS d'insertion pour la base pivot"
 sleep 1
-echo "temps coc : ${runtime}"
-echo "temps chc : ${runtime_2}"
+echo "temps generation coc : ${runtime} secondes"
+echo "temps generation chc : ${runtime_2} secondes"
 # -----------------------------------------
 # Fin du programme
 # -----------------------------------------
-echo "  >   Fin de l'execution du programme" 
+echo "  >   Fin de l'execution du programme"
 echo "  >   Fin de l'execution du programme" >> ${FIC_LOG}
 echo "  =======================================" >> ${FIC_LOG}
