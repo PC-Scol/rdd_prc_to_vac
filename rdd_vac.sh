@@ -702,6 +702,9 @@ DECLARE
 						AND ide.cod_elp=ice.cod_elp
 					)
 				--exclusions des apprenants sans inscription pour l'année
+				-- /!\ TODO : exclure aussi les apprenants qui ne sont pas dans les VDI du filtre en entrée
+				--		=> la fonctionnalité est opérationnelle car les lignes sont filtrées dans create_sql_pivot.sql mais
+				--			du temps de traitement est perdu car des lignes sont sélectionnées pour être ré-enlevées ensuite
 				AND EXISTS (
 					SELECT 1
 					FROM ins_adm_etp ins
