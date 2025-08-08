@@ -351,8 +351,6 @@ else
 fi
 echo "  >>>   Fichier DAT cree  -> ${FIC_NAME_APOGEE_INSERT}"
 
-sleep 1
-
 
 # --------------------------------------------
 # PURGE DE FICHIERS PRECEDENTS
@@ -416,7 +414,6 @@ then
 	echo -e "  >>>    Debut du test des codes formations ">> $FIC_LOG
 
 	echo "  >>>   Debut du test des codes formations "
-	sleep 1
 
 	echo -e "  >>>   Test de(s) formation(s)" >> $FIC_LOG
 
@@ -446,25 +443,24 @@ then
 	echo "  >>>   Fin du test des codes formations "
 	sleep 1
 
+
 	echo -e "  >>>   Debut du traitement de la generation des etapes pour LISTES_VET ">> $FIC_LOG
 	echo -e "  >>>   Debut du traitement de la generation des etapes pour LISTES_VET  "
-	sleep 1
-
 
 	for i in  $(cat < `find ${FIC_VET_IN} -maxdepth 1 -type f -not -path '*/\.*' | sort`); do
 
+		echo -e "  >>>   Generation des etapes pour ${i} ">> $FIC_LOG
+		echo "  >>>   Generation des etapes pour ${i}  "
 		for line in  ${i//,/ };
 		do
-
 			# copie du fichier dans le fichier temporaire
 			echo ${line} >> ${DIR_FIC_TMP}/${FIC_NAME_TMP}
-
 		done
-		echo -e "  >>>   Fin du traitement de la generation des etapes pour LISTES_VET ">> $FIC_LOG
-		echo "  >>>   Fin du traitement de la generation des etapes pour LISTES_VET  "
-		sleep 1
 
 	done
+	echo -e "  >>>   Fin du traitement de la generation des etapes pour LISTES_VET ">> $FIC_LOG
+	echo "  >>>   Fin du traitement de la generation des etapes pour LISTES_VET  "
+	sleep 1
 
 fi
 
@@ -478,8 +474,6 @@ then
 
 echo -e "  >>>   Debut du traitement de la generation des etapes pour cmp ou vetall ou vet ">> $FIC_LOG
 echo "  >>>   Debut du traitement de la generation des etapes pour cmp ou vetall ou vet "
-sleep 1
-
 
 sqlplus -s <<FIN_SQL
 ${STR_CONX}
@@ -841,8 +835,6 @@ then
 
 fi
 
-sleep 1
-
 
 echo "  >>>   Fichier avec masque ${DIR_FIC_SORTIE_IN}/${vet_archive} existant"
 
@@ -861,11 +853,9 @@ echo "  >>>   Fichier des vets cree  -> ${archive_fic}"
 
 
 cp ${DIR_FIC_TMP}/${FIC_NAME_TMP} ${archive_fic}
-sleep 1
+
 echo -e "  >>>   Suppression du dossier tmp"
 rm -r  ${DIR_FIC_TMP}
-
-sleep 1
 
 
 # -----------------------------------------
