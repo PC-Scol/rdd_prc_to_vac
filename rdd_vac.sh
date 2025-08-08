@@ -608,8 +608,8 @@ ligne_etp=`echo $ligne | cut -f 2 -d ">"`
 COD_OBJ_FIC=`echo $ligne_etp | cut -f 1 -d "-"`
 COD_VRS_OBJ=`echo $ligne_etp | cut -f 2 -d "-"`
 
-echo -e "  >>>   Debut generation des cles vac pour l'etape' :  $ligne  ">> $FIC_LOG
-echo "  >>>   Debut generation des cles vac pour l'etape' :  $ligne  "
+echo -e "  >>>   Debut generation des cles vac pour l'etape :  $ligne  ">> $FIC_LOG
+echo "  >>>   Debut generation des cles vac pour l'etape :  $ligne  "
 echo "  >>>   Traitement de la VET :  ${COD_OBJ_FIC} - ${COD_VRS_OBJ} "
 ## --------------------------------------------
 # ETAPE 3 : TRAITEMENT DES VALEURS
@@ -658,115 +658,133 @@ DECLARE
 	
 	-- recuperation des prc
 	CURSOR recherche_prc_cur (cod_etp_in IN varchar2, cod_vrs_vet_in IN varchar2, cod_anu_in IN varchar2, transformation_conservation_capitalisation_in IN varchar2) IS
-		-- Le "from Select" permet de récupérer les résultats les plus récents via rownumber=1
-WITH liste_ice_prc AS 
-	(SELECT ice.cod_anu,
-		ice.cod_etp,
-		ice.cod_vrs_vet,
-		ice.cod_ind,
-		ice.cod_elp,
-		ice.cod_cip
-	FROM  element_pedagogi elp,
-		ind_contrat_elp ice
-	WHERE ice.cod_etp = 'DV0051'
-		AND ice.cod_vrs_vet = 112
-		AND elp.cod_elp = ice.COD_ELP
-		AND ice.cod_elp = elp.cod_elp
-		-- seuls les ELP capitalisable sont récupérés ou ceux conservables si explicitement demandés
-		AND (elp.tem_cap_elp='O' OR (elp.tem_con_elp='O' AND 'N'='Y'))
-		AND ice.tem_prc_ice = 'O'
-		AND ice.cod_anu = 2013
-		-- exclusion des validation d'acquis de l'année en cours
-		-- car déjà traitées dans rdd-tools
-		AND not exists (
-			SELECT 1
-			FROM ind_dispense_elp ide
-			WHERE ide.cod_anu=ice.cod_anu
-			AND ide.cod_ind=ice.cod_ind
-			AND ide.cod_etp=ice.cod_etp
-			AND ide.cod_vrs_vet=ice.cod_vrs_vet
-			AND ide.cod_elp=ice.cod_elp
-		)
-		--exclusions des apprenants sans inscription pour l'année
-		-- /!\ TODO : exclure aussi les apprenants qui ne sont pas dans les VDI du filtre en entrée
-		--		=> la fonctionnalité est opérationnelle car les lignes sont filtrées dans create_sql_pivot.sql mais
-		--			du temps de traitement est perdu car des lignes sont sélectionnées pour être ré-enlevées ensuite
-		AND EXISTS (
-			SELECT 1
-			FROM ins_adm_etp ins
-			WHERE ins.cod_etp = ice.cod_etp
-			AND ins.cod_vrs_vet = ice.cod_vrs_vet
-			AND ins.cod_anu = ice.cod_anu
-			AND ins.cod_ind = ice.cod_ind
-			AND ins.eta_iae='E'
-			AND ins.eta_pmt_iae='P'))
-SELECT ma_table.cod_anu,
-		ma_table.cod_etp,
-		ma_table.cod_vrs_vet,
-		ma_table.cod_ind,
-		ma_table.cod_elp,
-		ma_table.note, ma_table.bareme,
-		ma_table.cod_cip
-FROM (  SELECT lprc.cod_anu,
-				lprc.cod_etp,
-				lprc.cod_vrs_vet,
-				lprc.cod_ind,
-				lprc.cod_elp,
-				to_char(relp.not_elp) note, to_char(relp.bar_not_elp) bareme,
-				-- SELECTION DES NOTES/RESULTATS OBTENUS LE PLUS RECEMMENT
-				row_number() OVER (PARTITION BY lprc.cod_etp,
-												lprc.cod_vrs_vet,
-												lprc.cod_ind,
-												lprc.cod_elp
-									ORDER BY relp.cod_anu DESC,relp.cod_ses DESC) as rownnumber,
-				lprc.cod_cip
-		FROM liste_ice_prc lprc
-			,resultat_elp relp
-		WHERE relp.cod_elp = lprc.cod_elp
-				AND relp.cod_ind =  lprc.cod_ind
-				AND relp.cod_anu < lprc.cod_anu
-				AND relp.cod_adm = 1
-				AND (	-- SELECTION DES RESULTATS AVEC NOTE
-						(relp.not_elp IS NOT NULL AND relp.bar_not_elp IS NOT null)
-						OR
-						-- SELECTION DES RESULTATS POSITIFS SANS NOTE
-						EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1)
-						)
-			) ma_table
--- SELECTION DES NOTES/RESULTATS OBTENUS LE PLUS RECEMMENT
-WHERE ma_table.rownnumber=1
-UNION
--- 2. SELECTION DES PRC SUR VALIDATIONS D'ACQUIS ANTERIEURES
--- ---------------------------------------------------------
-SELECT ma_table.cod_anu,
-        ma_table.cod_etp,
-        ma_table.cod_vrs_vet,
-        ma_table.cod_ind,
-        ma_table.cod_elp,
-        ma_table.note, ma_table.bareme,
-        ma_table.cod_cip
-FROM (  SELECT lprc.cod_anu,
-                lprc.cod_etp,
-                lprc.cod_vrs_vet,
-                lprc.cod_ind,
-                lprc.cod_elp,
-                to_char(ide.NOT_VAA) note, to_char(ide.BAR_NOT_VAA) bareme,
-                -- Validations d'acquis obtenues le plus récemment
-                row_number() OVER (PARTITION BY lprc.cod_etp,
-                                                lprc.cod_vrs_vet,
-                                                lprc.cod_ind,
-                                                lprc.cod_elp
-                                    ORDER BY ide.cod_anu DESC) as rownnumber,
-                lprc.cod_cip
-        FROM liste_ice_prc lprc
-            ,ind_dispense_elp ide
-        WHERE ide.cod_anu<lprc.cod_anu
-            AND ide.cod_ind=lprc.cod_ind
-            AND ide.cod_etp=lprc.cod_etp
-            AND ide.cod_vrs_vet=lprc.cod_vrs_vet
-            AND ide.cod_elp=lprc.cod_elp) ma_table
--- Validation d'acquis obtenue le plus récemment sur l'objet
-WHERE ma_table.rownnumber=1;
+		WITH liste_ice_prc AS
+			(SELECT ice.cod_anu,
+				ice.cod_etp,
+				ice.cod_vrs_vet,
+				ice.cod_ind,
+				ice.cod_elp,
+				ice.cod_cip,
+				elp.tem_cap_elp,
+				elp.tem_con_elp,
+				elp.not_min_con_elp,
+				elp.bar_min_con_elp,
+				elp.dur_con_elp
+			FROM  element_pedagogi elp,
+				ind_contrat_elp ice
+			WHERE ice.cod_etp = cod_etp_in
+				AND ice.cod_vrs_vet = cod_vrs_vet_in
+				AND elp.cod_elp = ice.COD_ELP
+				AND ice.cod_elp = elp.cod_elp
+				-- seuls les ELP capitalisable sont récupérés ou ceux conservables si explicitement demandés
+				AND (elp.tem_cap_elp='O' OR (elp.tem_con_elp='O' AND transformation_conservation_capitalisation_in='Y'))
+				AND ice.tem_prc_ice = 'O'
+				AND ice.cod_anu = cod_anu_in
+				-- exclusion des validation d'acquis de l'année en cours
+				-- car déjà traitées dans rdd-tools
+				AND not exists (
+					SELECT 1
+					FROM ind_dispense_elp ide
+					WHERE ide.cod_anu=ice.cod_anu
+					AND ide.cod_ind=ice.cod_ind
+					AND ide.cod_etp=ice.cod_etp
+					AND ide.cod_vrs_vet=ice.cod_vrs_vet
+					AND ide.cod_elp=ice.cod_elp
+				)
+				--exclusions des apprenants sans inscription pour l'année
+				-- /!\ TODO : exclure aussi les apprenants qui ne sont pas dans les VDI du filtre en entrée
+				--		=> la fonctionnalité est opérationnelle car les lignes sont filtrées dans create_sql_pivot.sql mais
+				--			du temps de traitement est perdu car des lignes sont sélectionnées pour être ré-enlevées ensuite
+				AND EXISTS (
+					SELECT 1
+					FROM ins_adm_etp ins
+					WHERE ins.cod_etp = ice.cod_etp
+					AND ins.cod_vrs_vet = ice.cod_vrs_vet
+					AND ins.cod_anu = ice.cod_anu
+					AND ins.cod_ind = ice.cod_ind
+					AND ins.eta_iae='E'
+					AND ins.eta_pmt_iae='P'))
+		-- 1. SELECTION DES PRC SUR NOTES/RÉSULTATS
+		-- ----------------------------------------
+		SELECT ma_table.cod_anu,
+				ma_table.cod_etp,
+				ma_table.cod_vrs_vet,
+				ma_table.cod_ind,
+				ma_table.cod_elp,
+				ma_table.note, ma_table.bareme,
+				ma_table.cod_cip
+		FROM (  SELECT lprc.cod_anu,
+						lprc.cod_etp,
+						lprc.cod_vrs_vet,
+						lprc.cod_ind,
+						lprc.cod_elp,
+						to_char(nvl2(relp.not_elp,relp.not_elp+nvl(relp.not_pnt_jur_elp,0),relp.not_elp)) note, to_char(relp.bar_not_elp) bareme,
+						-- SELECTION DES NOTES/RESULTATS OBTENUS LE PLUS RECEMMENT
+						row_number() OVER (PARTITION BY lprc.cod_etp,
+														lprc.cod_vrs_vet,
+														lprc.cod_ind,
+														lprc.cod_elp
+											ORDER BY relp.cod_anu DESC,relp.cod_ses DESC) as rownnumber,
+						lprc.cod_cip
+				FROM liste_ice_prc lprc
+					,resultat_elp relp
+				WHERE relp.cod_elp = lprc.cod_elp
+						AND relp.cod_ind =  lprc.cod_ind
+						AND relp.cod_anu < lprc.cod_anu
+						AND relp.cod_adm = 1
+						-- récupération du résultat :
+						--  - si element capitalisable
+						--  - ou si conservable ET QUE transformation des conservations en capitalisation demandée ET QUE que les conditions de conservation sont remplies
+						AND ( lprc.tem_cap_elp='O'
+								OR (lprc.tem_con_elp='O'
+									AND transformation_conservation_capitalisation_in='Y'
+									AND (to_number(relp.cod_anu)+lprc.dur_con_elp) >= to_number(lprc.cod_anu)
+									AND (nvl(relp.not_elp,-1)+nvl(relp.not_pnt_jur_elp,0))/nvl(relp.bar_not_elp,1) >=lprc.not_min_con_elp/lprc.bar_min_con_elp)
+							)
+						AND (	-- Résultats avec note
+								relp.TEM_EXI_NOT_ELP='O'
+								OR
+								-- Résultats positifs sans note
+								EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1))
+					) ma_table
+		-- Notes/resultats obtenus le plus recemment
+		WHERE ma_table.rownnumber=1
+		UNION
+		-- 2. SELECTION DES PRC SUR VALIDATIONS D'ACQUIS ANTERIEURES
+		-- ---------------------------------------------------------
+		SELECT ma_table.cod_anu,
+				ma_table.cod_etp,
+				ma_table.cod_vrs_vet,
+				ma_table.cod_ind,
+				ma_table.cod_elp,
+				ma_table.note, ma_table.bareme,
+				ma_table.cod_cip
+		FROM (  SELECT lprc.cod_anu,
+						lprc.cod_etp,
+						lprc.cod_vrs_vet,
+						lprc.cod_ind,
+						lprc.cod_elp,
+						to_char(ide.NOT_VAA) note, to_char(ide.BAR_NOT_VAA) bareme,
+						-- Validations d'acquis obtenues le plus récemment
+						row_number() OVER (PARTITION BY lprc.cod_etp,
+														lprc.cod_vrs_vet,
+														lprc.cod_ind,
+														lprc.cod_elp
+											ORDER BY ide.cod_anu DESC) as rownnumber,
+						lprc.cod_cip
+				FROM liste_ice_prc lprc
+					,ind_dispense_elp ide
+				WHERE ide.cod_anu<lprc.cod_anu
+					AND ide.cod_ind=lprc.cod_ind
+					AND ide.cod_etp=lprc.cod_etp
+					AND ide.cod_vrs_vet=lprc.cod_vrs_vet
+					AND ide.cod_elp=lprc.cod_elp) ma_table
+		-- Validations d'acquis obtenues le plus récemment
+		WHERE ma_table.rownnumber=1
+		-- 3. SELECTION DES PRC SUR LCC
+		-- ----------------------------
+		-- TODO
+		;
 						
 	BEGIN
 		-- RECHERCHE PAR PRC
