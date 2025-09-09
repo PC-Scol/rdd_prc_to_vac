@@ -395,7 +395,7 @@ echo "  >>>  Genération de la VAC pour module COC d'insertion  pour le pivot :$
 
 #recuperation des valeurs dans les clés
 
-IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA <<< "$sql_condition_string"
+IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA NOT_PNT_JUR_VAA SESSION_RETENUE ANNEE_ACQUISITION <<< "$sql_condition_string"
 
 FILTRE_FORMATION="test_filtre_formation"
 result=$(${FILTRE_FORMATION} "$COD_ETP" "$COD_VRS_VET" "$DIR_FIC_ARCHIVE")
@@ -411,7 +411,7 @@ set serveroutput on
 SET HEADING OFF
 SET FEEDBACK OFF
 SET TRIMSPOOL ON
-set linesize 870
+set linesize 1000
 set pagesize 1
 SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC} append
 DECLARE
@@ -427,6 +427,9 @@ DECLARE
 	COD_NEL_VAL varchar2(10) := NULL;
 	NOT_VAA_VAL varchar2(10) := '${NOT_VAA}';
 	BAR_NOT_VAA_VAL varchar2(10) := '${BAR_NOT_VAA}';
+	NOT_PNT_JUR_VAA_VAL varchar2(10) := '${NOT_PNT_JUR_VAA}';
+	SESSION_RETENUE_VAL varchar2(1) := '${SESSION_RETENUE}';
+	ANNEE_ACQUISITION_VAL varchar2(4) := '${ANNEE_ACQUISITION}';
 	COD_DEP_PAY_VAC varchar2(10) := NULL;
 	COD_TYP_DEP_PAY_VAC varchar2(10) := NULL;
 	COD_ETB varchar2(10) := NULL;
@@ -436,7 +439,7 @@ DECLARE
 	PREFIXON_VAC varchar2(10) := '${PREFIXON}';
 	PREFIX_VET_VAC varchar2(10) := '${PREFIX_VET}';
 	PREFIX_VDI_VAC varchar2(10) := '${PREFIX_VDI}';
-	LINEBUFFER varchar2(870) := '';
+	LINEBUFFER varchar2(1000) := '';
 	CLE_CHC varchar2(50) := '';
 	CLE_COC varchar2(100) := '';
 	code_filtre_formation varchar2(50) := '';
@@ -446,8 +449,12 @@ DECLARE
 	note_minimale_conservation number(8,0)  := null;
 	resultat_session1  varchar2(4)  := null;
 	resultat_session2  varchar2(4) := null;
+	note_session1 varchar2(10) := null;
+	bareme_session1 varchar2(10) := null;
+	note_point_jury_session1 varchar2(10) := null;
 	note_session2 varchar2(10) := null;
 	bareme_session2 varchar2(10) := null;
+	note_point_jury_session2 varchar2(10) := null;
 	COD_DIP_FILTRE_FILTRE_FORMATION varchar2(10) := '${COD_DIP_FILTRE}';
 	COD_VRS_VDI_FILTRE_FORMATION varchar2(10) := '${COD_VRS_VDI_FILTRE}';
 
@@ -479,69 +486,45 @@ BEGIN
 			RAISE_APPLICATION_ERROR(-20001, 'VDI ou version différente du filtre formation!');
 		END IF;
 
-		SELECT cod_nel
-		INTO COD_NEL_VAL
-		FROM (
-			SELECT cod_nel
-			from element_pedagogi
-			where cod_elp = COD_ELP_VAL
-		)
-		WHERE ROWNUM = 1;
-		
 		Select max(cod_ses)
 			into NUM_SESSION
 			from resultat_elp
 			where COD_ADM = 1
 			and cod_elp = COD_ELP_VAL
-			and COD_IND = COD_IND_VAL;
+			and COD_IND = COD_IND_VAL
+			and cod_anu = ANNEE_ACQUISITION_VAL;
 		
-		Select elp.tem_cap_elp, elp.tem_con_elp, elp.dur_con_elp, elp.not_min_con_elp
-			into tem_capitalise, tem_conservation, duree_conservation, note_minimale_conservation
+		Select elp.cod_nel, elp.tem_cap_elp, elp.tem_con_elp, elp.dur_con_elp, elp.not_min_con_elp
+			into COD_NEL_VAL, tem_capitalise, tem_conservation, duree_conservation, note_minimale_conservation
 			from ELEMENT_PEDAGOGI elp
 			where cod_elp = COD_ELP_VAL;
 		
-		Select max(CASE WHEN relp.cod_ses='1' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
-						WHEN relp.cod_ses='1' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
-				END)
-		into resultat_session1
+		Select to_char(not_elp), to_char(bar_not_elp),to_char(not_pnt_jur_elp,'FM99990D099'),
+				CASE WHEN relp.cod_ses='1' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
+					WHEN relp.cod_ses='1' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
+				END
+		into note_session1, bareme_session1, note_point_jury_session1, resultat_session1
 		from resultat_elp relp
 		where   cod_elp = COD_ELP_VAL
 			and COD_IND = COD_IND_VAL
-			and cod_ses = '1'
-			and cod_adm = '1';
+			and cod_ses in ('0','1')
+			and cod_adm = '1'
+			and cod_anu = ANNEE_ACQUISITION_VAL;
 
-		Select max(CASE WHEN relp.cod_ses='2' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
-			WHEN relp.cod_ses='2' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
-				END)
-		into resultat_session2
-		from resultat_elp relp
-		where  cod_elp = COD_ELP_VAL
-			and COD_IND = COD_IND_VAL
-			and cod_ses = '2'
-			and cod_adm = '1';
-		Begin
-			Select not_elp
-			into note_session2
+		IF NUM_SESSION = 2
+		THEN
+			Select to_char(not_elp), to_char(bar_not_elp),to_char(not_pnt_jur_elp,'FM99990D099'),
+					CASE WHEN relp.cod_ses='2' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
+						WHEN relp.cod_ses='2' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
+					END
+			into note_session2, bareme_session2, note_point_jury_session2, resultat_session2
 			from resultat_elp relp
 			where  cod_elp = COD_ELP_VAL
-			and COD_IND = COD_IND_VAL
-			and cod_ses = '2'
-			and cod_adm = '1';
-
-			Select bar_not_elp
-			into bareme_session2
-			from resultat_elp relp
-			where  cod_elp = COD_ELP_VAL
-			and COD_IND = COD_IND_VAL
-			and cod_ses = '2'
-			and cod_adm = '1';
-		exception
-			when others
-				then
-				bareme_session2  := 'NULL';
-				note_session2 := 'NULL';
-		end;
-
+				and COD_IND = COD_IND_VAL
+				and cod_ses = '2'
+				and cod_adm = '1'
+				and cod_anu = ANNEE_ACQUISITION_VAL;
+		END IF;
 
 		CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
 		code_filtre_formation := COD_DIP_VAL||'-'|| COD_VRS_VDI_VAL;
@@ -554,37 +537,30 @@ BEGIN
 		END IF;
 
 		--  Création de l'ordre d'insertion des coc en fonction des PRC trouvées dans APOGEE
-		LINEBUFFER := LINEBUFFER || CLE_COC||';';
-		LINEBUFFER := LINEBUFFER || code_filtre_formation||';';
-		LINEBUFFER := LINEBUFFER || COD_ELP_VAL||';';
-		LINEBUFFER := LINEBUFFER || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||';';
-		LINEBUFFER := LINEBUFFER || ANNEE_VAL||';';
-		LINEBUFFER := LINEBUFFER || COD_ETB_VAL||';';
-		LINEBUFFER := LINEBUFFER || COD_IND_VAL||';';
-		LINEBUFFER := LINEBUFFER || COD_ETU_VAL||';';
-		LINEBUFFER := LINEBUFFER || COD_NEL_VAL||';';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER ||	nvl(NOT_VAA_VAL,'NULL')||';';
-		LINEBUFFER := LINEBUFFER || nvl(BAR_NOT_VAA_VAL,'NULL')||';';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || nvl(NOT_VAA_VAL,'NULL')||';';
-		LINEBUFFER := LINEBUFFER || nvl(BAR_NOT_VAA_VAL,'NULL')||';';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		IF NUM_SESSION = 2
-		then
-			LINEBUFFER := LINEBUFFER || nvl(NOT_VAA_VAL,'NULL')||';';
-			LINEBUFFER := LINEBUFFER ||nvl(BAR_NOT_VAA_VAL,'NULL')||';';
-		else
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-
-		end if;
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		IF  resultat_session2 is not null
+		LINEBUFFER := LINEBUFFER || CLE_COC||';';						-- "id"
+		LINEBUFFER := LINEBUFFER || code_filtre_formation||';';			-- "code_formation"
+		LINEBUFFER := LINEBUFFER || COD_ELP_VAL||';';					-- "code_objet_formation"
+		LINEBUFFER := LINEBUFFER || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||';';	-- "code_filtre_formation"
+		LINEBUFFER := LINEBUFFER || ANNEE_VAL||';';						-- "code_periode"
+		LINEBUFFER := LINEBUFFER || COD_ETB_VAL||';';					-- "code_structure"
+		LINEBUFFER := LINEBUFFER || COD_IND_VAL||';';					-- "id_apprenant"
+		LINEBUFFER := LINEBUFFER || COD_ETU_VAL||';';					-- "code_apprenant"
+		LINEBUFFER := LINEBUFFER || COD_NEL_VAL||';';					-- "type_objet_formation"
+		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "code_mention"
+		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "grade_ects"
+		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "gpa"
+		LINEBUFFER := LINEBUFFER ||	nvl(NOT_VAA_VAL,'NULL')||';';		-- "note_retenue"
+		LINEBUFFER := LINEBUFFER || nvl(BAR_NOT_VAA_VAL,'NULL')||';';	-- "bareme_note_retenue"
+		LINEBUFFER := LINEBUFFER || nvl(NOT_PNT_JUR_VAA_VAL,'NULL')||';';	-- "point_jury_retenu"
+		LINEBUFFER := LINEBUFFER || nvl(note_session1,'NULL')||';';		-- "note_session1"
+		LINEBUFFER := LINEBUFFER || nvl(bareme_session1,'NULL')||';';	-- "bareme_note_session1"
+		LINEBUFFER := LINEBUFFER || nvl(note_point_jury_session1,'NULL')||';';	-- "point_jury_session1"
+		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "credit_ects_session1"
+		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "rang_session1"
+		LINEBUFFER := LINEBUFFER || nvl(note_session2,'NULL')||';';	-- "note_session2"
+		LINEBUFFER := LINEBUFFER ||nvl(bareme_session2,'NULL')||';';-- "bareme_note_session2"
+		LINEBUFFER := LINEBUFFER ||nvl(note_point_jury_session2,'NULL')||';';-- "point_jury_session2"
+		IF  resultat_session2 is not null								-- "resultat_final"
 			then
 				LINEBUFFER := LINEBUFFER || resultat_session2 ||';';
 			else
@@ -597,66 +573,44 @@ BEGIN
 
 		end if;
 
-		IF  resultat_session1 is not null
-		then
-			LINEBUFFER := LINEBUFFER || resultat_session1 ||';';
-		else
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-		end if;
-
-		IF  resultat_session2 is not null
-		then
-			LINEBUFFER := LINEBUFFER || resultat_session2 ||';';
-		else
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-		end if;
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'T;';
-		LINEBUFFER := LINEBUFFER || 'T;';
-		IF NUM_SESSION = 2
-		then
-			LINEBUFFER := LINEBUFFER || '2;';
-		else
-			LINEBUFFER := LINEBUFFER || '1;';
-		end if;
+		LINEBUFFER := LINEBUFFER || nvl(resultat_session1,'NULL')||';';	-- "resultat_session1"
+		LINEBUFFER := LINEBUFFER || nvl(resultat_session2,'NULL')||';';	-- "resultat_session2"
+		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "rang_final"
+		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "credit_ects_final"
+		LINEBUFFER := LINEBUFFER || 'T;';								-- "statut_deliberation_session1"
+		LINEBUFFER := LINEBUFFER || 'T;';								-- "statut_deliberation_session2_final"
+		LINEBUFFER := LINEBUFFER || nvl(SESSION_RETENUE_VAL,'NULL')||';';	-- "session_retenue"
 		
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
+		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "absence_finale"
+		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "absence_session1"
+		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "absence_session2"
 
-		IF NUM_SESSION = 2
+		IF NUM_SESSION = 2												-- "temoin_concerne_session2"
 		then
 			LINEBUFFER := LINEBUFFER || 'O;';
 		else
 			LINEBUFFER := LINEBUFFER || 'N;';
 		end if;
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || 'NULL;';
-		LINEBUFFER := LINEBUFFER || tem_capitalise||';';
-		LINEBUFFER := LINEBUFFER || tem_conservation||';';
-		if duree_conservation is not null
-		then
-			LINEBUFFER := LINEBUFFER || duree_conservation||';';
-		else
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-		end if;
-		if note_minimale_conservation is not null
-		then
-			LINEBUFFER := LINEBUFFER || note_minimale_conservation||';';
-		else
-			LINEBUFFER := LINEBUFFER || 'NULL;';
-		end if;
-		LINEBUFFER := LINEBUFFER || 'NULL';
+		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "statut_publication_session1"
+		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "statut_publication_session2"
+		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "statut_publication_final"
+		LINEBUFFER := LINEBUFFER || nvl(tem_capitalise,'NULL')||';';	-- "temoin_capitalise"
+		LINEBUFFER := LINEBUFFER || nvl(tem_conservation,'NULL')||';';	-- "temoin_conserve"
+		LINEBUFFER := LINEBUFFER || nvl(to_char(duree_conservation),'NULL')||';';-- "duree_conservation"
+		LINEBUFFER := LINEBUFFER || nvl(to_char(note_minimale_conservation),'NULL')||';';-- "note_minimale_conservation"
+		LINEBUFFER := LINEBUFFER || 'NULL';								-- "temoin_validation_acquis"
 
 		dbms_output.put_line(LINEBUFFER);
 	-- Fin SI note renseignée
 	END IF;
 EXCEPTION
-	WHEN OTHERS
-	THEN
-		ROLLBACK;
+	WHEN OTHERS	THEN
+		-- ne pas tracer l'exclusion d'une ligne dans le CSV, sinon CSV inexploitable
+		IF SQLCODE=-20001 THEN
+			NULL;
+		ELSE
+			dbms_output.put_line(SQLERRM);
+		END IF;
 END;
 /
 SPOOL OFF
@@ -731,7 +685,7 @@ echo "  >>>  Genération de la VAC d'insertion (chc) pour le pivot :  ${sql_cond
 echo "  >>>  Genération de la VAC pour module CHC d'insertion  pour le pivot :${sql_condition_string}" >> $FIC_LOG
 
 #recuperation des valeurs dans les clés
-IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA <<< "$sql_condition_string"
+IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA NOT_PNT_JUR_VAA SESSION_RETENUE ANNEE_ACQUISITION <<< "$sql_condition_string"
 
 
 FILTRE_FORMATION="test_filtre_formation"
@@ -765,6 +719,9 @@ DECLARE
 	COD_NEL_VAL		varchar2(10) := NULL;
 	NOT_VAA_VAL		varchar2(10) := '${NOT_VAA}';
 	BAR_NOT_VAA_VAL	varchar2(10) := '${BAR_NOT_VAA}';
+	NOT_PNT_JUR_VAA_VAL varchar2(10) := '${NOT_PNT_JUR_VAA}';
+	SESSION_RETENUE_VAL varchar2(1) := '${SESSION_RETENUE}';
+	ANNEE_ACQUISITION_VAL varchar2(4) := '${ANNEE_ACQUISITION}';
 	COD_DEP_PAY_VAC	varchar2(3) := NULL;
 	COD_TYP_DEP_PAY_VAC varchar2(10) := NULL;
 	COD_ETB			varchar2(10) := NULL;

@@ -705,15 +705,20 @@ DECLARE
 				ma_table.cod_vrs_vet,
 				ma_table.cod_ind,
 				ma_table.cod_elp,
-				ma_table.note, ma_table.bareme,
-				-- TODO : manque point jury +nvl(relp.not_pnt_jur_elp,0)
+				ma_table.note, ma_table.bareme, ma_table.point_jury,
+                ma_table.session_retenue,
+                ma_table.annee_acquisition,
 				ma_table.cod_cip
 		FROM (  SELECT lprc.cod_anu,
 						lprc.cod_etp,
 						lprc.cod_vrs_vet,
 						lprc.cod_ind,
 						lprc.cod_elp,
-						to_char(relp.not_elp) note, to_char(relp.bar_not_elp) bareme,
+						to_char(relp.not_elp) note, to_char(relp.bar_not_elp) bareme, to_char(relp.not_pnt_jur_elp,'FM99990D099') point_jury,
+						to_char(CASE WHEN relp.cod_ses='0' THEN '1'
+									WHEN relp.cod_ses='2' AND (relp.tem_not_rpt_elp='O' OR relp.tem_res_rpt_elp='O') THEN '1'
+									ELSE relp.cod_ses END) session_retenue,
+                        relp.cod_anu annee_acquisition,
 						-- SELECTION DES NOTES/RESULTATS OBTENUS LE PLUS RECEMMENT
 						row_number() OVER (PARTITION BY lprc.cod_etp,
 														lprc.cod_vrs_vet,
@@ -752,14 +757,18 @@ DECLARE
 				ma_table.cod_vrs_vet,
 				ma_table.cod_ind,
 				ma_table.cod_elp,
-				ma_table.note, ma_table.bareme,
+				ma_table.note, ma_table.bareme, ma_table.point_jury,
+				ma_table.session_retenue,
+                ma_table.annee_acquisition,
 				ma_table.cod_cip
 		FROM (  SELECT lprc.cod_anu,
 						lprc.cod_etp,
 						lprc.cod_vrs_vet,
 						lprc.cod_ind,
 						lprc.cod_elp,
-						to_char(ide.NOT_VAA) note, to_char(ide.BAR_NOT_VAA) bareme,
+						to_char(ide.NOT_VAA) note, to_char(ide.BAR_NOT_VAA) bareme, null point_jury,
+						null session_retenue,
+						ide.cod_anu annee_acquisition,
 						-- Validations d'acquis obtenues le plus récemment
 						row_number() OVER (PARTITION BY lprc.cod_etp,
 														lprc.cod_vrs_vet,
@@ -785,7 +794,7 @@ DECLARE
 		-- RECHERCHE PAR PRC
 		FOR recherche_prc_rec IN recherche_prc_cur(cod_etp_in,cod_vrs_vet_in,cod_anu_in,transformation_conservation_capitalisation_in)
 		LOOP
-				linebuffer := ''||REPLACE(cod_anu_in,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_ind,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_etp,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_vrs_vet,'NULL',NULL)||';'||REPLACE(recherche_prc_rec.cod_elp,'','NULL')||';SYSDATE;'||REPLACE(recherche_prc_rec.cod_cip,'','NULL')||';' ||recherche_prc_rec.note|| ';' ||recherche_prc_rec.bareme ||';';
+				linebuffer := ''||REPLACE(cod_anu_in,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_ind,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_etp,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_vrs_vet,'NULL',NULL)||';'||REPLACE(recherche_prc_rec.cod_elp,'','NULL')||';SYSDATE;'||REPLACE(recherche_prc_rec.cod_cip,'','NULL')||';' ||recherche_prc_rec.note|| ';' ||recherche_prc_rec.bareme ||';' ||recherche_prc_rec.point_jury ||';' ||recherche_prc_rec.session_retenue ||';' ||recherche_prc_rec.annee_acquisition ||';';
 				dbms_output.put_line(linebuffer);
 		END LOOP;
 	END;
