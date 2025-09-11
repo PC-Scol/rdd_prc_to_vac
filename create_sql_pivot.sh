@@ -447,6 +447,9 @@ DECLARE
 	tem_conservation varchar2(2) := null;
 	duree_conservation number(8,0)  := null;
 	note_minimale_conservation number(8,0)  := null;
+	mention_honorifique_session1 varchar2(2) := null;
+	mention_honorifique_session2 varchar2(2) := null;
+	code_mention varchar2(2) := null;
 	resultat_session1  varchar2(4)  := null;
 	resultat_session2  varchar2(4) := null;
 	note_session1 varchar2(10) := null;
@@ -502,8 +505,9 @@ BEGIN
 		Select to_char(not_elp), to_char(bar_not_elp),to_char(not_pnt_jur_elp,'FM99990D099'),
 				CASE WHEN relp.cod_ses='1' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
 					WHEN relp.cod_ses='1' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
-				END
-		into note_session1, bareme_session1, note_point_jury_session1, resultat_session1
+				END,
+				cod_men
+		into note_session1, bareme_session1, note_point_jury_session1, resultat_session1, mention_honorifique_session1
 		from resultat_elp relp
 		where   cod_elp = COD_ELP_VAL
 			and COD_IND = COD_IND_VAL
@@ -516,8 +520,9 @@ BEGIN
 			Select to_char(not_elp), to_char(bar_not_elp),to_char(not_pnt_jur_elp,'FM99990D099'),
 					CASE WHEN relp.cod_ses='2' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
 						WHEN relp.cod_ses='2' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
-					END
-			into note_session2, bareme_session2, note_point_jury_session2, resultat_session2
+					END,
+				cod_men
+			into note_session2, bareme_session2, note_point_jury_session2, resultat_session2, mention_honorifique_session2
 			from resultat_elp relp
 			where  cod_elp = COD_ELP_VAL
 				and COD_IND = COD_IND_VAL
@@ -546,7 +551,12 @@ BEGIN
 		LINEBUFFER := LINEBUFFER || COD_IND_VAL||';';					-- "id_apprenant"
 		LINEBUFFER := LINEBUFFER || COD_ETU_VAL||';';					-- "code_apprenant"
 		LINEBUFFER := LINEBUFFER || COD_NEL_VAL||';';					-- "type_objet_formation"
-		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "code_mention"
+		if nvl(SESSION_RETENUE_VAL,-1) = 1 then							-- "code_mention"
+			code_mention := mention_honorifique_session1;
+		elsif nvl(SESSION_RETENUE_VAL,-1) = 2 then
+			code_mention := mention_honorifique_session2;
+		end if;
+		LINEBUFFER := LINEBUFFER || nvl(code_mention,'NULL')||';';
 		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "grade_ects"
 		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "gpa"
 		LINEBUFFER := LINEBUFFER ||	nvl(NOT_VAA_VAL,'NULL')||';';		-- "note_retenue"
@@ -557,8 +567,8 @@ BEGIN
 		LINEBUFFER := LINEBUFFER || nvl(note_point_jury_session1,'NULL')||';';	-- "point_jury_session1"
 		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "credit_ects_session1"
 		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "rang_session1"
-		LINEBUFFER := LINEBUFFER || nvl(note_session2,'NULL')||';';	-- "note_session2"
-		LINEBUFFER := LINEBUFFER ||nvl(bareme_session2,'NULL')||';';-- "bareme_note_session2"
+		LINEBUFFER := LINEBUFFER || nvl(note_session2,'NULL')||';';		-- "note_session2"
+		LINEBUFFER := LINEBUFFER ||nvl(bareme_session2,'NULL')||';';	-- "bareme_note_session2"
 		LINEBUFFER := LINEBUFFER ||nvl(note_point_jury_session2,'NULL')||';';-- "point_jury_session2"
 		IF  resultat_session2 is not null								-- "resultat_final"
 			then
