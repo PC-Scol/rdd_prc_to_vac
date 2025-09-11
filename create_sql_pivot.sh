@@ -829,24 +829,24 @@ BEGIN
 	code_filtre_formation := COD_DIP_VAL ||'-'|| COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
 
 	-- generation du SQL
-	LINEBUFFER := '' || CLE_CHC||';';
-	LINEBUFFER := LINEBUFFER || '' || ANNEE_VAL||';';
-	LINEBUFFER := LINEBUFFER || '' || COD_IND_VAL||';';
-	LINEBUFFER := LINEBUFFER || '' || COD_ETU_VAL||';';
-	LINEBUFFER := LINEBUFFER || '' || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||';';	
-	LINEBUFFER := LINEBUFFER || '' || COD_ELP_VAL||';';
-	LINEBUFFER := LINEBUFFER || '' || chemin_element||';';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || '' || COD_ETB_VAL||';';
-	LINEBUFFER := LINEBUFFER || 'N;';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || 'O;';
-	LINEBUFFER := LINEBUFFER || 'N;';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || 'NULL;';
-	LINEBUFFER := LINEBUFFER || 'AM;';
-	-- choix du type d'aménagement :
+	LINEBUFFER := '' || CLE_CHC||';';						-- "id"
+	LINEBUFFER := LINEBUFFER || '' || ANNEE_VAL||';';		-- "code_periode"
+	LINEBUFFER := LINEBUFFER || '' || COD_IND_VAL||';';		-- "id_apprenant"
+	LINEBUFFER := LINEBUFFER || '' || COD_ETU_VAL||';'; 	-- "code_apprenant"
+	LINEBUFFER := LINEBUFFER || '' || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||';';	-- "code_formation"
+	LINEBUFFER := LINEBUFFER || '' || COD_ELP_VAL||';';		-- "code_objet_formation"
+	LINEBUFFER := LINEBUFFER || '' || chemin_element||';';	-- "code_chemin"
+	LINEBUFFER := LINEBUFFER || 'NULL;';					-- "code_type_objet_maquette"
+	LINEBUFFER := LINEBUFFER || '' || COD_ETB_VAL||';';		-- "code_structure"
+	LINEBUFFER := LINEBUFFER || 'N;';						-- "type_chc"
+	LINEBUFFER := LINEBUFFER || 'NULL;';					-- "nombre_credit_formation"
+	LINEBUFFER := LINEBUFFER || 'NULL;';					-- "nombre_credit_objet_formation"
+	LINEBUFFER := LINEBUFFER || 'O;';						-- "temoin_objet_capitalisable"
+	LINEBUFFER := LINEBUFFER || 'N;';						-- "temoin_objet_conservable"
+	LINEBUFFER := LINEBUFFER || 'NULL;';					-- "duree_conservation"
+	LINEBUFFER := LINEBUFFER || 'NULL;';					-- "etat_objet_dispense"
+	LINEBUFFER := LINEBUFFER || 'AM;';						-- "operation"
+	-- choix du type d'aménagement :						-- "type_amenagement"
 	--	- présence de note => EVAL
 	--	- pas de note => DISPENSE
 	IF NOT_VAA_VAL IS NOT NULL THEN
@@ -855,7 +855,7 @@ BEGIN
 		type_amenagement := 'DISPENSE';
 	END IF;
 	LINEBUFFER := LINEBUFFER || type_amenagement||';';
-	LINEBUFFER := LINEBUFFER || 'false';
+	LINEBUFFER := LINEBUFFER || 'false';					-- "temoin_injection_chc"
 
 	dbms_output.put_line(LINEBUFFER);
 
