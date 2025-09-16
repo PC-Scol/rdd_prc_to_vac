@@ -614,6 +614,7 @@ BEGIN
 	-- Fin SI note renseignée
 	END IF;
 EXCEPTION
+	WHEN NO_DATA_FOUND THEN NULL;
 	WHEN OTHERS	THEN
 		-- ne pas tracer l'exclusion d'une ligne dans le CSV, sinon CSV inexploitable
 		IF SQLCODE=-20001 THEN
@@ -870,6 +871,7 @@ BEGIN
 	dbms_output.put_line(LINEBUFFER);
 
 EXCEPTION
+	WHEN NO_DATA_FOUND THEN NULL;
 	WHEN OTHERS
 	THEN
 		-- ne pas tracer l'exclusion d'une ligne dans le CSV, sinon CSV inexploitable
