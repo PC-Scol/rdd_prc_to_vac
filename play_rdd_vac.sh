@@ -307,7 +307,12 @@ DAT_DEC_ELP_VAA="$(cut -d';'  -f6 <<< ${sql_condition_string})"
 COD_CIP="$(cut -d';'  -f7 <<< ${sql_condition_string})" 
 NOT_VAA="$(cut -d';'  -f8 <<< ${sql_condition_string})"
 BAR_NOT_VAA="$(cut -d';'  -f9 <<< ${sql_condition_string})"
+PNT_JURY="$(cut -d';'  -f10 <<< ${sql_condition_string})"
 
+if [ -n "$PNT_JURY" ]; then
+    echo "   >>>> Prise en compte des points Jurys pour cle :  ${sql_condition_string}" >> ${FIC_LOG}
+    echo "   >>>> Prise en compte des points Jurys pour cle :  ${sql_condition_string}"
+fi
 
 #Suppression des VACS dans Apogee
 sqlplus -s <<FIN_SQL 
@@ -327,6 +332,7 @@ BEGIN
 		COD_ELP varchar2(20000) := '${COD_ELP}';
 		DAT_DEC_ELP_VAA date := sysdate;
 		COD_CIP varchar2(20000) := '${COD_CIP}';
+		PNT_JURY_VAA NUMBER := NULL;
 		NOT_VAA number(8,3) := NULL;
 		BAR_NOT_VAA number(5,0) := NULL;
 		COD_DEP_PAY_VAC varchar2(3) := NULL;
@@ -345,7 +351,11 @@ BEGIN
 			BAR_NOT_VAA :='${BAR_NOT_VAA}';
 		END IF;
 
-
+		IF '${PNT_JURY}' <> 'NULL' THEN
+			PNT_JURY_VAA :='${PNT_JURY}';			
+			NOT_VAA := NOT_VAA + PNT_JURY_VAA;
+		END IF;
+		
 		execute immediate 
 			'INSERT INTO IND_DISPENSE_ELP(COD_ANU,COD_IND,COD_ETP,COD_VRS_VET,COD_ELP,DAT_DEC_ELP_VAA,COD_CIP,NOT_VAA,BAR_NOT_VAA,COD_DEP_PAY_VAC,COD_TYP_DEP_PAY_VAC,COD_ETB,COD_PRG,TEM_SNS_PRG)
 			VALUES
