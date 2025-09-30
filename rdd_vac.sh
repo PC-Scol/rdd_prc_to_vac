@@ -35,6 +35,27 @@ echo -e "Usage : $0  [-admin] ..."
 exit 10
 }
 
+#Initialisation log
+init_log()
+{
+echo "  =======================================" >> ${FIC_LOG}
+echo "  Log du passage de rdd_vac" >> ${FIC_LOG}
+echo "  Date d'execution : $(date  -I)" >> ${FIC_LOG}
+echo "  Code Annee universitaire : ${COD_ANU}" >> ${FIC_LOG}
+echo "  Type Detection : ${COD_TYP_DETECT}" >> ${FIC_LOG}
+echo "  Code Objet : ${COD_OBJ}" >> ${FIC_LOG}
+echo "  Code Version Objet : ${COD_VRS_OBJ}" >> ${FIC_LOG}
+echo "  Transformation des conservations en capitalisations : ${TRANSFORMATION_CONSERVATION_CAPITALISATION}" >> ${FIC_LOG}
+echo "  Dossier racine : ${DIR_FIC_ARCH}" >> ${FIC_LOG}
+echo "  PDB : $PDB" >> ${PDB}
+echo "  =======================================" >> ${FIC_LOG}
+echo "  Processus d'execution : " >> ${FIC_LOG}
+echo "  =======================================" >> ${FIC_LOG}
+echo "  " >> ${FIC_LOG}
+}
+
+
+
 # -----------------------------------------------------------------------------
 # MENU CONFIRMATION
 # -----------------------------------------------------------------------------
@@ -118,8 +139,8 @@ DIR_FIC_IN=${DIR_FIC_ARCH}/archives
 # dossier archive sortie
 DIR_FIC_SORTIE_IN=${DIR_FIC_IN}/filtre_sortie
 
-# dossier fic in
-DIR_FIC_VET_IN=${DIR_FIC_ARCH}/filtre_formation_a_deposer
+# dossier fichier d'entree de la liste des VETs pour le type de LISTES_VET
+FIC_VET_IN=${DIR_FIC_ARCH}/LISTES_VETS.txt
 
     # fichier de log
 DIR_FIC_LOG=`grep "^DIR_FIC_ARCH" $FIC_INI | cut -d\: -f2`logs
@@ -138,9 +159,6 @@ COD_VRS_OBJ=`grep "^COD_VRS_OBJ" $FIC_INI | cut -d\: -f2`
 
     # repertoires de depot et d'archive
 FIC_NAME_APOGEE=`grep "^FIC_NAME_APOGEE" $FIC_INI | cut -d\: -f2`
-
-    # repertoire depot du filtre de formation pour LISTE_VET
-FIC_NAME_FILTRE=`grep "^FIC_NAME_FILTRE" $FIC_INI | cut -d\: -f2`
 
 	# Choix de transformer les conservations en capitalisations (O) ou pas (N)
 	#  <=> les conservations (uniquement, pas de capitalisation) font-elles partie du périmètre de simulation des PRC ou pas ?
@@ -195,14 +213,10 @@ vet_archive=vets_${COD_ANU}_${COD_TYP_DETECT}_${GEN_TIMESTAMP}
 # log du programme
 BASE_FIC_LOG=log_${NOM_BASE}_${COD_TYP_DETECT}_${GEN_TIMESTAMP}
 
-
-echo "  >   Debut de l'execution du programme"
-
-
 # repertoire de log
 if  ! test -d ${DIR_FIC_LOG}
 then
-	echo "  >>>   Creation du repertoire ${DIR_FIC_LOG}"
+	echo "  >   Creation du repertoire ${DIR_FIC_LOG}"
 	mkdir ${DIR_FIC_LOG}
 fi
 
@@ -216,7 +230,7 @@ number=`ls ${DIR_FIC_LOG} | grep  "${BASE_FIC_LOG}*" | wc -l`
 if [ $number -ne 0 ];
 then
 	number=$(( ++number ))
-	echo "  >>>   Fichier avec masque ${FIC_LOG} existant"
+	echo "  >  Fichier avec masque ${FIC_LOG} existant"
 	FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}_${number}.log
 else
 	FIC_LOG=${DIR_FIC_LOG}/${BASE_FIC_LOG}.log
@@ -225,6 +239,18 @@ fi
 echo "  >>>   Fichier LOG SQL cree  -> ${FIC_SQL_LOG}"
 echo "  >>>   Fichier LOG cree  -> ${FIC_LOG}"
 
+# -----------------------------------------
+# initialisation de la log
+# (capture erreurs possible)
+# -----------------------------------------
+
+init_log
+
+
+echo "  >     Debut de l'execution du programme" >> ${FIC_LOG}
+
+echo "  >>    Fichier LOG SQL cree  -> ${FIC_SQL_LOG}" >> ${FIC_LOG}
+echo "  >>    Fichier LOG cree  -> ${FIC_LOG}" >> ${FIC_LOG}
 
     #  creation du repertoire d'archive des vets
 if  ! test -d ${DIR_FIC_IN}
@@ -253,22 +279,59 @@ then
 fi
 
 
-	# creation du repertoire de depot des vet si type detection = LISTES_VET
-if  ! test -d ${DIR_FIC_VET_IN} && test ${COD_TYP_DETECT} = 'LISTES_VET'
+if test ${COD_TYP_DETECT} = 'LISTES_VET'
 then
-	echo "  >>>   ${DIR_FIC_VET_IN} inexistant"
-	echo "  >>>   Creation du repertoire ${DIR_FIC_VET_IN}"
-	echo -e "  >>>   Creation du repertoire ${DIR_FIC_VET_IN}" >> "$FIC_LOG" 2>&1
-	mkdir ${DIR_FIC_VET_IN}
-	echo "  >>>   Veuillez ajouter votre filtre formation dans ${DIR_FIC_VET_IN}"
-	exit
+	if  test -f ${FIC_VET_IN}
+	then
+		echo "  >>>   ${FIC_VET_IN} existant dans le dossier racine"
+
+			echo "  >>>   Presence du fichier LISTES_VET.TXT"
+			echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}"
+			echo "  >>>   Utilisation de LISTES_VET.TXT"
+
+			echo "  >>>   Presence du fichier LISTES_VET.TXT"	 >>  ${FIC_LOG}
+			echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}" >>  ${FIC_LOG}
+			echo "  >>>   Utilisation de LISTES_VET.TXT" >> ${FIC_LOG}
+
+	else
+		if test -f ${DIR_FIC_ARCH}/${COD_OBJ}
+		then
+			FIC_VET_IN=${DIR_FIC_ARCH}/${COD_OBJ}
+
+			echo "  >>>   Chemin ${COD_OBJ} existant sur le serveur"
+			echo "  >>>   Chemin ${COD_OBJ} existant sur le serveur" >>${FIC_LOG}
+
+			echo "  >>>   Presence du paramètre COD_OBJ"
+			echo "  >>>   Non presence du fichier LISTES_VET.TXT"
+			echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}"
+			echo "  >>>   Utilisation du fichier mis dans le parametre COD_OBJ"
+
+			echo "  >>>   Presence du paramètre COD_OBJ"	>>  ${FIC_LOG}
+			echo "  >>>   Non presence du fichier LISTES_VET.TXT" >>  ${FIC_LOG}
+			echo "  >>>   Filtre formation choisi : ${FIC_VET_IN}" >>  ${FIC_LOG}
+			echo "  >>>   Utilisation du fichier mis dans le parametre COD_OBJ" >> ${FIC_LOG}
+
+		else
+			echo "  >>>   Non presence du paramètre COD_OBJ"	>>  ${FIC_LOG}
+			echo "  >>>   Non presence du fichier LISTES_VET.TXT" >>  ${FIC_LOG}
+
+			echo "  >>>   Non presence du paramètre COD_OBJ"
+			echo "  >>>   Non presence du fichier LISTES_VET.TXT"
+
+			echo "  >>>   Veuillez ajouter votre filtre formation dans le dossier racine ou dans le chemin dans la variable COD_OBJ !!"
+			echo "  >>>   Veuillez ajouter votre filtre formation dans le dossier racine ou dans le chemin dans la variable COD_OBJ !!" >> ${FIC_LOG}
+
+			exit
+		fi
+	fi
 fi
+
 
 
     # creation du repertoire de tmp
 if  ! test -d ${DIR_FIC_TMP}
 then
-	echo "  >>>   ${DIR_FIC_TMP} inexistant"
+	echo "  >>>   $(echo "${DIR_FIC_TMP}" | sed 's/^./\U&/') inexistant"
 	echo "  >>>   Creation du repertoire ${DIR_FIC_TMP}"
 	echo -e "  >>>   Creation du repertoire ${DIR_FIC_TMP}">> "$FIC_LOG" 2>&1
 	mkdir ${DIR_FIC_TMP}
@@ -281,14 +344,12 @@ number=`ls ${DIR_FIC_SORTIE} | grep  "${FIC_NAME_APOGEE_INSERT}*" | wc -l`
 if [ $number -ne 0 ];
 then
 	number=$(( ++number ))
-	echo "  >>>   Fichier avec masque ${FIC_NAME_APOGEE_INSERT} existant"  
+	echo "  >>>   Fichier avec masque ${FIC_NAME_APOGEE_INSERT} existant"
 	FIC_NAME_APOGEE_INSERT=${FIC_NAME_APOGEE_INSERT}_${number}.dat
 else
 	FIC_NAME_APOGEE_INSERT=${FIC_NAME_APOGEE_INSERT}.dat
 fi
 echo "  >>>   Fichier DAT cree  -> ${FIC_NAME_APOGEE_INSERT}"
-
-sleep 1
 
 
 # --------------------------------------------
@@ -298,20 +359,10 @@ sleep 1
 test -r $FIC_SQL_LOG && rm $FIC_SQL_LOG
 
 # -----------------------------------------
-# initialisation de la log
-# (capture erreurs possible)
-# -----------------------------------------
-
-echo -e "------------------------------------------------------" > $FIC_LOG
-echo -e "Debut de $0 :" >> $FIC_LOG
-date '+%d/%m/%Y a %H:%M' >> $FIC_LOG
-echo -e "------------------------------------------------------" >> $FIC_LOG
-
-# -----------------------------------------
 # droits en ecriture a la log
 # -----------------------------------------
 
-echo -e "  >>>   droits en ecriture a la log" >> $FIC_LOG
+echo -e "  >>>   Droits en ecriture a la log" >> $FIC_LOG
 chmod go+w $FIC_LOG
 
 
@@ -352,24 +403,23 @@ if test ${COD_TYP_DETECT} = 'LISTES_VET'
 then
 
 	number=0
-	number=`ls ${DIR_FIC_VET_IN} | wc -l`
+	number=`ls ${FIC_VET_IN} | wc -l`
 	if [ $number  -eq  0 ];
 	then
-		echo "  >>>   Pas de filtre dans  ${DIR_FIC_VET_IN}"
+		echo "  >>>   Pas de filtre dans  ${FIC_VET_IN}"
 		exit
 	fi
 
 
 	echo -e "  >>>    Debut du test des codes formations ">> $FIC_LOG
 
-	echo "  >>>  Debut du test des codes formations "
-	sleep 1
+	echo "  >>>   Debut du test des codes formations "
 
 	echo -e "  >>>   Test de(s) formation(s)" >> $FIC_LOG
 
 
 
-	for i in  $(cat < `find ${DIR_FIC_VET_IN} -maxdepth 1 -type f -not -path '*/\.*' | sort`); do 
+	for i in  $(cat < `find ${FIC_VET_IN} -maxdepth 1 -type f -not -path '*/\.*' | sort`); do
 
 		for line in  ${i//,/ };
 		do
@@ -393,25 +443,24 @@ then
 	echo "  >>>   Fin du test des codes formations "
 	sleep 1
 
+
 	echo -e "  >>>   Debut du traitement de la generation des etapes pour LISTES_VET ">> $FIC_LOG
 	echo -e "  >>>   Debut du traitement de la generation des etapes pour LISTES_VET  "
-	sleep 1
 
+	for i in  $(cat < `find ${FIC_VET_IN} -maxdepth 1 -type f -not -path '*/\.*' | sort`); do
 
-	for i in  $(cat < `find ${DIR_FIC_VET_IN} -maxdepth 1 -type f -not -path '*/\.*' | sort`); do 
-
+		echo -e "  >>>   Generation des etapes pour ${i} ">> $FIC_LOG
+		echo "  >>>   Generation des etapes pour ${i}  "
 		for line in  ${i//,/ };
 		do
-
 			# copie du fichier dans le fichier temporaire
 			echo ${line} >> ${DIR_FIC_TMP}/${FIC_NAME_TMP}
-
 		done
-		echo -e "  >>>   Fin du traitement de la generation des etapes pour LISTES_VET ">> $FIC_LOG
-		echo "  >>>   Fin du traitement de la generation des etapes pour LISTES_VET  "
-		sleep 1
 
 	done
+	echo -e "  >>>   Fin du traitement de la generation des etapes pour LISTES_VET ">> $FIC_LOG
+	echo "  >>>   Fin du traitement de la generation des etapes pour LISTES_VET  "
+	sleep 1
 
 fi
 
@@ -425,8 +474,6 @@ then
 
 echo -e "  >>>   Debut du traitement de la generation des etapes pour cmp ou vetall ou vet ">> $FIC_LOG
 echo "  >>>   Debut du traitement de la generation des etapes pour cmp ou vetall ou vet "
-sleep 1
-
 
 sqlplus -s <<FIN_SQL
 ${STR_CONX}
@@ -474,9 +521,7 @@ DECLARE
 		GROUP BY vrl.cod_etp,
 				vrl.cod_vrs_vet,
 				vde.cod_dip,
-				vde.cod_vrs_vdi,
-				vet.cod_cmp,
-				vrl.cod_lse;
+				vde.cod_vrs_vdi;
 
 	-- curseur de recherche de VET et VDI par annee (toutes les vets)
 	cursor main_by_vet_cur(cod_anu_in in varchar2) is
@@ -557,9 +602,9 @@ ligne_etp=`echo $ligne | cut -f 2 -d ">"`
 COD_OBJ_FIC=`echo $ligne_etp | cut -f 1 -d "-"`
 COD_VRS_OBJ=`echo $ligne_etp | cut -f 2 -d "-"`
 
-echo -e "  >>>   Debut generation des cles vac pour l'etape' :  $ligne  ">> $FIC_LOG
-echo "  >>>   Debut generation des cles vac pour l'etape' :  $ligne  "
-echo "  >>>    Traitement de la VET :  ${COD_OBJ_FIC} - ${COD_VRS_OBJ} "
+echo -e "  >>>   Debut generation des cles vac pour l'etape :  $ligne  ">> $FIC_LOG
+echo "  >>>   Debut generation des cles vac pour l'etape :  $ligne  "
+echo "  >>>   Traitement de la VET :  ${COD_OBJ_FIC} - ${COD_VRS_OBJ} "
 ## --------------------------------------------
 # ETAPE 3 : TRAITEMENT DES VALEURS
 # --------------------------------------------
@@ -607,48 +652,43 @@ DECLARE
 	
 	-- recuperation des prc
 	CURSOR recherche_prc_cur (cod_etp_in IN varchar2, cod_vrs_vet_in IN varchar2, cod_anu_in IN varchar2, transformation_conservation_capitalisation_in IN varchar2) IS
-		-- Le "from Select" permet de récupérer les résultats les plus récents via rownumber=1
-		SELECT ma_table.cod_anu,
-				ma_table.cod_etp,
-				ma_table.cod_vrs_vet,
-				ma_table.cod_ind,
-				ma_table.cod_elp,
-				ma_table.note, ma_table.bareme
-		FROM (
-				SELECT ice.cod_anu,
-					ice.cod_etp,
-					ice.cod_vrs_vet,
-					ice.cod_ind,
-					ice.cod_elp,
-					to_char(relp.not_elp) note, to_char(relp.bar_not_elp) bareme,
-					-- SELECTION DES NOTES/RESULTATS OBTENUS LE PLUS RECEMMENT
-					row_number() OVER (PARTITION BY ice.cod_etp,
-													ice.cod_vrs_vet,
-													ice.cod_ind,
-													ice.cod_elp
-										ORDER BY relp.cod_anu DESC,relp.cod_ses DESC) as rownnumber
-				FROM  element_pedagogi elp,
-					ind_contrat_elp ice,
-					resultat_elp relp
-				WHERE ice.cod_etp = cod_etp_in
-					AND ice.cod_vrs_vet = cod_vrs_vet_in
-					AND elp.cod_elp = ice.COD_ELP
-					AND ice.cod_elp = elp.cod_elp
-					-- seuls les ELP capitalisable sont récupérés ou ceux conservables si explicitement demandés
-					AND (elp.tem_cap_elp='O' OR (elp.tem_con_elp='O' AND transformation_conservation_capitalisation_in='Y'))
-					AND ice.tem_prc_ice = 'O'
-					AND ice.cod_anu = cod_anu_in
-					-- exclusion des validation d'acquis
-					AND not exists (
-						SELECT 1
-						FROM ind_dispense_elp ide
-						WHERE ide.cod_anu=ice.cod_anu
-						AND ide.cod_ind=ice.cod_ind
-						AND ide.cod_etp=ice.cod_etp
-						AND ide.cod_vrs_vet=ice.cod_vrs_vet
-						AND ide.cod_elp=ice.cod_elp
-					)
+		WITH liste_ice_prc AS
+			(SELECT ice.cod_anu,
+				ice.cod_etp,
+				ice.cod_vrs_vet,
+				ice.cod_ind,
+				ice.cod_elp,
+				ice.cod_cip,
+				elp.tem_cap_elp,
+				elp.tem_con_elp,
+				elp.not_min_con_elp,
+				elp.bar_min_con_elp,
+				elp.dur_con_elp
+			FROM  element_pedagogi elp,
+				ind_contrat_elp ice
+			WHERE ice.cod_etp = cod_etp_in
+				AND ice.cod_vrs_vet = cod_vrs_vet_in
+				AND elp.cod_elp = ice.COD_ELP
+				AND ice.cod_elp = elp.cod_elp
+				-- seuls les ELP capitalisable sont récupérés ou ceux conservables si explicitement demandés
+				AND (elp.tem_cap_elp='O' OR (elp.tem_con_elp='O' AND transformation_conservation_capitalisation_in='Y'))
+				AND ice.tem_prc_ice = 'O'
+				AND ice.cod_anu = cod_anu_in
+				-- exclusion des validation d'acquis de l'année en cours
+				-- car déjà traitées dans rdd-tools
+				AND not exists (
+					SELECT 1
+					FROM ind_dispense_elp ide
+					WHERE ide.cod_anu=ice.cod_anu
+					AND ide.cod_ind=ice.cod_ind
+					AND ide.cod_etp=ice.cod_etp
+					AND ide.cod_vrs_vet=ice.cod_vrs_vet
+					AND ide.cod_elp=ice.cod_elp
+				)
 				--exclusions des apprenants sans inscription pour l'année
+				-- /!\ TODO : exclure aussi les apprenants qui ne sont pas dans les VDI du filtre en entrée
+				--		=> la fonctionnalité est opérationnelle car les lignes sont filtrées dans create_sql_pivot.sql mais
+				--			du temps de traitement est perdu car des lignes sont sélectionnées pour être ré-enlevées ensuite
 				AND EXISTS (
 					SELECT 1
 					FROM ins_adm_etp ins
@@ -657,33 +697,104 @@ DECLARE
 					AND ins.cod_anu = ice.cod_anu
 					AND ins.cod_ind = ice.cod_ind
 					AND ins.eta_iae='E'
-					AND ins.eta_pmt_iae='P')
-				AND relp.cod_elp = ice.cod_elp
-				AND relp.cod_ind =  ice.cod_ind
-				AND relp.cod_anu < ice.cod_anu
-				AND relp.cod_adm = 1
-				AND (	-- SELECTION DES RESULTATS AVEC NOTE
-						(relp.not_elp IS NOT NULL AND relp.bar_not_elp IS NOT null)
-						OR
-						-- SELECTION DES RESULTATS POSITIFS SANS NOTE
-						EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1)
-						)
-			) ma_table
-		-- SELECTION DES NOTES/RESULTATS OBTENUS LE PLUS RECEMMENT
-		WHERE ma_table.rownnumber=1;
+					AND ins.eta_pmt_iae='P'))
+		-- 1. SELECTION DES PRC SUR NOTES/RÉSULTATS
+		-- ----------------------------------------
+		SELECT ma_table.cod_anu,
+				ma_table.cod_etp,
+				ma_table.cod_vrs_vet,
+				ma_table.cod_ind,
+				ma_table.cod_elp,
+				ma_table.note, ma_table.bareme, ma_table.point_jury,
+                ma_table.session_retenue,
+                ma_table.annee_acquisition,
+				ma_table.cod_cip
+		FROM (  SELECT lprc.cod_anu,
+						lprc.cod_etp,
+						lprc.cod_vrs_vet,
+						lprc.cod_ind,
+						lprc.cod_elp,
+						to_char(relp.not_elp) note, to_char(relp.bar_not_elp) bareme, to_char(relp.not_pnt_jur_elp,'FM99990D099') point_jury,
+						to_char(CASE WHEN relp.cod_ses='0' THEN '1'
+									WHEN relp.cod_ses='2' AND (relp.tem_not_rpt_elp='O' OR relp.tem_res_rpt_elp='O') THEN '1'
+									ELSE relp.cod_ses END) session_retenue,
+                        relp.cod_anu annee_acquisition,
+						-- SELECTION DES NOTES/RESULTATS OBTENUS LE PLUS RECEMMENT
+						row_number() OVER (PARTITION BY lprc.cod_etp,
+														lprc.cod_vrs_vet,
+														lprc.cod_ind,
+														lprc.cod_elp
+											ORDER BY relp.cod_anu DESC,relp.cod_ses DESC) as rownnumber,
+						lprc.cod_cip
+				FROM liste_ice_prc lprc
+					,resultat_elp relp
+				WHERE relp.cod_elp = lprc.cod_elp
+						AND relp.cod_ind =  lprc.cod_ind
+						AND relp.cod_anu < lprc.cod_anu
+						AND relp.cod_adm = 1
+						-- récupération du résultat :
+						--  - si element capitalisable
+						--  - ou si conservable ET QUE transformation des conservations en capitalisation demandée ET QUE que les conditions de conservation sont remplies
+						AND ( lprc.tem_cap_elp='O'
+								OR (lprc.tem_con_elp='O'
+									AND transformation_conservation_capitalisation_in='Y'
+									AND (to_number(relp.cod_anu)+lprc.dur_con_elp) >= to_number(lprc.cod_anu)
+									AND (nvl(relp.not_elp,-1)+nvl(relp.not_pnt_jur_elp,0))/nvl(relp.bar_not_elp,1) >=lprc.not_min_con_elp/lprc.bar_min_con_elp)
+							)
+						AND (	-- Résultats avec note
+								relp.TEM_EXI_NOT_ELP='O'
+								OR
+								-- Résultats positifs sans note
+								EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1))
+					) ma_table
+		-- Notes/resultats obtenus le plus recemment
+		WHERE ma_table.rownnumber=1
+		UNION
+		-- 2. SELECTION DES PRC SUR VALIDATIONS D'ACQUIS ANTERIEURES
+		-- ---------------------------------------------------------
+		SELECT ma_table.cod_anu,
+				ma_table.cod_etp,
+				ma_table.cod_vrs_vet,
+				ma_table.cod_ind,
+				ma_table.cod_elp,
+				ma_table.note, ma_table.bareme, ma_table.point_jury,
+				ma_table.session_retenue,
+                ma_table.annee_acquisition,
+				ma_table.cod_cip
+		FROM (  SELECT lprc.cod_anu,
+						lprc.cod_etp,
+						lprc.cod_vrs_vet,
+						lprc.cod_ind,
+						lprc.cod_elp,
+						to_char(ide.NOT_VAA) note, to_char(ide.BAR_NOT_VAA) bareme, null point_jury,
+						null session_retenue,
+						ide.cod_anu annee_acquisition,
+						-- Validations d'acquis obtenues le plus récemment
+						row_number() OVER (PARTITION BY lprc.cod_etp,
+														lprc.cod_vrs_vet,
+														lprc.cod_ind,
+														lprc.cod_elp
+											ORDER BY ide.cod_anu DESC) as rownnumber,
+						lprc.cod_cip
+				FROM liste_ice_prc lprc
+					,ind_dispense_elp ide
+				WHERE ide.cod_anu<lprc.cod_anu
+					AND ide.cod_ind=lprc.cod_ind
+					AND ide.cod_etp=lprc.cod_etp
+					AND ide.cod_vrs_vet=lprc.cod_vrs_vet
+					AND ide.cod_elp=lprc.cod_elp) ma_table
+		-- Validations d'acquis obtenues le plus récemment
+		WHERE ma_table.rownnumber=1
+		-- 3. SELECTION DES PRC SUR LCC
+		-- ----------------------------
+		-- TODO
+		;
 						
 	BEGIN
-		-- recherche du cip de la vet
-		SELECT DISTINCT FIRST_VALUE(cod_cip) OVER (ORDER BY COD_ETP) cod_cip
-		INTO cod_cip_vet
-		FROM vet_cip
-		WHERE cod_etp = cod_etp_in
-			AND cod_vrs_vet = cod_vrs_vet_in;
-		
 		-- RECHERCHE PAR PRC
 		FOR recherche_prc_rec IN recherche_prc_cur(cod_etp_in,cod_vrs_vet_in,cod_anu_in,transformation_conservation_capitalisation_in)
 		LOOP
-				linebuffer := ''||REPLACE(cod_anu_in,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_ind,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_etp,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_vrs_vet,'NULL',NULL)||';'||REPLACE(recherche_prc_rec.cod_elp,'','NULL')||';SYSDATE;'||REPLACE(cod_cip_vet,'','NULL')||';' ||recherche_prc_rec.note|| ';' ||recherche_prc_rec.bareme ||';';
+				linebuffer := ''||REPLACE(cod_anu_in,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_ind,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_etp,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_vrs_vet,'NULL',NULL)||';'||REPLACE(recherche_prc_rec.cod_elp,'','NULL')||';SYSDATE;'||REPLACE(recherche_prc_rec.cod_cip,'','NULL')||';' ||recherche_prc_rec.note|| ';' ||recherche_prc_rec.bareme ||';' ||recherche_prc_rec.point_jury ||';' ||recherche_prc_rec.session_retenue ||';' ||recherche_prc_rec.annee_acquisition ||';';
 				dbms_output.put_line(linebuffer);
 		END LOOP;
 	END;
@@ -734,10 +845,10 @@ then
 
 fi
 
-sleep 1
 
-number=0
-number=`ls ${DIR_FIC_IN} | grep  "${vet_archive}*" | wc -l`
+echo "  >>>   Fichier avec masque ${DIR_FIC_SORTIE_IN}/${vet_archive} existant"
+
+number=`ls ${DIR_FIC_SORTIE_IN} | grep  "${vet_archive}*" | wc -l`
 
 if [ $number -ne 0 ];
 then
@@ -752,16 +863,15 @@ echo "  >>>   Fichier des vets cree  -> ${archive_fic}"
 
 
 cp ${DIR_FIC_TMP}/${FIC_NAME_TMP} ${archive_fic}
-sleep 1
+
 echo -e "  >>>   Suppression du dossier tmp"
 rm -r  ${DIR_FIC_TMP}
 
-sleep 1
-
-echo "  >   Fin de l'execution du programme"
 
 # -----------------------------------------
 # Fin du programme
 # -----------------------------------------
 
-echo -e "Fin normale de $0 :\n" >> $FIC_LOG
+echo "  >   Fin de l'execution du programme"
+echo "  >   Fin de l'execution du programme"  >> ${FIC_LOG}
+echo "  =======================================" >> ${FIC_LOG}

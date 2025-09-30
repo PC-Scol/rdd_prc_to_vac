@@ -35,6 +35,30 @@ echo -e "Usage : $0  [-admin] ..."
 exit 10
 }
 
+#Initialisation log
+init_log()
+{
+echo "  =======================================" >> ${FIC_LOG}
+echo "  Log du passage de play_rdd_vac" >> ${FIC_LOG}
+echo "  Date d'execution : $(date  -I)" >> ${FIC_LOG}
+echo "  Code Année universitaire : ${COD_ANU} " >> ${FIC_LOG}
+echo "  Fichier choisi : ${fic_insert}" >> ${FIC_LOG}
+echo "  PDB : ${PDB}" >> ${FIC_LOG}
+if [ "$TEM_DELETE" = "Y" ];
+then
+	echo "  Mode : Mode Suppression !!" >> ${FIC_LOG}
+else
+	echo "  Mode : Mode Insertion !!" >> ${FIC_LOG}
+
+fi
+echo "  =======================================" >> ${FIC_LOG}
+echo "  Processus d'execution : " >> ${FIC_LOG}
+echo "  =======================================" >> ${FIC_LOG}
+echo "  " >> ${FIC_LOG}
+
+}
+
+
 # -----------------------------------------------------------------------------
 # MENU CONFIRMATION
 # -----------------------------------------------------------------------------
@@ -51,7 +75,6 @@ echo "  >>>   Fichier choisi : ${fic_insert##*/}"
 echo "  >>>   PDB : $PDB	"
 echo "  >>>   Identifiant base de donnee : ${LOGIN_APOGEE} "
 echo "  >>>   Mot de passe base de donnee : ${MDP_APOGEE} "
-echo "  >>>   Directory Cree : ${DIRECTORY} "
 
 if [ "$TEM_DELETE" = "Y" ];
 then
@@ -77,8 +100,9 @@ echo "-------------------------------------------------"
 echo "Continuer ? (Ctrl-c pour annuler) :"
 read pocpoc
 
-echo "  >   Debut de l'execution du programme"  
+echo "  >   Debut de l'execution du programme"   
 }
+
 
 # -----------------------------------------------------------------------------
 # MENU CHOIX FICHIER
@@ -136,29 +160,6 @@ DIR_FIC_SORTIE=${DIR_FIC_ARCH}/fichier_sortie_sql
     #FICHIER INI (chemin à ajouter)
 FIC_INI=${DIR_FIC_ARCH}/rdd_vac.ini
 
-# Modification Identifiant
-echo -e "Login APOGEE ?  : \c"
-    read LOGIN_APOGEE_SAISI
-
-LOGIN_APOGEE=$LOGIN_APOGEE_SAISI
-
-#Modification  Mot de passe
-
-echo -e "Mot de passe APOGEE ?: \c"
-    read MDP_APOGEE_SAISI
-
-#Modification  Directory
-
-echo -e "Mot de passe Directory ?: \c"
-    read DIRECTORY_SAISI
-
-DIRECTORY=${DIRECTORY_SAISI}
-
-MDP_APOGEE=${MDP_APOGEE_SAISI}
-
-    # chaine de connexion
-STR_CONX=${LOGIN_APOGEE}/${MDP_APOGEE}
-
     # fichier de log
 DIR_FIC_LOG=${DIR_FIC_ARCH}/logs
 
@@ -177,25 +178,31 @@ then
 	exit
 fi
 
-#  Vérification existance du dossier log
-if  [[ -z ${LOGIN_APOGEE} ]]
+# Récupération Identifiant
+LOGIN_APOGEE_SAISI=`grep "^LOGIN_APOGEE" $FIC_INI | cut -d\: -f2`
+if  [[  -z ${LOGIN_APOGEE_SAISI} ]]
 then
-	echo "  >>>    Login non existant"
-	exit
-fi
+echo "-------------------------------------------------"
+echo "Vos identifiants et mot de passe :"
 
-if  [[  -z ${MDP_APOGEE} ]]
+	echo -e "Login APOGEE ?  : \c"
+	read LOGIN_APOGEE_SAISI
+fi
+LOGIN_APOGEE=${LOGIN_APOGEE_SAISI}
+
+
+# Récupération Mot de passe
+MDP_APOGEE_SAISI=`grep "^MDP_APOGEE" $FIC_INI | cut -d\: -f2`
+if  [[  -z ${MDP_APOGEE_SAISI} ]]
 then
-	echo "  >>>   Mot de passe non existant"
-	exit
+	echo -e "Mot de passe APOGEE ?: \c"
+	read MDP_APOGEE_SAISI
 fi
+MDP_APOGEE=${MDP_APOGEE_SAISI}
 
+    # chaine de connexion
+STR_CONX=${LOGIN_APOGEE}/${MDP_APOGEE}
 
-if  [[  -z ${DIRECTORY} ]]
-then
-	echo "Directory non existant"
-	exit
-fi
 
 
 if [[  -z ${PDB} ]]
@@ -208,17 +215,6 @@ then
 	fi
 fi
 
-path_directory=`sqlplus -s ${STR_CONX} <<EOF
-set pages 0
-set head off
-set feed off
-SELECT directory_path
-	  FROM dba_directories
-	 WHERE directory_name = '${DIRECTORY}';
-exit
-EOF`
-
-
  # log du programme
 BASE_FIC_LOG=${NOM_BASE}
 
@@ -226,11 +222,41 @@ FIC_LOG=${BASE_FIC_LOG}.log
     # Variables du fichier d'environnement
     # Code annee universitaire
 
-number=0
-number=`ls ${DIR_FIC_LOG} | grep  "${BASE_FIC_LOG}*" | wc -l`
+GEN_TIMESTAMP=$(date  -I)
+
+number_fic=`ls ${DIR_FIC_LOG} | grep  "${BASE_FIC_LOG}*" | wc -l`
+# sequence fic log
+if [ $number_fic -ne 0 ];
+then
+	number_fic=$(( ++number_fic ))
+	FIC_LOG=${DIR_FIC_LOG}/log_${BASE_FIC_LOG}_${GEN_TIMESTAMP}_${number_fic}.log
+
+	echo "  >>>   Fichier avec masque ${FIC_LOG} existant"  
+
+else
+	FIC_LOG=${DIR_FIC_LOG}/log_${BASE_FIC_LOG}_${GEN_TIMESTAMP}.log
+fi
 
  # Appel du menu
 choix_menu
+
+# recuperation du chemin du fichier
+number=0
+#choix du fichier
+for fic in  `ls ${DIR_FIC_SORTIE}/cle_vac*`; do 
+	number=$(( ++number ))
+	fic_insert=${fic}
+	if [ "${number}" -eq " ${choice}" ];
+	then
+		break
+	fi
+done
+
+
+init_log
+
+
+echo "  >>  Debut Programme " >> ${FIC_LOG}
 
 
 if [ "${choice}" -gt "$number" ]
@@ -246,50 +272,19 @@ then
 fi
 
 
-# recuperation du chemin du fichier
-number=0
-#choix du fichier
-for fic in  `ls ${DIR_FIC_SORTIE}/cle_vac*`; do 
-	number=$(( ++number ))
-	fic_insert=${fic}
-	BASE_FIC_LOG=${BASE_FIC_LOG}_${fic##*/}
-	if [ "${number}" -eq " ${choice}" ];
-	then
-		break
-	fi
-done
 
 number_fic=0
-# sequence fic log
-if [ $number_fic -ne 0 ];
-then
-	number=$(( ++number ))
-	FIC_LOG=${BASE_FIC_LOG}_${$number_fic}.log
-	FIC_ERREUR=${BASE_FIC_LOG}_erreurs_${$number_fic}.log
-	echo "  >>>   Fichier avec masque ${FIC_LOG} existant"  
-
-else
-	FIC_LOG=${BASE_FIC_LOG}.log
-	FIC_ERREUR=${BASE_FIC_LOG}_erreurs.log
-fi
 
 # Appel du menu
 confirm_menu
-
 
 if test -f "${DIR_FIC_LOG}/${FIC_LOG}"; then
     rm -f ${DIR_FIC_LOG}/${FIC_LOG}
 fi
 
-
-if test -f "${DIR_FIC_LOG}/${FIC_ERREUR}"; then
-    rm -f ${DIR_FIC_LOG}/${FIC_ERREUR}
-fi
-
-
 sleep 1
 
-echo "  >>  Debut Programme " >> ${DIR_FIC_LOG}/${FIC_LOG}
+
 
 if [ "$TEM_DELETE" = "N" ];
 then
@@ -299,8 +294,8 @@ for sql_condition_string in  $(cat <  ${fic_insert}); do
 
 echo "  >>>  Insertion de la VAC ${sql_condition_string}"
 
-echo "  >>>  Insertion de la VAC ${sql_condition_string}" >> ${DIR_FIC_LOG}/${FIC_LOG}
-echo "  >>>>  Insertion pour la VAC " >> ${DIR_FIC_LOG}/${FIC_LOG}
+echo "  >>>  Insertion de la VAC ${sql_condition_string}" >> ${FIC_LOG}
+echo "  >>>>  Insertion pour la VAC " >> ${FIC_LOG}
 
 #Recupération des Valeurs du fichier cle
 ANNEE="$(cut -d';' -f1 <<< ${sql_condition_string})"
@@ -312,7 +307,12 @@ DAT_DEC_ELP_VAA="$(cut -d';'  -f6 <<< ${sql_condition_string})"
 COD_CIP="$(cut -d';'  -f7 <<< ${sql_condition_string})" 
 NOT_VAA="$(cut -d';'  -f8 <<< ${sql_condition_string})"
 BAR_NOT_VAA="$(cut -d';'  -f9 <<< ${sql_condition_string})"
+PNT_JURY="$(cut -d';'  -f10 <<< ${sql_condition_string})"
 
+if [ -n "$PNT_JURY" ]; then
+    echo "   >>>> Prise en compte des points Jurys pour cle :  ${sql_condition_string}" >> ${FIC_LOG}
+    echo "   >>>> Prise en compte des points Jurys pour cle :  ${sql_condition_string}"
+fi
 
 #Suppression des VACS dans Apogee
 sqlplus -s <<FIN_SQL 
@@ -321,6 +321,7 @@ set serveroutput on
 SET HEADING OFF
 SET FEEDBACK OFF
 set pagesize 1
+SPOOL ${FIC_LOG} append
 VARIABLE ret_code NUMBER
 BEGIN
 	DECLARE 
@@ -331,6 +332,7 @@ BEGIN
 		COD_ELP varchar2(20000) := '${COD_ELP}';
 		DAT_DEC_ELP_VAA date := sysdate;
 		COD_CIP varchar2(20000) := '${COD_CIP}';
+		PNT_JURY_VAA NUMBER := NULL;
 		NOT_VAA number(8,3) := NULL;
 		BAR_NOT_VAA number(5,0) := NULL;
 		COD_DEP_PAY_VAC varchar2(3) := NULL;
@@ -339,13 +341,7 @@ BEGIN
 		COD_PRG varchar2(20000) := NULL;
 		TEM_SNS_PRG varchar2(20000) := NULL;
 		LINEBUFFER varchar2(2000) := '';
-		
-		-- utl file config
-		repertoire  varchar2(100)  := '${DIRECTORY}';
-		fichier  varchar2(100)     := '${FIC_ERREUR}';
-		fichier_sortie UTL_FILE.FILE_TYPE;
-
-		
+				
 	BEGIN
 		IF '${NOT_VAA}' <> 'NULL' THEN
 			NOT_VAA :='${NOT_VAA}';
@@ -355,7 +351,11 @@ BEGIN
 			BAR_NOT_VAA :='${BAR_NOT_VAA}';
 		END IF;
 
-
+		IF '${PNT_JURY}' <> 'NULL' THEN
+			PNT_JURY_VAA :='${PNT_JURY}';			
+			NOT_VAA := NOT_VAA + PNT_JURY_VAA;
+		END IF;
+		
 		execute immediate 
 			'INSERT INTO IND_DISPENSE_ELP(COD_ANU,COD_IND,COD_ETP,COD_VRS_VET,COD_ELP,DAT_DEC_ELP_VAA,COD_CIP,NOT_VAA,BAR_NOT_VAA,COD_DEP_PAY_VAC,COD_TYP_DEP_PAY_VAC,COD_ETB,COD_PRG,TEM_SNS_PRG)
 			VALUES
@@ -368,9 +368,7 @@ BEGIN
 		THEN 
 			LINEBUFFER := 'Erreur sur ${sql_condition_string}';
 			LINEBUFFER := LINEBUFFER ||'-'|| SQLERRM;
-			fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
-			utl_file.put_line(fichier_sortie,LINEBUFFER);
-			utl_file.fclose(fichier_sortie);
+			DBMS_OUTPUT.PUT_LINE(LINEBUFFER);	
 			ROLLBACK;
 	END;
 	
@@ -380,13 +378,13 @@ EXIT
 FIN_SQL
 
 	
-echo "  >>>> Fin Insertion de la VAC" >> ${DIR_FIC_LOG}/${FIC_LOG}		
+echo "  >>>> Fin Insertion de la VAC" >> ${FIC_LOG}		
 
 done
 
 sleep 1
 
-echo -e "  >>>   Fin de l'insertion des VACS" >> ${DIR_FIC_LOG}/${FIC_LOG}	
+echo -e "  >>>   Fin de l'insertion des VACS" >> ${FIC_LOG}	
 echo -e "  >>>   Fin de l'insertion des VACS"
 fi
 
@@ -397,8 +395,8 @@ for sql_condition_string in  $(cat <  ${fic_insert}); do
 
 echo "  >>>  Suppression de la VAC ${sql_condition_string}"
 
-echo "  >>>  Suppression de la VAC ${sql_condition_string}" >> ${DIR_FIC_LOG}/${FIC_LOG}
-echo "  >>>>   Suppression de la VAC " >> ${DIR_FIC_LOG}/${FIC_LOG}
+echo "  >>>  Suppression de la VAC ${sql_condition_string}" >> ${FIC_LOG}
+echo "  >>>>   Suppression de la VAC " >> ${FIC_LOG}
 ANNEE="$(cut -d';' -f1 <<< ${sql_condition_string})"
 COD_IND="$(cut -d';'  -f2 <<< ${sql_condition_string})"
 COD_ETP="$(cut -d';'  -f3 <<< ${sql_condition_string})"
@@ -414,6 +412,7 @@ set serveroutput on
 SET HEADING OFF
 SET FEEDBACK OFF
 set pagesize 1
+SPOOL ${FIC_LOG} append
 VARIABLE ret_code NUMBER
 BEGIN
 	DECLARE 
@@ -423,12 +422,6 @@ BEGIN
 		COD_VRS_VET number(3,0) := '${COD_VRS_VET}';
 		COD_ELP varchar2(20000) := '${COD_ELP}';
 		LINEBUFFER varchar2(2000) := '';
-
-		-- utl file config
-		repertoire  varchar2(100)  := '${DIRECTORY}';
-		fichier  varchar2(100)     := '${FIC_ERREUR}';
-		fichier_sortie UTL_FILE.FILE_TYPE;
-
 	BEGIN
 		
 					
@@ -442,9 +435,7 @@ BEGIN
 		THEN 
 			LINEBUFFER := 'Erreur sur ${sql_condition_string}';
 			LINEBUFFER := LINEBUFFER ||'-'|| SQLERRM;
-			fichier_sortie  := utl_file.fopen(repertoire, fichier, 'A');
-			utl_file.put_line(fichier_sortie,LINEBUFFER);
-			utl_file.fclose(fichier_sortie);		
+			DBMS_OUTPUT.PUT_LINE(LINEBUFFER);	
 			ROLLBACK;
 	END;
 	
@@ -453,25 +444,18 @@ END;
 EXIT
 FIN_SQL
 
-echo "  >>>>   Fin Suppression de la VAC " >> ${DIR_FIC_LOG}/${FIC_LOG}	
+echo "  >>>>   Fin Suppression de la VAC " >> ${FIC_LOG}	
 
 
 done
 
 fi
 
-echo "  >>>>   Fin Suppression des VAC" >> ${DIR_FIC_LOG}/${FIC_LOG}
-{ 
-  echo -e "------------------------------" >> ${DIR_FIC_LOG}/${FIC_LOG}
-  echo "${path_directory}/${FIC_ERREUR}"
-  cat   ${path_directory}/${FIC_ERREUR}  >>  ${DIR_FIC_LOG}/${FIC_LOG}
-  rm -f ${path_directory}/${FIC_ERREUR} 
-} || { # catch
-    echo "  >   Fichier non present" 
-
-}
-
+echo "  >>>>   Fin Suppression des VAC" 
+echo "  >>>>   Fin Suppression des VAC" >> ${FIC_LOG}
 # -----------------------------------------
 # Fin du programme
 # -----------------------------------------
 echo "  >   Fin de l'execution du programme" 
+echo "  >   Fin de l'execution du programme"  >> ${FIC_LOG}
+echo "  =======================================" >> ${FIC_LOG}

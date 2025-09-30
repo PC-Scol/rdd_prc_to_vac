@@ -6,11 +6,13 @@
 # RDD_VAC
 
 ## Contenu
-Ce programme permet de générer des validations d'acquis d'expérience pour reprendre les PRC des années antérieures au périmètre de RDD.
+Cet outil de reprise transforme les PRC Apogee en Aménagement EVAL ( pour les éléments avec des notes ) et en DISPENSE (pour les éléments sans note) dans Pegase (reprise sur plusieurs années).
 
-    Le principe est d'aller chercher les PRC qui ne sont pas dans la table IND_DISPENSE_ELP afin de genérer des VAC. 
-    Ces VAC permettent de garder la PRC dans une maquette applatie. 
-    Elle permet de travailler sur une seule année universitaire sans perdre ces PRC qui sont presentes sur une autre année universitaire antérieur pour les diffèrents étudiants. 
+Le principe est d'aller chercher les PRC (dans les contrats pédagogiques) afin de transposer ces PRC sous la forme d'aménagement dans Pegase :
+* soit en insérant artificiellement des Validations d'acquis d'expérience dans la table IND_DISPENSE_ELP dans Apogee
+* soit par le biais de deux fichiers pour le module COC et le module CHC qu'on pourra deverser directement dans les tables apprenant_chc et apprenant_coc  de la base pivot de RDD (fichiers ayant le meme formalisme que les données injectés par l'outillage RDD fait par PCSCOL).
+
+A la fin du processus de RDD (après injection dans Pégase), les aménagements seront visibles dans l'affection individuelle (module CHC) ou dans la vue individuelle (module COC) de chaque étudiant sur l'interface Pégase.
 
 ## Prérequis
 ### Installation du client Oracle sqlplus
@@ -28,16 +30,9 @@ Ce programme permet de générer des validations d'acquis d'expérience pour rep
 > 1. tnsnames.ora déclaré et utilisable par sqlplus
 > 2. tnsnames.ora renseigné avec les éléments pour atteindre la PDB renseignée dans rdd_vac.ini (qui primera sur TWO_TASK)
 
-### Paramétrage du répertoire de dépôt
-> [!WARNING]
-> Une fois connecté à la base Apogée sur laquelle l'outil va s'appuyer, creer un directory pour le dépôt des fichiers générés par l'outil
-
-	CREATE OR REPLACE DIRECTORY my_dir_vac AS '/applications/apogee/apo_6_00/batch/fic/APOTPDB';
-	GRANT READ, WRITE ON DIRECTORY my_dir_vac TO apogee;	
-
 ## Fichiers générés
 
-Dans un premier temps, le programme génère six fichiers en sortie:
+Selon les scripts utilisés, six fichiers différents peuvent être générés en sortie:
 
      vets_<code_annee>_<type>_xxx_date.txt : filtres formations traitees (Fichier TXT)
 
@@ -55,58 +50,60 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 ## Utilisation
 1. le programme fonctionne en utilisant plusieurs critères placés dans le fichier .ini  (ces données sont à remplir obligatoirement) :
 
-        - COD_ANU : à l'année universitaire au-delà de laquelle il n'y aura pas de RDD dans le passé et pour laquelle des VACs seront générées en lieu et place d'acquis capitalisés.
-		  Exemple : si le périmète de RDD va de 2022 à 2025 alors mettre 2022 dans COD_ANU. Les PRCs en 2022 sur des capitalisation ayant eu lieu en 2021 ou avant seront alors remplacés lors de la RDD par des VACs 2022.
+		- COD_ANU : à l'année universitaire au-delà de laquelle il n'y aura pas de RDD dans le passé et pour laquelle des VACs seront générées en lieu et place d'acquis capitalisés.
+			Exemple : si le périmète de RDD va de 2022 à 2025 alors mettre 2022 dans COD_ANU. Les PRCs en 2022 sur des capitalisation ayant eu lieu en 2021 ou avant seront alors remplacés lors de la RDD par des VACs 2022.
  
-        - COD_TYP_OBJ : types de détéction que vous voulez faire
+		- COD_TYP_OBJ : types de détection à utiliser. 4 types de detections sont disponibles :
  
-            4 types de detections sont disponibles :
+				- VET : pour une version d'étape (code etape et code version d'etape à renseigner dans le fichier)
+					/!\ Renseigner alors COD_OBJ /!\ sous la forme du filtre_formations de l'outillage de reprise de données pegase "COD_DIP-COD_VRS_VDI>ETP-COD_VRS_ETP
  
-                - VET : pour une version d'étape (code etape et code version d'etape à renseigner dans le fichier)
-				    A renseigner !!! :
-					  -> COD_OBJ : sous la forme du filtre_formations de l'outillage de reprise de données pegase "COD_DIP-COD_VRS_VDI->ETP-COD_VRS_ETP
-					 
-                - CMP : pour toutes les versions d'étapes d'une composante (CONSEIL : -> VERIFIER ESPACE DISQUE)
- 
-                - VETALL : pour toutes les versions d'étapes qui sont ouvertes lors de l'année universitaire mises en paramètre
-	        
-                - LISTES_VET : pour toutes les versions d'étapes presentes dans votre fichier FIC_NAME_FILTRE ( à ajouter dans rdd_vac.ini)
-                
-   	    - COD_OBJ : soit une version d'étape si le critère COD_TYP_OBJ est égale à VET , soit un code composante si le critère COD_TYP_OBJ est égale à CMP
+				- CMP : pour toutes les versions d'étapes d'une composante
 
-        - TEM_DELETE : (Y/N) pour interchanger le mode suppression (N) et le mode insertion (Y) 
-	   pour passage (script play_rdd_vac.sh) ou pour génération (script create_sql_pivot.sh)
+				- VETALL : pour toutes les versions d'étapes qui sont ouvertes lors de l'année universitaire en paramètre
 
-        - COD_ETB : code établissement
+				- LISTES_VET : pour toutes les versions d'étapes presentes dans 1 des 2 fichiers suivants déposés à la racine du projet :
+					-> Soit "LISTES_VETS.txt" (un exemple est fourni)
+					-> Soit un fichier dont le nom est renseigné dans la variable COD_OBJ
+					Le fichier LISTES_VETS.txt prime sur le fichier paramétré dans COD_OBJ. Pour que le fichier indiqué dans COD_OBJ soit utilisé, il faut supprimer le fichier LISTES_VETS.txt
+					Ces fichiers doivent être renseignés à raison d'une VET par ligne et au format de l'outillage de reprise de données pegase "COD_DIP-COD_VRS_VDI>ETP-COD_VRS_ETP
+
+		- COD_OBJ : soit une version d'étape si le critère COD_TYP_OBJ est égale à VET , soit un code composante si le critère COD_TYP_OBJ est égale à CMP, soit le nom du fichier pour LISTES_VET
+
+		- TEM_DELETE : (Y/N) pour interchanger le mode suppression (N) et le mode insertion (Y) pour passage (script play_rdd_vac.sh) ou pour génération (script create_sql_pivot.sh)
+
+		- COD_ETB : code établissement
 	
-        - PREFIXON (Y/N) : si utilisation d'un prefixe pour les VET et les VDI
+		- PREFIXON (Y/N) : si utilisation d'un prefixe pour les VET et les VDI
+		   -> Le prefixage est à utiliser lorsque les codes de la VDI et de la VET sont identiques dans APOGEE car, impossible d'avoir VDI=VET dans Pegase (probleme lien objet maquette)
 	
-        - PREFIX_VET : préfixe de la VET si utilisation d'un prefixe pour les VET et les VDI
+		- PREFIX_VET : préfixe de la VET si utilisation d'un prefixe pour les VET et les VDI
 			-> Prefixage automatique avec "-"
 
-        - PREFIX_VDI : préfixe de la VDI si utilisation d'un prefixe pour les VET et les VDI
+		- PREFIX_VDI : préfixe de la VDI si utilisation d'un prefixe pour les VET et les VDI
 			-> Prefixage automatique avec "-"
 
-        - PDB : nom de votre PDB Apogee
+		- PDB : nom de votre PDB Apogee
 
-        - TRANSFORMATION_CONSERVATION_CAPITALISATION (Y/N) : Choix de transformer les conservations en capitalisations (Y) ou pas (N, par défaut) : Pégase ne gère pour l'instant pas la conservation. Par défaut, les PRCs sur objets conservés sont donc exclus. Si vous souhaitez reprendre les notes sur les objets conservés et que vous accéptez que la conservation soit transformée en capitalisation, vous pouvez alors mettre ce parametre à Y
+		- TRANSFORMATION_CONSERVATION_CAPITALISATION (Y/N) : Choix de transformer les conservations en capitalisations (Y) ou pas (N, par défaut) : Pégase ne gère pour l'instant pas la conservation. Par défaut, les PRCs sur objets conservés sont donc exclus. Si vous souhaitez reprendre les notes sur les objets conservés et que vous accéptez que la conservation soit transformée en capitalisation, vous pouvez alors mettre ce parametre à Y
 
         - le critère NB_THREAD correspond au nombre de thread (uniquement pour create_sql_pivot.sh)
-  2. Lancer le script rdd_vac pour générer les vacs.
+
+2. Lancer le script rdd_vac pour générer les vacs.
 
      PUIS
 
   * Soit insertion dans APOGEE :
 
-		3. Lancer le script play_rdd_vac.sh en mode insertion (TEM_DELETE=N) pour inserer les vacs générées.
+		3. Lancer le script play_rdd_vac.sh en mode insertion (TEM_DELETE=N) pour inserer les vacs générées par le script "rdd_vac.sh" (script qui recherche les PRC antérieurs à l'année universitaire mise en paramètre).
 
-		4. Vérifier la présence des VACS pour l'ensemble des étudiants.
-		
-		5. Déverser les informations des modules CHC et COC dans la base pivot.
+		4. Vérifier la présence des VACS pour l'ensemble des étudiants dans l'écran "Validation d'acquis de masse" dans le domaine "Inscription Pédagogique" dans Apogee.
 
-		6. Vérifier la présence des vacs dans la table apprenant_chc
-		
-		7. Faire une injection normale 
+		5. Lancer les flux "classiques" rdd-tools de déversement CHC et COC Apogée en base pivot pour les formations concernées par la simulation des PRC.
+
+		5. Lancer les audits CHC et COC Apogée en base pivot pour les formations concernées par la simulation des PRC. (avec l'outillage "RDD tools")
+
+		5. Lancer les flux "classiques" rdd-tools d'injection CHC et COC Apogée en base pivot pour les formations concernées par la simulation des PRC. 
 
 	Si vous voulez supprimer les VACS 
 		- Relancer le script play_rdd_vac.sh en mode suppression (TEM_DELETE=Y) pour supprimer les vacs générées.
@@ -144,21 +141,24 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 
 	```
 
-			6. Vérifier la présence des VACS pour module CHC et dans le module COC pour l'ensemble des étudiants dans la base pivot (dans la table apprenant_chc).
+	6. Vérifier la présence des VACS pour module CHC et dans le module COC pour l'ensemble des étudiants dans la base pivot (dans la table apprenant_chc).
 
-			7. Passer script script_suppression_chc_superflus.sql pour supprimer les éléments fils sous une EVAL
-			(Problème du à l'injection des CHC après le déversement du module CHC)
+	7. Passer script script_suppression_chc_superflus.sql pour supprimer les éléments fils sous une EVAL ou DISPENSE
+	(Problème du à l'injection des CHC après le déversement du module CHC)
 
-			8. Passer les audits des modules CHC et COC
+	8. Passer les audits des modules CHC et COC 
 
-			9. Faire une injection normale des CHC
+	9. Faire une injection normale des CHC (avec l'outillage "RDD tools")
 
-			10. Passer script script_coc_mcc.sql pour eviter probleme conteneur COC et probleme calcul des MCC
-				(Problème du à l'injection des COC après le déversement du module COC)
-					
-			11. Faire le calcul des MCC et les injecter
+	10. Passer script script_coc_mcc.sql pour eviter probleme conteneur COC et probleme calcul des MCC
+	(Problème du à l'injection des COC après le déversement du module COC)
+				
+	11. Faire le calcul des MCC et les injecter  (avec l'outillage "RDD tools")
 
-			12. Faire une injection normale des COC
-	   
-	
-Bonus : Projet de récupération des LCC pour les PRC sh puis, importer .csv généré sur Liens de correspondance pour calcul dans le module CHC
+	12. Faire une injection normale des COC (avec l'outillage "RDD tools")
+
+## Limitations
+L'outillage mis à disposition, dans sa version actuelle, ne prend pas en charge :
+* la reprise des credits ects
+* les PRC sur LCC
+* la reprise de la meilleure note pour les BUT/DUT
