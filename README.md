@@ -8,9 +8,11 @@
 ## Contenu
 Cet outil de reprise transforme les PRC Apogee en Aménagement EVAL ( pour les éléments avec des notes ) et en DISPENSE (pour les éléments sans note) dans Pegase (reprise sur plusieurs années).
 
-Le principe est d'aller chercher les PRC (dans les contrats pédagogiques) afin de transposer ces PRC sous la forme d'aménagement dans Pegase, soit en insérant artificiellement des Validations d'acquis d'expérience dans la table IND_DISPENSE_ELP dans Apogee ou par le biais de deux fichiers pour le module COC et le module CHC qu'on pourra deverser directement dans les tables apprenant_chc et apprenant_coc (fichiers ayant le meme formalisme que les données injectés par l'outillage RDD fait par PCSCOL).
+Le principe est d'aller chercher les PRC (dans les contrats pédagogiques) afin de transposer ces PRC sous la forme d'aménagement dans Pegase :
+* soit en insérant artificiellement des Validations d'acquis d'expérience dans la table IND_DISPENSE_ELP dans Apogee
+* soit par le biais de deux fichiers pour le module COC et le module CHC qu'on pourra deverser directement dans les tables apprenant_chc et apprenant_coc  de la base pivot de RDD (fichiers ayant le meme formalisme que les données injectés par l'outillage RDD fait par PCSCOL).
 
-Les aménagements seront visibles dans l'affection individuelle (CHC) ou dans la vue individuelle (COC) de chaque étudiant sur l'interface Pégase.
+A la fin du processus de RDD (après injection dans Pégase), les aménagements seront visibles dans l'affection individuelle (module CHC) ou dans la vue individuelle (module COC) de chaque étudiant sur l'interface Pégase.
 
 ## Prérequis
 ### Installation du client Oracle sqlplus
@@ -30,7 +32,7 @@ Les aménagements seront visibles dans l'affection individuelle (CHC) ou dans la
 
 ## Fichiers générés
 
-Dans un premier temps, le programme génère six fichiers en sortie:
+Selon les scripts utilisés, six fichiers différents peuvent être générés en sortie:
 
      vets_<code_annee>_<type>_xxx_date.txt : filtres formations traitees (Fichier TXT)
 
@@ -155,3 +157,8 @@ Dans un premier temps, le programme génère six fichiers en sortie:
 
 	12. Faire une injection normale des COC (avec l'outillage "RDD tools")
 
+## Limitations
+L'outillage mis à disposition, dans sa version actuelle, ne prend pas en charge :
+* la reprise des credits ects
+* les PRC sur LCC
+* la reprise de la meilleure note pour les BUT/DUT
