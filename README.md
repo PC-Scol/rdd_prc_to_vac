@@ -85,11 +85,12 @@ Selon les scripts utilisés, six fichiers différents peuvent être générés e
 
 		- PDB : nom de votre PDB Apogee
 
-		- TRANSFORMATION_CONSERVATION_CAPITALISATION (Y/N) : Choix de transformer les conservations en capitalisations (Y) ou pas (N, par défaut) : Pégase ne gère pour l'instant pas la conservation. Par défaut, les PRCs sur objets conservés sont donc exclus. Si vous souhaitez reprendre les notes sur les objets conservés et que vous accéptez que la conservation soit transformée en capitalisation, vous pouvez alors mettre ce parametre à Y
+		- TRANSFORMATION_CONSERVATION_CAPITALISATION (Y/N) : Choix de transformer les conservations en capitalisations (Y) ou pas (N, par défaut) : Pégase ne gère pour l'instant pas la conservation. Par défaut, les PRCs sur objets conservés sont donc exclus. Si vous souhaitez reprendre les notes sur les objets conservés et que vous accéptez que la conservation soit transformée en capitalisation, vous pouvez alors mettre ce parametre à Y.
+		ATTENTION : lorsque ce paramètre est activé (Y) dans rdd_prc_to_vac, le paramètre correspondant dans l'outils de reprise de données Pégase (rdd-tools) doit ête également activé (transformation_conservation_capitalisation_mcc=O)
 
         - le critère NB_THREAD correspond au nombre de thread (uniquement pour create_sql_pivot.sh)
 
-2. Lancer le script rdd_vac pour générer les vacs.
+1. Lancer le script rdd_vac pour générer les vacs.
 
      PUIS
 
