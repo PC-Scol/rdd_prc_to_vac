@@ -670,8 +670,8 @@ DECLARE
 				AND ice.cod_vrs_vet = cod_vrs_vet_in
 				AND elp.cod_elp = ice.COD_ELP
 				AND ice.cod_elp = elp.cod_elp
-				-- seuls les ELP capitalisable sont récupérés ou ceux conservables si explicitement demandés
-				AND (elp.tem_cap_elp='O' OR (elp.tem_con_elp='O' AND transformation_conservation_capitalisation_in='Y'))
+				-- seuls les ELP capitalisable sont récupérés ou ceux conservables avec un resultat attendu si explicitement demandés
+				AND (elp.tem_cap_elp='O' OR (elp.tem_con_elp='O' AND elp.TEM_RES_ELP='O' AND transformation_conservation_capitalisation_in='Y'))
 				AND ice.tem_prc_ice = 'O'
 				AND ice.cod_anu = cod_anu_in
 				-- exclusion des validation d'acquis de l'année en cours
