@@ -276,24 +276,6 @@ echo "Probleme PDB ou TWO_TASK non positionnés"
 fi
 export TWO_TASK=${PDB}
 
-if [[  -z ${CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION} ]]
-then
-echo "Temoin Calcul Amenagement selon regime non defini "
-	exit
-fi
-
-if [[  -z ${TRANSFORMATION_CONSERVATION_CAPITALISATION} ]]
-then
-echo " Temoin Transformation capitalisation MCC non defini "
-	exit
-fi
-
-if [[  -z ${SIMULATION_ACQUIS} ]]
-then
-echo "  Temoin Simulation ACQUIS"
-	exit
-fi
-
 
 # log du programme
 BASE_FIC_LOG=${NOM_BASE}
@@ -318,14 +300,9 @@ else
 fi
 
 
-
-
-
-
 # Appel du menu
 choix_menu
 choix_menu_vet
-
 
 init_log
 
@@ -392,8 +369,51 @@ FIC_NAME_PIVOT_DELETE=delete_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.sql
 # Appel du menu
 confirm_menu
 
-
 sleep 1
+
+-- transformation choix temoins amenagements
+if [[ -z "$CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION" || 
+      ( "$CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION" != "Y" &&
+        "$CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION" != "N" ) ]]; then
+    echo "Temoin Calcul Amenagement selon regime non defini"
+    exit
+fi
+
+if [[ "$CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION" == "Y" ]]; then
+    CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION="O"
+else
+    CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION="N"
+fi
+
+
+if [[ -z "$TRANSFORMATION_CONSERVATION_CAPITALISATION" ||
+      ( "$TRANSFORMATION_CONSERVATION_CAPITALISATION" != "Y" &&
+        "$TRANSFORMATION_CONSERVATION_CAPITALISATION" != "N" ) ]]; then
+    echo "Temoin Transformation capitalisation non defini"
+    exit
+fi
+
+
+if [[ "$TRANSFORMATION_CONSERVATION_CAPITALISATION" == "Y" ]]; then
+    TRANSFORMATION_CONSERVATION_CAPITALISATION="O"
+else
+    TRANSFORMATION_CONSERVATION_CAPITALISATION="N"
+fi
+
+if [[ -z "$SIMULATION_ACQUIS" ||
+      ( "$SIMULATION_ACQUIS" != "Y" &&
+        "$SIMULATION_ACQUIS" != "N" ) ]]; then
+    echo "Temoin Simulation ACQUIS"
+    exit
+fi
+
+
+if [[ "$SIMULATION_ACQUIS" == "Y" ]]; then
+    SIMULATION_ACQUIS="O"
+else
+    SIMULATION_ACQUIS="N"
+fi
+
 
 test_filtre_formation()
 {
