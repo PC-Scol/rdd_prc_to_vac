@@ -1096,7 +1096,11 @@ BEGIN
 		END IF;
 	END LOOP;
 	close create_chemin_cur;
-
+	
+	IF count_elp = 0
+	THEN 
+		RAISE_APPLICATION_ERROR(-20001, 'Probleme Contrat pedagogique!');
+	END IF;
 	-- generation des clés
 	CLE_CHC  := COD_IND_VAL || '-'|| ANNEE_VAL ||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL||'-'|| COD_ELP_VAL;
 	code_filtre_formation := COD_DIP_VAL ||'-'|| COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
@@ -1173,7 +1177,7 @@ BEGIN
 	LINEBUFFER :=   LINEBUFFER || '' || TEMOIN_ACQUIS_MULTIPLE_VAL  ;
 	dbms_output.put_line(LINEBUFFER);
 
-EXCEPTION
+	EXCEPTION
 	WHEN NO_DATA_FOUND THEN NULL;
 	WHEN OTHERS
 	THEN
