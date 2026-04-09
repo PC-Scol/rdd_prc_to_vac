@@ -754,7 +754,6 @@ IFS='>' read -r part1 part2 <<< "${result}"
 IFS='-' read -r COD_DIP_FILTRE COD_VRS_VDI_FILTRE <<< "${part1}"
 
 COD_ELP=$(echo "${COD_ELP}" | sed "s/'/''/g")
-echo "${COD_ELP}"
 sqlplus -s <<FIN_SQL
 ${STR_CONX}
 set serveroutput on
