@@ -44,7 +44,6 @@ echo "  Code Annee universitaire : ${COD_ANU}" >> ${FIC_LOG}
 echo "  Type Detection : ${COD_TYP_DETECT}" >> ${FIC_LOG}
 echo "  Code Objet : ${COD_OBJ}" >> ${FIC_LOG}
 echo "  Code Version Objet : ${COD_VRS_OBJ}" >> ${FIC_LOG}
-echo "  Transformation des conservations en capitalisations : ${TRANSFORMATION_CONSERVATION_CAPITALISATION}" >> ${FIC_LOG}
 echo "  Dossier racine : ${DIR_FIC_ARCH}" >> ${FIC_LOG}
 echo "  PDB : $PDB" >> ${PDB}
 echo "  Fichier choisi Cle: ${fic_insert##*/}"
@@ -54,8 +53,6 @@ echo "  Activation prefix : ${PREFIXON} "
 echo "  Prefix VDI : ${PREFIX_VDI} "
 echo "  Prefix VET : ${PREFIX_VET} "
 echo "  Code établissement : ${COD_ETB} "
-echo "  Temoin Simulation ACQUIS : ${SIMULATION_ACQUIS} "
-echo "  Temoin Calcul Amenagement selon regime : ${CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION} "
 echo "  Nombre de Thread: ${NBTHR}"
 echo "  =======================================" >> ${FIC_LOG}
 echo "  Processus d'execution : " >> ${FIC_LOG}
@@ -85,9 +82,6 @@ echo "  >>>   Activation prefix : ${PREFIXON} "
 echo "  >>>   Prefix VDI : ${PREFIX_VDI} "
 echo "  >>>   Prefix VET : ${PREFIX_VET} "
 echo "  >>>   Code établissement : ${COD_ETB} "
-echo "  >>>   Temoin Transformation capitalisation : ${TRANSFORMATION_CONSERVATION_CAPITALISATION} "
-echo "  >>>   Temoin Simulation ACQUIS : ${SIMULATION_ACQUIS} "
-echo "  >>>   Temoin Calcul Amenagement selon regime : ${CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION} "
 echo "  >>>   Nombre de Thread: ${NBTHR} "
 echo "  >>>   En mode génération des VAC d'insertion !!"
 
@@ -233,9 +227,6 @@ COD_ANU=`grep "^COD_ANU" $FIC_INI | cut -d\: -f2`
 PREFIXON=`grep "^PREFIXON" $FIC_INI | cut -d\: -f2`
 PREFIX_VET=`grep "^PREFIX_VET" $FIC_INI | cut -d\: -f2`
 PREFIX_VDI=`grep "^PREFIX_VDI" $FIC_INI | cut -d\: -f2`
-TRANSFORMATION_CONSERVATION_CAPITALISATION=`grep "^TRANSFORMATION_CONSERVATION_CAPITALISATION" $FIC_INI | cut -d\: -f2`
-SIMULATION_ACQUIS=`grep "^SIMULATION_ACQUIS" $FIC_INI | cut -d\: -f2`
-CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION=`grep "^CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION" $FIC_INI | cut -d\: -f2`
 
 PDB=`printenv | grep ^TWO_TASK= | cut -d\= -f2`
 
@@ -370,49 +361,6 @@ FIC_NAME_PIVOT_DELETE=delete_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.sql
 confirm_menu
 
 sleep 1
-
--- transformation choix temoins amenagements
-if [[ -z "$CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION" || 
-      ( "$CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION" != "Y" &&
-        "$CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION" != "N" ) ]]; then
-    echo "Temoin Calcul Amenagement selon regime non defini"
-    exit
-fi
-
-if [[ "$CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION" == "Y" ]]; then
-    CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION="O"
-else
-    CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION="N"
-fi
-
-
-if [[ -z "$TRANSFORMATION_CONSERVATION_CAPITALISATION" ||
-      ( "$TRANSFORMATION_CONSERVATION_CAPITALISATION" != "Y" &&
-        "$TRANSFORMATION_CONSERVATION_CAPITALISATION" != "N" ) ]]; then
-    echo "Temoin Transformation capitalisation non defini"
-    exit
-fi
-
-
-if [[ "$TRANSFORMATION_CONSERVATION_CAPITALISATION" == "Y" ]]; then
-    TRANSFORMATION_CONSERVATION_CAPITALISATION="O"
-else
-    TRANSFORMATION_CONSERVATION_CAPITALISATION="N"
-fi
-
-if [[ -z "$SIMULATION_ACQUIS" ||
-      ( "$SIMULATION_ACQUIS" != "Y" &&
-        "$SIMULATION_ACQUIS" != "N" ) ]]; then
-    echo "Temoin Simulation ACQUIS"
-    exit
-fi
-
-
-if [[ "$SIMULATION_ACQUIS" == "Y" ]]; then
-    SIMULATION_ACQUIS="O"
-else
-    SIMULATION_ACQUIS="N"
-fi
 
 
 test_filtre_formation()
@@ -584,7 +532,7 @@ BEGIN
 		IF PREFIXON_VAC = 'Y'
 		THEN
 			CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'||PREFIX_VDI_VAC||'-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL ||'-'||PREFIX_VET_VAC||'-'||PREFIX_VET_VAC||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
-			code_filtre_formation := PREFIX_VET_VAC||'-'||COD_ETP_VAL||'-'|| COD_VRS_VET_VAL;
+			code_filtre_formation := PREFIX_VDI_VAC||'-'||COD_DIP_VAL||'-'|| COD_VRS_VDI_VAL;
 		END IF;
 
 		--  Création de l'ordre d'insertion des coc en fonction des PRC trouvées dans APOGEE
@@ -592,7 +540,6 @@ BEGIN
 		LINEBUFFER := LINEBUFFER || code_filtre_formation||';';			-- "code_formation"
 		LINEBUFFER := LINEBUFFER || COD_ELP_VAL||';';					-- "code_objet_formation"
 		LINEBUFFER := LINEBUFFER || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||';';	-- "code_filtre_formation"
-																		-- "code_chemin_pia"
 		LINEBUFFER := LINEBUFFER || ANNEE_VAL||';';						-- "code_periode"
 		LINEBUFFER := LINEBUFFER || COD_ETB_VAL||';';					-- "code_structure"
 		LINEBUFFER := LINEBUFFER || COD_IND_VAL||';';					-- "id_apprenant"
@@ -774,7 +721,6 @@ DECLARE
 	COD_DIP_VAL		varchar2(10) :=	NULL;
 	COD_VRS_VDI_VAL	varchar2(10) := NULL;
 	CREDIT_VAL		number(8,0) := null;
-	COD_NEL_VAL		varchar2(10) := NULL;
 	NOT_VAA_VAL		varchar2(10) := '${NOT_VAA}';
 	BAR_NOT_VAA_VAL	varchar2(10) := '${BAR_NOT_VAA}';
 	NOT_PNT_JUR_VAA_VAL varchar2(10) := '${NOT_PNT_JUR_VAA}';
@@ -798,25 +744,9 @@ DECLARE
 	COD_ANU_out		varchar2(10) := null;
 	cod_typ_lse_out	varchar2(2) := null;
 	cod_ind_out		varchar2(10) := null;
-	type_amenagement	varchar2(10) := '';
 	COD_DIP_FILTRE_FILTRE_FORMATION varchar2(10) := '${COD_DIP_FILTRE}';
 	COD_VRS_VDI_FILTRE_FORMATION varchar2(10) := '${COD_VRS_VDI_FILTRE}';
-
-	--MAJ 
-	TEM_CAP_ELP_VAL varchar2(10) := null;
-	TEM_CON_ELP_VAL  varchar2(10) := null;
-   	TEM_RES_ELP_VAL  varchar2(10) := null;
-	TYPE_IP_NORMALE_DETTE_CREDIT_VAL  varchar2(10) := null;
-	TYPE_CHOIX_PEDAGOGIQUE_VAL varchar2(10) := null;
-	CODE_OBJET_SOURCE_ACQUIS_VAL varchar2(10) := null;
-	CODE_PERIODE_SOURCE_ACQUIS_VAL varchar2(10) := null;
-	TYPE_ACQUIS_VAL VARCHAR2(10) := null;
 	TYPE_AMENAGEMENT_VAL VARCHAR2(10) := null;
-	TEMOIN_ACQUIS_MULTIPLE_VAL  VARCHAR2(10) := null;
-
-	TRANSFORMATION_CONSERVATION_CAPITALISATION_VAL varchar2(10) := '${TRANSFORMATION_CONSERVATION_CAPITALISATION}';
-	SIMULATION_ACQUIS_VAL varchar2(10) := '${SIMULATION_ACQUIS}';
-	CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION_VAL varchar2(10) := '${CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION}';
 
 	-- curseur de creation du chemin
 	cursor create_chemin_cur
@@ -849,210 +779,20 @@ DECLARE
 BEGIN
 	
 	--Récupération des valeurs pour créer les clés et les ordres SQL
-	SELECT COD_DIP,
-      		COD_VRS_VDI,
-       	COD_ETU,
-       	TEM_CAP_ELP,
-       	TEM_CON_ELP,
-       	TEM_RES_ELP,
-       	TYPE_IP_NORMALE_DETTE_CREDIT,
-       	TYPE_CHOIX_PEDAGOGIQUE,
-       	CODE_OBJET_SOURCE_ACQUIS,
-		TYPE_AMENAGEMENT,
-       	CODE_PERIODE_SOURCE_ACQUIS,
-       	TYPE_ACQUIS,
-		TEMOIN_ACQUIS_MULTIPLES
-
-	INTO 	COD_DIP_VAL,
-    	 	COD_VRS_VDI_VAL,
-    	 	COD_ETU_VAL,
-     		TEM_CAP_ELP_VAL,
-     		TEM_CON_ELP_VAL,
-     		TEM_RES_ELP_VAL,
-     		TYPE_IP_NORMALE_DETTE_CREDIT_VAL,
-     		TYPE_CHOIX_PEDAGOGIQUE_VAL,
-     		CODE_OBJET_SOURCE_ACQUIS_VAL,
-     		TYPE_AMENAGEMENT_VAL,
-     		CODE_PERIODE_SOURCE_ACQUIS_VAL,
-     		TYPE_ACQUIS_VAL,
-     		TEMOIN_ACQUIS_MULTIPLE_VAL
-	FROM 
-	(
-		SELECT iae.cod_dip, 
-				iae.cod_vrs_vdi, 
-				ind.cod_etu , 
-				ice.cod_elp,
-				CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_cap_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END as TEM_CAP_ELP, 
-				CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_con_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END as TEM_CON_ELP,
-				CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_res_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END as TEM_RES_ELP,
-				IPE.COD_TYP_IPE	AS 	type_ip_normale_dette_credit,	-- (IP normale ('N'), en Dette ('D') ou en Crédit ('A'))
-				CASE
-						-- dispense d'examen Apogée => dispense totale Pégase => 'DISPENSE'
-						WHEN nvl(ice.ETA_INS_DIS_ELP,'@')='X' THEN 'DS'
-						-- dispense d'enseignement Apogée => dispense d'assiduité Pégase => 'AFFECTATION' avec TAM-007
-						WHEN nvl(ice.ETA_INS_DIS_ELP,'@')='E' THEN 'AF'
-						-- validation d'acquis Apogée => aménagement avec acquis sur période en cours => 'ACQUIS_PAR_AMENAGEMENT'
-						WHEN ice.TEM_PRC_ICE='O' AND ide.cod_anu IS NOT NULL THEN 'AM'
-						-- acquis sur une péride antérieure => 'ACQUIS_UTILISE'
-						WHEN ice.TEM_PRC_ICE='O'
-							AND ( (CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_cap_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END ) ='O'
-								OR (TRANSFORMATION_CONSERVATION_CAPITALISATION_VAL = 'O'
-									AND
-									(CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_con_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END ) ='O'
-									AND (CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_res_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END ='O'))) THEN 'AC'
-						-- 'AFFECTATION'
-						ELSE 'AF'
-					END AS type_choix_pedagogique,
-					CASE WHEN ice.TEM_PRC_ICE='O' AND ide.cod_anu IS NOT NULL THEN
-							CASE
-								-- formation initiale sans note => DISPENSE
-								WHEN (CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION_VAL='N'
-										OR (CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION_VAL='O' AND RGI.COD_SIS_RGI LIKE '1%'))
-									AND ide.not_vaa IS NULL THEN 'DISPENSE'
-								-- formation initiale avec note => EVAL
-								WHEN ide.not_vaa IS NOT NULL THEN 'EVAL'
-								-- formation continue avec validation d'acquis sans note => VAE
-								WHEN (CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION_VAL='N'
-										OR (CALCUL_AMENAGEMENT_SELON_REGIME_INSCRIPTION_VAL='O' AND RGI.COD_SIS_RGI LIKE '2%'))
-									AND IDE.not_vaa IS NULL THEN 'VAE'
-								ELSE 'INCONNUE'
-							END
-						WHEN nvl(ICE.ETA_INS_DIS_ELP,'@')='E' THEN 'DIS-ASSID' -- dispense d'enseignement Apogée => dispense d'assiduité Pégase => 'AFFECTATION' avec TAM-007
-						WHEN nvl(ice.ETA_INS_DIS_ELP,'@')='X' THEN 'DIS-TOTALE' -- dispense d'examen Apogée => dispense totale Pégase => 'DIS-TOTALE'
-						ELSE 'NULL'
-
-					END type_amenagement,
-					CASE WHEN ( CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_cap_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END ) ='O'
-								OR (TRANSFORMATION_CONSERVATION_CAPITALISATION_VAL = 'O'
-									AND ( CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_con_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END ) ='O'
-									AND (CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_res_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END ) ='O') THEN
-						CASE WHEN IDE.COD_ANU IS NOT NULL THEN NULL	-- VAC sur l année courante
-							WHEN ICE.COD_LCC_ICE IS NOT NULL THEN (SELECT COD_ELP_S1_LCC FROM ELP_CORRESPOND_ELP WHERE COD_LCC=ice.COD_LCC_ICE)	-- LCC
-							ELSE ICE.COD_ELP -- acquis classique ou VAC sur année précédente
-						END
-					END code_objet_source_acquis,
-					CASE WHEN ( CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_cap_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END)='O'
-								OR ( TRANSFORMATION_CONSERVATION_CAPITALISATION_VAL = 'O'
-									AND (CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_con_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END )='O'
-									AND (CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_res_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END ) ='O') THEN
-						CASE WHEN IDE.COD_ANU IS NOT NULL THEN null
-							WHEN ice.COD_LCC_ICE IS NOT NULL THEN (
-									SELECT max(relp.COD_ANU)
-									FROM RESULTAT_ELP relp
-										, ELP_CORRESPOND_ELP ece
-									WHERE ece.COD_LCC=ice.COD_LCC_ICE
-										AND relp.cod_ELP=ece.COD_ELP_S1_LCC
-										AND relp.cod_ind = ice.COD_IND
-										AND relp.cod_anu < ice.COD_ANU
-										AND relp.COD_ADM=1
-										AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1))
-						ELSE (SELECT MAX(annees_acquises.COD_ANU)
-							FROM (
-								SELECT relp.COD_ANU
-								FROM RESULTAT_ELP relp
-								WHERE relp.cod_ELP= ice.cod_elp
-									AND relp.cod_ind = ice.COD_IND
-									AND relp.cod_anu < ice.COD_ANU
-									AND relp.COD_ADM=1
-									AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1)
-								UNION
-								SELECT ide.cod_anu
-								FROM ind_dispense_elp ide
-								WHERE ide.cod_anu<ice.COD_ANU
-									AND ide.cod_ind=ice.cod_ind
-									--AND ide.cod_etp=ice.cod_etp
-									--AND ide.cod_vrs_vet=ice.cod_vrs_vet
-									AND ide.cod_elp= ice.cod_elp
-								)  annees_acquises)
-						END
-					END code_periode_source_acquis,
-					CASE WHEN ( CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_cap_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END )='O'
-								OR ( TRANSFORMATION_CONSERVATION_CAPITALISATION_VAL = 'O'
-									AND (CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_con_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END) ='O'
-									AND (CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_res_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END ) ='O') THEN
-						CASE WHEN IDE.COD_ANU IS NOT NULL THEN	NULL
-							WHEN ice.COD_LCC_ICE IS NOT NULL THEN	'LCC'
-							ELSE (SELECT annees_acquises.type_acquis
-								FROM (
-									SELECT relp.COD_ANU as cod_anu,'CAP' as type_acquis
-									FROM RESULTAT_ELP relp
-									WHERE relp.cod_ELP=ice.cod_elp
-										AND relp.cod_ind = ice.COD_IND
-										AND relp.cod_anu < ice.COD_ANU
-										AND relp.COD_ADM=1
-										AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1)
-									UNION
-									SELECT ide.cod_anu as cod_anu,'VAC' as type_acquis
-									FROM ind_dispense_elp ide
-									WHERE ide.cod_anu<ice.COD_ANU
-										AND ide.cod_ind=ice.cod_ind
-										--AND ide.cod_etp=ice.cod_etp
-										--AND ide.cod_vrs_vet=ice.cod_vrs_vet
-										AND ide.cod_elp=ice.cod_elp
-									ORDER BY cod_anu DESC
-									)  annees_acquises
-								WHERE ROWNUM = 1)					-- CAP ou VAC
-						END
-					END type_acquis,
-					CASE WHEN (CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_cap_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END) ='O'
-					OR ( TRANSFORMATION_CONSERVATION_CAPITALISATION_VAL  = 'O'
-						AND (CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_con_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END) ='O'
-						AND (CASE WHEN ice.TEM_PRC_ICE='O' THEN (select tem_res_elp from element_pedagogi elp where elp.cod_elp=ice.cod_elp) END ) ='O') THEN 
-					CASE WHEN IDE.COD_ANU IS NOT NULL THEN NULL	-- VAC sur l'année courante => pas d'acquis
-						WHEN ice.COD_LCC_ICE IS NOT NULL THEN (SELECT CASE WHEN COD_ELP_S2_LCC IS NOT NULL THEN 'O' ELSE 'N' END FROM ELP_CORRESPOND_ELP WHERE COD_LCC=ice.COD_LCC_ICE)	-- LCC
-						ELSE (SELECT CASE WHEN count(annees_acquises.cod_anu)>1 THEN 'O' ELSE 'N' END
-							FROM (
-								SELECT distinct relp.COD_ANU as cod_anu
-								FROM RESULTAT_ELP relp
-								WHERE relp.cod_ELP= ice.cod_elp
-									AND relp.cod_ind = ice.COD_IND
-									AND relp.cod_anu < ice.COD_ANU
-									AND relp.COD_ADM=1
-									AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1)
-								UNION ALL
-								SELECT ide.cod_anu as cod_anu
-								FROM ind_dispense_elp ide
-								WHERE ide.cod_anu<ice.COD_ANU
-									AND ide.cod_ind=ice.cod_ind
-									--AND ide.cod_etp=ice.cod_etp
-									--AND ide.cod_vrs_vet=ice.cod_vrs_vet
-									AND ide.cod_elp=ice.cod_elp
-								)  annees_acquises)					-- capitalisation 'classique' ou sur VAC
-					END
-				END temoin_acquis_multiples
-			FROM ins_adm_etp iae,
-				ins_adm_anu iaa,
-				individu ind,
-				IND_CONTRAT_ELP ice,
-				INS_PEDAGOGI_ETP ipe,
-				IND_DISPENSE_ELP ide,
-				regime_ins rgi
-			where iae.cod_etp = COD_ETP_VAL 	
-				and iae.cod_vrs_vet = COD_VRS_VET_VAL
-				and iae.cod_anu = ANNEE_VAL
-				and iae.cod_ind = COD_IND_VAL	
-				and iae.cod_ind=ind.cod_ind
-				and ice.cod_ind = iae.COD_IND 
-				and ice.COD_ANU = iae.cod_anu
-				and IPE.COD_ANU=iae.COD_ANU
-				and IPE.COD_IND=iae.COD_IND
-				and IPE.COD_ETP=iae.COD_ETP
-				and IPE.COD_VRS_VET=iae.COD_VRS_VET
-				and ide.cod_anu (+) = ice.cod_anu
-				and ide.cod_ind (+) = ice.cod_ind
-				and ide.cod_elp (+) = ice.cod_elp
-				AND iaa.cod_anu (+) = iae.cod_anu
-				AND iaa.cod_ind (+) = iae.cod_ind
-				AND rgi.COD_RGI (+) = iaa.cod_rgi
-				AND ice.cod_elp = COD_ELP_VAL 
-	)
-	WHERE ROWNUM = 1;
+	SELECT cod_dip, cod_vrs_vdi, cod_etu
+	INTO COD_DIP_VAL, COD_VRS_VDI_VAL, COD_ETU_VAL
+	FROM (
+		SELECT iae.cod_dip, iae.cod_vrs_vdi, ind.cod_etu
+		FROM ins_adm_etp iae,
+			individu ind
+		where iae.cod_etp = COD_ETP_VAL
+			and iae.cod_vrs_vet = COD_VRS_VET_VAL
+			and iae.cod_anu = ANNEE_VAL
+			and iae.cod_ind = COD_IND_VAL
+			and iae.cod_ind=ind.cod_ind
+		)
+		WHERE ROWNUM = 1;
 	
-	select cod_nel 
-	into code_type_objet_maquette_val
-	from ELEMENT_PEDAGOGI
-	where cod_elp = COD_ELP_VAL;
-
 	IF
 	COD_DIP_VAL <> COD_DIP_FILTRE_FILTRE_FORMATION
 	OR
@@ -1062,15 +802,9 @@ BEGIN
 	END IF;
 
 
-	SELECT cod_nel
-	INTO COD_NEL_VAL
-	FROM (
-		SELECT cod_nel
-		from element_pedagogi
-		where cod_elp = COD_ELP_VAL
-	)
-	WHERE ROWNUM = 1;
-
+	-- generation des clés
+	CLE_CHC  := COD_IND_VAL || '-'|| ANNEE_VAL ||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL||'-'|| COD_ELP_VAL;
+	code_filtre_formation := COD_DIP_VAL ||'-'|| COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
 	code_chemin_pia  := COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
 	IF PREFIXON_VAC = 'Y'
 	THEN
@@ -1098,86 +832,47 @@ BEGIN
 	close create_chemin_cur;
 	
 	IF count_elp = 0
-	THEN 
+	THEN
 		RAISE_APPLICATION_ERROR(-20001, 'Probleme Contrat pedagogique!');
 	END IF;
-	-- generation des clés
-	CLE_CHC  := COD_IND_VAL || '-'|| ANNEE_VAL ||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL||'-'|| COD_ELP_VAL;
-	code_filtre_formation := COD_DIP_VAL ||'-'|| COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
+
+	select cod_nel
+	into code_type_objet_maquette_val
+	from ELEMENT_PEDAGOGI
+	where cod_elp = COD_ELP_VAL;
+
+	-- choix du type d'aménagement :
+	--	- présence de note => EVAL
+	--	- pas de note => DISPENSE
+	IF NOT_VAA_VAL IS NOT NULL THEN
+		TYPE_AMENAGEMENT_VAL := 'EVAL';
+	ELSE
+		TYPE_AMENAGEMENT_VAL := 'DISPENSE';
+	END IF;
 
 	-- generation du SQL
-	LINEBUFFER := '' || CLE_CHC||';';						-- "id"
-	LINEBUFFER := LINEBUFFER || '' || ANNEE_VAL||';';		-- "code_periode"
-	LINEBUFFER := LINEBUFFER || '' || COD_IND_VAL||';';		-- "id_apprenant"
-	LINEBUFFER := LINEBUFFER || '' || COD_ETU_VAL||';'; 	-- "code_apprenant"
-	LINEBUFFER := LINEBUFFER || '' || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||';';	-- "code_filtre_formation"
-	LINEBUFFER := LINEBUFFER || '' || code_chemin_pia  ||';';	-- "code_chemin_pia"
-	LINEBUFFER := LINEBUFFER || '' || COD_ELP_VAL||';';		-- "code_objet_formation"
-	LINEBUFFER := LINEBUFFER || '' || chemin_element||';';	-- "code_chemin"
+	LINEBUFFER := '' || CLE_CHC||';';								-- "id"
+	LINEBUFFER := LINEBUFFER || '' || ANNEE_VAL||';';				-- "code_periode"
+	LINEBUFFER := LINEBUFFER || '' || COD_IND_VAL||';';				-- "id_apprenant"
+	LINEBUFFER := LINEBUFFER || '' || COD_ETU_VAL||';';				-- "code_apprenant"
+	LINEBUFFER := LINEBUFFER || '' || code_filtre_formation||';';	-- "code_filtre_formation"
+	LINEBUFFER := LINEBUFFER || '' || code_chemin_pia  ||';';		-- "code_chemin_pia"
+	LINEBUFFER := LINEBUFFER || '' || COD_ELP_VAL||';';				-- "code_objet_formation"
+	LINEBUFFER := LINEBUFFER || '' || chemin_element||';';			-- "code_chemin"
 	LINEBUFFER := LINEBUFFER || '' || code_type_objet_maquette_val ||';';	-- "code_type_objet_maquette"
-	LINEBUFFER := LINEBUFFER || '' || COD_ETB_VAL||';';		-- "code_structure"
-	LINEBUFFER := LINEBUFFER || '' || TYPE_IP_NORMALE_DETTE_CREDIT_VAL ||';';	-- "type_ip_normale_dette_credit"
-	LINEBUFFER := LINEBUFFER || '' || TYPE_CHOIX_PEDAGOGIQUE_VAL ||';';   -- "type_choix_pedagogique"
-	-- choix du type d'aménagement :					    -- "type_amenagement"
-	LINEBUFFER := LINEBUFFER || '' || TYPE_AMENAGEMENT_VAL  ||';';  
-	LINEBUFFER := LINEBUFFER || 'false'||';';					-- "temoin_injection_chc"
-
-	-- "code_objet_source_acquis"
-	IF CODE_OBJET_SOURCE_ACQUIS_VAL IS NOT NULL THEN
-			IF SIMULATION_ACQUIS_VAL = 'N' AND ANNEE_VAL > CODE_OBJET_SOURCE_ACQUIS_VAL 
-			THEN 
-				CODE_OBJET_SOURCE_ACQUIS_VAL := 'NULL';
-			ELSE
-				CODE_OBJET_SOURCE_ACQUIS_VAL := 'NULL';
-			END IF;
-	ELSE
-		CODE_OBJET_SOURCE_ACQUIS_VAL := 'NULL';
-	END IF;
-	LINEBUFFER :=   LINEBUFFER || '' || CODE_OBJET_SOURCE_ACQUIS_VAL  ||';';  
-	-- "code_periode_source_acquis"
-	IF CODE_PERIODE_SOURCE_ACQUIS_VAL IS NOT NULL THEN
-			IF SIMULATION_ACQUIS_VAL = 'O' THEN 
-					CODE_PERIODE_SOURCE_ACQUIS_VAL := greatest (CODE_PERIODE_SOURCE_ACQUIS_VAL,ANNEE_VAL);
-			END IF;
-			IF SIMULATION_ACQUIS_VAL = 'N' AND ANNEE_VAL>CODE_PERIODE_SOURCE_ACQUIS_VAL THEN
-				 	CODE_PERIODE_SOURCE_ACQUIS_VAL := 'NULL';
-			END IF;
-	ELSE
-		CODE_PERIODE_SOURCE_ACQUIS_VAL := 'NULL';
-
-			
-	END IF;
-	LINEBUFFER :=   LINEBUFFER || '' || CODE_PERIODE_SOURCE_ACQUIS_VAL  ||';';  
-
-	-- "type_acquis"
-	IF TYPE_ACQUIS_VAL IS NOT NULL THEN
-			IF SIMULATION_ACQUIS_VAL = 'N' AND ANNEE_VAL>CODE_PERIODE_SOURCE_ACQUIS_VAL 
-			THEN 
-				TYPE_ACQUIS_VAL := 'NULL';
-			ELSE
-				TYPE_ACQUIS_VAL := TYPE_ACQUIS_VAL;
-			END IF;
-	ELSE
-		TYPE_ACQUIS_VAL := 'NULL';
-
-	END IF;
-	LINEBUFFER :=   LINEBUFFER || '' || TYPE_ACQUIS_VAL  ||';';  
-	
-	-- "temoin_acquis_multiples"
-	IF TEMOIN_ACQUIS_MULTIPLE_VAL IS NOT NULL THEN
-			IF SIMULATION_ACQUIS_VAL = 'N' AND ANNEE_VAL>CODE_PERIODE_SOURCE_ACQUIS_VAL 
-			THEN 
-				TEMOIN_ACQUIS_MULTIPLE_VAL := 'NULL';
-			ELSE
-				TEMOIN_ACQUIS_MULTIPLE_VAL := TEMOIN_ACQUIS_MULTIPLE_VAL;
-			END IF;
-	ELSE
-		TEMOIN_ACQUIS_MULTIPLE_VAL := 'NULL';
-	END IF;
-	LINEBUFFER :=   LINEBUFFER || '' || TEMOIN_ACQUIS_MULTIPLE_VAL  ;
+	LINEBUFFER := LINEBUFFER || '' || COD_ETB_VAL||';';				-- "code_structure"
+	LINEBUFFER := LINEBUFFER || '' || 'NULL' ||';';					-- "type_ip_normale_dette_credit" : trop couteux à calculer et inutile => NULL
+	LINEBUFFER := LINEBUFFER || '' || 'AM' ||';';					-- "type_choix_pedagogique" : UNIQUEMENT des aménagements
+	LINEBUFFER := LINEBUFFER || '' || TYPE_AMENAGEMENT_VAL  ||';';	-- "type_amenagement"
+	LINEBUFFER := LINEBUFFER || 'false'||';';						-- "temoin_injection_chc"
+	-- acquis source => toujours vide car on simule un aménagement (VAL-EVAL ou VAL-DISPENSE)
+	LINEBUFFER :=   LINEBUFFER || '' || 'NULL'  ||';';				-- "code_objet_source_acquis"
+	LINEBUFFER :=   LINEBUFFER || '' || 'NULL'  ||';';				-- "code_periode_source_acquis"
+	LINEBUFFER :=   LINEBUFFER || '' || 'NULL'  ||';';				-- "type_acquis"
+	LINEBUFFER :=   LINEBUFFER || '' || 'NULL'  ;					-- "temoin_acquis_multiples"
 	dbms_output.put_line(LINEBUFFER);
 
-	EXCEPTION
+EXCEPTION
 	WHEN NO_DATA_FOUND THEN NULL;
 	WHEN OTHERS
 	THEN
