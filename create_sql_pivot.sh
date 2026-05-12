@@ -427,9 +427,7 @@ DECLARE
 	COD_DEP_PAY_VAC varchar2(10) := NULL;
 	COD_TYP_DEP_PAY_VAC varchar2(10) := NULL;
 	COD_ETB varchar2(10) := NULL;
-	COD_PRG varchar2(10) := NULL;
 	NUM_SESSION  varchar2(2) := NULL;
-	TEM_SNS_PRG varchar2(10) := NULL;
 	PREFIXON_VAC varchar2(10) := '${PREFIXON}';
 	PREFIX_VET_VAC varchar2(10) := '${PREFIX_VET}';
 	PREFIX_VDI_VAC varchar2(10) := '${PREFIX_VDI}';
@@ -729,8 +727,6 @@ DECLARE
 	COD_DEP_PAY_VAC	varchar2(3) := NULL;
 	COD_TYP_DEP_PAY_VAC varchar2(10) := NULL;
 	COD_ETB			varchar2(10) := NULL;
-	COD_PRG			varchar2(10) := NULL;
-	TEM_SNS_PRG		varchar2(10) := NULL;
 	PREFIXON_VAC	varchar2(10) := '${PREFIXON}';
 	PREFIX_VET_VAC	varchar2(10) := '${PREFIX_VET}';
 	PREFIX_VDI_VAC	varchar2(10) := '${PREFIX_VDI}';
@@ -739,8 +735,6 @@ DECLARE
 	code_filtre_formation varchar2(25) := '';
 	chemin_element	varchar2(5000) := '';
 	count_elp		number(8,0) := 0;
-	first_elp		varchar2(10) := 0;
-	isExists		number(8,0) := 0;
 	COD_ANU_out		varchar2(10) := null;
 	cod_typ_lse_out	varchar2(2) := null;
 	cod_ind_out		varchar2(10) := null;
@@ -772,9 +766,6 @@ DECLARE
 	chemin varchar2(2000);
 	code_chemin_pia varchar2(30) := null;
 	cod_elp_fils_chemin varchar2(10) := null;
-	cod_ind_cursor varchar2(10) := null;
-	tem_prc_ice varchar2(10) := null;
-	type_ip_normale_dette_credit varchar2(10) := null;
 	code_type_objet_maquette_val varchar2(10) := null;
 BEGIN
 	
