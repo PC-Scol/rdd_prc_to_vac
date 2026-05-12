@@ -44,7 +44,6 @@ echo "  Code Annee universitaire : ${COD_ANU}" >> ${FIC_LOG}
 echo "  Type Detection : ${COD_TYP_DETECT}" >> ${FIC_LOG}
 echo "  Code Objet : ${COD_OBJ}" >> ${FIC_LOG}
 echo "  Code Version Objet : ${COD_VRS_OBJ}" >> ${FIC_LOG}
-echo "  Transformation des conservations en capitalisations : ${TRANSFORMATION_CONSERVATION_CAPITALISATION}" >> ${FIC_LOG}
 echo "  Dossier racine : ${DIR_FIC_ARCH}" >> ${FIC_LOG}
 echo "  PDB : $PDB" >> ${PDB}
 echo "  Fichier choisi Cle: ${fic_insert##*/}"
@@ -292,14 +291,9 @@ else
 fi
 
 
-
-
-
-
 # Appel du menu
 choix_menu
 choix_menu_vet
-
 
 init_log
 
@@ -366,8 +360,8 @@ FIC_NAME_PIVOT_DELETE=delete_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.sql
 # Appel du menu
 confirm_menu
 
-
 sleep 1
+
 
 test_filtre_formation()
 {
@@ -433,9 +427,7 @@ DECLARE
 	COD_DEP_PAY_VAC varchar2(10) := NULL;
 	COD_TYP_DEP_PAY_VAC varchar2(10) := NULL;
 	COD_ETB varchar2(10) := NULL;
-	COD_PRG varchar2(10) := NULL;
 	NUM_SESSION  varchar2(2) := NULL;
-	TEM_SNS_PRG varchar2(10) := NULL;
 	PREFIXON_VAC varchar2(10) := '${PREFIXON}';
 	PREFIX_VET_VAC varchar2(10) := '${PREFIX_VET}';
 	PREFIX_VDI_VAC varchar2(10) := '${PREFIX_VDI}';
@@ -538,7 +530,7 @@ BEGIN
 		IF PREFIXON_VAC = 'Y'
 		THEN
 			CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'||PREFIX_VDI_VAC||'-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL ||'-'||PREFIX_VET_VAC||'-'||PREFIX_VET_VAC||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
-			code_filtre_formation := PREFIX_VET_VAC||'-'||COD_ETP_VAL||'-'|| COD_VRS_VET_VAL;
+			code_filtre_formation := PREFIX_VDI_VAC||'-'||COD_DIP_VAL||'-'|| COD_VRS_VDI_VAL;
 		END IF;
 
 		--  Création de l'ordre d'insertion des coc en fonction des PRC trouvées dans APOGEE
@@ -727,7 +719,6 @@ DECLARE
 	COD_DIP_VAL		varchar2(10) :=	NULL;
 	COD_VRS_VDI_VAL	varchar2(10) := NULL;
 	CREDIT_VAL		number(8,0) := null;
-	COD_NEL_VAL		varchar2(10) := NULL;
 	NOT_VAA_VAL		varchar2(10) := '${NOT_VAA}';
 	BAR_NOT_VAA_VAL	varchar2(10) := '${BAR_NOT_VAA}';
 	NOT_PNT_JUR_VAA_VAL varchar2(10) := '${NOT_PNT_JUR_VAA}';
@@ -736,8 +727,6 @@ DECLARE
 	COD_DEP_PAY_VAC	varchar2(3) := NULL;
 	COD_TYP_DEP_PAY_VAC varchar2(10) := NULL;
 	COD_ETB			varchar2(10) := NULL;
-	COD_PRG			varchar2(10) := NULL;
-	TEM_SNS_PRG		varchar2(10) := NULL;
 	PREFIXON_VAC	varchar2(10) := '${PREFIXON}';
 	PREFIX_VET_VAC	varchar2(10) := '${PREFIX_VET}';
 	PREFIX_VDI_VAC	varchar2(10) := '${PREFIX_VDI}';
@@ -746,15 +735,13 @@ DECLARE
 	code_filtre_formation varchar2(25) := '';
 	chemin_element	varchar2(5000) := '';
 	count_elp		number(8,0) := 0;
-	first_elp		varchar2(10) := 0;
-	isExists		number(8,0) := 0;
 	COD_ANU_out		varchar2(10) := null;
 	cod_typ_lse_out	varchar2(2) := null;
 	cod_ind_out		varchar2(10) := null;
-	type_amenagement	varchar2(10) := '';
 	COD_DIP_FILTRE_FILTRE_FORMATION varchar2(10) := '${COD_DIP_FILTRE}';
 	COD_VRS_VDI_FILTRE_FORMATION varchar2(10) := '${COD_VRS_VDI_FILTRE}';
-	
+	TYPE_AMENAGEMENT_VAL VARCHAR2(10) := null;
+
 	-- curseur de creation du chemin
 	cursor create_chemin_cur
 	is
@@ -777,11 +764,11 @@ DECLARE
 					AND ice.cod_vrs_vet = COD_VRS_VET
 					AND ice.cod_elp_sup IS NULL;
 	chemin varchar2(2000);
-	cod_elp_fils_chemin varchar2(10);
-	cod_ind_cursor varchar2(10);
-	tem_prc_ice varchar2(1);
-
+	code_chemin_pia varchar2(30) := null;
+	cod_elp_fils_chemin varchar2(10) := null;
+	code_type_objet_maquette_val varchar2(10) := null;
 BEGIN
+	
 	--Récupération des valeurs pour créer les clés et les ordres SQL
 	SELECT cod_dip, cod_vrs_vdi, cod_etu
 	INTO COD_DIP_VAL, COD_VRS_VDI_VAL, COD_ETU_VAL
@@ -796,7 +783,7 @@ BEGIN
 			and iae.cod_ind=ind.cod_ind
 		)
 		WHERE ROWNUM = 1;
-
+	
 	IF
 	COD_DIP_VAL <> COD_DIP_FILTRE_FILTRE_FORMATION
 	OR
@@ -806,21 +793,21 @@ BEGIN
 	END IF;
 
 
-	SELECT cod_nel
-	INTO COD_NEL_VAL
-	FROM (
-		SELECT cod_nel
-		from element_pedagogi
-		where cod_elp = COD_ELP_VAL
-	)
-	WHERE ROWNUM = 1;
+	-- generation des clés
+	CLE_CHC  := COD_IND_VAL || '-'|| ANNEE_VAL ||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL||'-'|| COD_ELP_VAL;
+	code_filtre_formation := COD_DIP_VAL ||'-'|| COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
+	code_chemin_pia  := COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
+	IF PREFIXON_VAC = 'Y'
+	THEN
+		code_chemin_pia := PREFIX_VDI_VAC||'-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL ||'>'||PREFIX_VET_VAC||'-'|| COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
+	END IF;
 
 	chemin_element  := COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
 	IF PREFIXON_VAC = 'Y'
 	THEN
 		chemin_element := PREFIX_VDI_VAC||'-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL ||'>'||PREFIX_VET_VAC||'-'|| COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
 	END IF;
-
+	
 	count_elp := 0;
 	open create_chemin_cur;
 	LOOP
@@ -834,40 +821,46 @@ BEGIN
 		END IF;
 	END LOOP;
 	close create_chemin_cur;
+	
+	IF count_elp = 0
+	THEN
+		RAISE_APPLICATION_ERROR(-20001, 'Probleme Contrat pedagogique!');
+	END IF;
 
-	-- generation des clés
-	CLE_CHC  := COD_IND_VAL || '-'|| ANNEE_VAL ||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL||'-'|| COD_ELP_VAL;
-	code_filtre_formation := COD_DIP_VAL ||'-'|| COD_VRS_VDI_VAL||'>'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL;
+	select cod_nel
+	into code_type_objet_maquette_val
+	from ELEMENT_PEDAGOGI
+	where cod_elp = COD_ELP_VAL;
 
-	-- generation du SQL
-	LINEBUFFER := '' || CLE_CHC||';';						-- "id"
-	LINEBUFFER := LINEBUFFER || '' || ANNEE_VAL||';';		-- "code_periode"
-	LINEBUFFER := LINEBUFFER || '' || COD_IND_VAL||';';		-- "id_apprenant"
-	LINEBUFFER := LINEBUFFER || '' || COD_ETU_VAL||';'; 	-- "code_apprenant"
-	LINEBUFFER := LINEBUFFER || '' || COD_DIP_VAL||'-' || COD_VRS_VDI_VAL||'>' || COD_ETP_VAL||'-' || COD_VRS_VET_VAL||';';	-- "code_formation"
-	LINEBUFFER := LINEBUFFER || '' || COD_ELP_VAL||';';		-- "code_objet_formation"
-	LINEBUFFER := LINEBUFFER || '' || chemin_element||';';	-- "code_chemin"
-	LINEBUFFER := LINEBUFFER || 'NULL;';					-- "code_type_objet_maquette"
-	LINEBUFFER := LINEBUFFER || '' || COD_ETB_VAL||';';		-- "code_structure"
-	LINEBUFFER := LINEBUFFER || 'N;';						-- "type_chc"
-	LINEBUFFER := LINEBUFFER || 'NULL;';					-- "nombre_credit_formation"
-	LINEBUFFER := LINEBUFFER || 'NULL;';					-- "nombre_credit_objet_formation"
-	LINEBUFFER := LINEBUFFER || 'O;';						-- "temoin_objet_capitalisable"
-	LINEBUFFER := LINEBUFFER || 'N;';						-- "temoin_objet_conservable"
-	LINEBUFFER := LINEBUFFER || 'NULL;';					-- "duree_conservation"
-	LINEBUFFER := LINEBUFFER || 'NULL;';					-- "etat_objet_dispense"
-	LINEBUFFER := LINEBUFFER || 'AM;';						-- "operation"
-	-- choix du type d'aménagement :						-- "type_amenagement"
+	-- choix du type d'aménagement :
 	--	- présence de note => EVAL
 	--	- pas de note => DISPENSE
 	IF NOT_VAA_VAL IS NOT NULL THEN
-		type_amenagement := 'EVAL';
+		TYPE_AMENAGEMENT_VAL := 'EVAL';
 	ELSE
-		type_amenagement := 'DISPENSE';
+		TYPE_AMENAGEMENT_VAL := 'DISPENSE';
 	END IF;
-	LINEBUFFER := LINEBUFFER || type_amenagement||';';
-	LINEBUFFER := LINEBUFFER || 'false';					-- "temoin_injection_chc"
 
+	-- generation du SQL
+	LINEBUFFER := '' || CLE_CHC||';';								-- "id"
+	LINEBUFFER := LINEBUFFER || '' || ANNEE_VAL||';';				-- "code_periode"
+	LINEBUFFER := LINEBUFFER || '' || COD_IND_VAL||';';				-- "id_apprenant"
+	LINEBUFFER := LINEBUFFER || '' || COD_ETU_VAL||';';				-- "code_apprenant"
+	LINEBUFFER := LINEBUFFER || '' || code_filtre_formation||';';	-- "code_filtre_formation"
+	LINEBUFFER := LINEBUFFER || '' || code_chemin_pia  ||';';		-- "code_chemin_pia"
+	LINEBUFFER := LINEBUFFER || '' || COD_ELP_VAL||';';				-- "code_objet_formation"
+	LINEBUFFER := LINEBUFFER || '' || chemin_element||';';			-- "code_chemin"
+	LINEBUFFER := LINEBUFFER || '' || code_type_objet_maquette_val ||';';	-- "code_type_objet_maquette"
+	LINEBUFFER := LINEBUFFER || '' || COD_ETB_VAL||';';				-- "code_structure"
+	LINEBUFFER := LINEBUFFER || '' || 'NULL' ||';';					-- "type_ip_normale_dette_credit" : trop couteux à calculer et inutile => NULL
+	LINEBUFFER := LINEBUFFER || '' || 'AM' ||';';					-- "type_choix_pedagogique" : UNIQUEMENT des aménagements
+	LINEBUFFER := LINEBUFFER || '' || TYPE_AMENAGEMENT_VAL  ||';';	-- "type_amenagement"
+	LINEBUFFER := LINEBUFFER || 'false'||';';						-- "temoin_injection_chc"
+	-- acquis source => toujours vide car on simule un aménagement (VAL-EVAL ou VAL-DISPENSE)
+	LINEBUFFER :=   LINEBUFFER || '' || 'NULL'  ||';';				-- "code_objet_source_acquis"
+	LINEBUFFER :=   LINEBUFFER || '' || 'NULL'  ||';';				-- "code_periode_source_acquis"
+	LINEBUFFER :=   LINEBUFFER || '' || 'NULL'  ||';';				-- "type_acquis"
+	LINEBUFFER :=   LINEBUFFER || '' || 'NULL'  ;					-- "temoin_acquis_multiples"
 	dbms_output.put_line(LINEBUFFER);
 
 EXCEPTION
@@ -927,7 +920,7 @@ sleep 1
 #fichier COC
 sed -i '1s/^/"id";"code_formation";"code_objet_formation";"code_filtre_formation";"code_periode";"code_structure";"id_apprenant";"code_apprenant";"type_objet_formation";"code_mention";"grade_ects";"gpa";"note_retenue";"bareme_note_retenue";"point_jury_retenu";"note_session1";"bareme_note_session1";"point_jury_session1";"credit_ects_session1";"rang_session1";"note_session2";"bareme_note_session2";"point_jury_session2";"resultat_final";"resultat_session1";"resultat_session2";"rang_final";"credit_ects_final";"statut_deliberation_session1";"statut_deliberation_session2_final";"session_retenue";"absence_finale";"absence_session1";"absence_session2";"temoin_concerne_session2";"statut_publication_session1";"statut_publication_session2";"statut_publication_final";"temoin_capitalise";"temoin_conserve";"duree_conservation";"note_minimale_conservation";"temoin_validation_acquis"\n/' ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC}
 #fichier CHC
-sed -i '1s/^/"id";"code_periode";"id_apprenant";"code_apprenant";"code_formation";"code_objet_formation";"code_chemin";"code_type_objet_maquette";"code_structure";"type_chc";"nombre_credit_formation";"nombre_credit_objet_formation";"temoin_objet_capitalisable";"temoin_objet_conservable";"duree_conservation";"etat_objet_dispense";"operation";"type_amenagement";"temoin_injection_chc"\n/' ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC}
+sed -i '1s/^/"id";"code_periode";"id_apprenant";"code_apprenant";"code_filtre_formation";"code_chemin_pia";"code_objet_formation";"code_chemin";"code_type_objet_maquette";"code_structure";"type_ip_normale_dette_credit";"type_choix_pedagogique";"type_amenagement";"temoin_injection_chc";"code_objet_source_acquis";"code_periode_source_acquis";"type_acquis";"temoin_acquis_multiples"\n/' ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC}
 
 # remplacement des séparateurs décimaux par le . pour import des numériques avec une locale américaine (en_US.utf8) en base pivot
 sed -i 's/\,/\./g'  ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC}
