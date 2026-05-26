@@ -630,7 +630,7 @@ SET TRIMSPOOL ON
 --    + cod_vrs_vet			3
 --    + cod_elp				8
 --    +'SYSDATE'			7
---    + cod_cip_vet			4 (valeur la + grande entre taille cod_cip et NULL)=>
+--    + cod_cip_vet			4 (valeur la + grande entre taille cod_cip et NULL)=> 4
 --    + note				9 (5chiffres + "," + 3décimales)
 --    + bareme				5
 --    + point_jury			9 (5chiffres + "," + 3décimales)
@@ -762,7 +762,7 @@ DECLARE
 					) ma_table
 		-- Notes/resultats obtenus le plus recemment
 		WHERE ma_table.rownnumber=1
-		UNION
+		UNION ALL
 		-- 2. SELECTION DES PRC SUR VALIDATIONS D'ACQUIS ANTERIEURES
 		-- ---------------------------------------------------------
 		SELECT 'VAC' as type_acquis,
@@ -799,10 +799,9 @@ DECLARE
 					AND ide.cod_elp=lprc.cod_elp) ma_table
 		-- Validations d'acquis obtenues le plus récemment
 		WHERE ma_table.rownnumber=1
-		UNION
+		UNION ALL
 		-- 3. SELECTION DES PRC SUR LCC
 		-- ----------------------------
-		--TODO : revoir calcul de la note du LCC qui ne tient pas compte actuellement des LCC avec source multiple
 		SELECT 'LCC' as type_acquis,
 				ma_table.cod_anu,
 				ma_table.cod_etp,
@@ -818,33 +817,67 @@ DECLARE
 						lprc.cod_vrs_vet,
 						lprc.cod_ind,
 						lprc.cod_elp,	-- aménagement simulé sur ELP cible du LCC (source multiple non-gérée dans Pégase; SINON mettre "ece.COD_ELP_S1_LCC as cod_elp,")
-						to_char(relp.not_elp) note, to_char(relp.bar_not_elp) bareme, to_char(relp.not_pnt_jur_elp,'FM99990D099') point_jury,
-						to_char(CASE WHEN relp.cod_ses='0' THEN '1'
-									WHEN relp.cod_ses='2' AND (relp.tem_not_rpt_elp='O' OR relp.tem_res_rpt_elp='O') THEN '1'
-									ELSE relp.cod_ses END) session_retenue,
-						relp.COD_ANU as annee_acquisition,
-						-- Validations d'acquis obtenues le plus récemment
-						row_number() OVER (PARTITION BY lprc.cod_etp,
-														lprc.cod_vrs_vet,
-														lprc.cod_ind,
-														lprc.cod_elp
-											ORDER BY relp.cod_anu DESC) as rownnumber,
+						CASE
+							WHEN my_relp1.not_elp is not null and my_relp2.not_elp is not NULL THEN
+								TO_CHAR(((ece.PDS_S1_LCC*(my_relp1.not_elp+nvl(my_relp1.not_pnt_jur_elp,0))/my_relp1.bar_not_elp)
+											+(ece.PDS_S2_LCC*(my_relp2.not_elp+nvl(my_relp2.not_pnt_jur_elp,0))/my_relp2.bar_not_elp))
+                                          /(ece.PDS_S1_LCC+ece.PDS_S2_LCC) * 20)
+							WHEN my_relp1.not_elp is NOT NULL and my_relp2.not_elp is NULL THEN	TO_CHAR(my_relp1.not_elp+nvl(my_relp1.not_pnt_jur_elp,0))
+							WHEN my_relp1.not_elp is NULL and my_relp2.not_elp is NOT NULL THEN	TO_CHAR(my_relp2.not_elp+nvl(my_relp2.not_pnt_jur_elp,0))
+						END note,
+						CASE
+							WHEN my_relp1.not_elp is not null and my_relp2.not_elp is not NULL THEN TO_CHAR(20)
+							WHEN my_relp1.not_elp is NOT NULL and my_relp2.not_elp is NULL THEN	TO_CHAR(my_relp1.bar_not_elp)
+							WHEN my_relp1.not_elp is NULL and my_relp2.not_elp is NOT NULL THEN	TO_CHAR(my_relp2.bar_not_elp)
+						END bareme,
+						null point_jury, -- pour simplifier, les points jury sont directement intégrés à la note simulée
+						my_relp1.session_retenue,
+						my_relp1.annee_acquisition,
 						lprc.cod_cip
 				FROM liste_ice_prc lprc
-					, RESULTAT_ELP relp
-					, ELP_CORRESPOND_ELP ece
-				WHERE lprc.COD_LCC_ICE IS NOT NULL
-					AND ece.COD_LCC=lprc.COD_LCC_ICE
-					AND ece.DAA_DEB_VAL_LCC<=lprc.COD_ANU
+				JOIN ELP_CORRESPOND_ELP ece ON (lprc.COD_LCC_ICE IS NOT NULL AND ece.COD_LCC=lprc.COD_LCC_ICE)
+				-- récupération de la source 1 (il y en a toujours une)
+				CROSS APPLY (SELECT relp.not_elp, relp.bar_not_elp, relp.not_pnt_jur_elp,
+									to_char(CASE WHEN relp.cod_ses='0' THEN '1'
+												WHEN relp.cod_ses='2' AND (relp.tem_not_rpt_elp='O' OR relp.tem_res_rpt_elp='O') THEN '1'
+												ELSE relp.cod_ses END) session_retenue,
+									relp.COD_ANU as annee_acquisition,
+									-- Notes obtenues le plus récemment
+									row_number() OVER (PARTITION BY lprc.cod_etp,
+																	lprc.cod_vrs_vet,
+																	lprc.cod_ind,
+																	lprc.cod_elp
+														ORDER BY relp.cod_anu DESC,relp.cod_ses) as rownnumber
+									FROM RESULTAT_ELP relp
+									WHERE relp.cod_ELP=ece.COD_ELP_S1_LCC
+										AND relp.cod_ind = lprc.COD_IND
+										AND relp.cod_anu < lprc.COD_ANU
+										AND relp.COD_ADM=1
+										AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1)) my_relp1
+				-- récupération de la source 2 s'il y en a une
+				OUTER APPLY (SELECT relp.not_elp, relp.bar_not_elp, relp.not_pnt_jur_elp,
+									to_char(CASE WHEN relp.cod_ses='0' THEN '1'
+												WHEN relp.cod_ses='2' AND (relp.tem_not_rpt_elp='O' OR relp.tem_res_rpt_elp='O') THEN '1'
+												ELSE relp.cod_ses END) session_retenue,
+									relp.COD_ANU as annee_acquisition,
+									-- Notes obtenues le plus récemment
+									row_number() OVER (PARTITION BY lprc.cod_etp,
+																	lprc.cod_vrs_vet,
+																	lprc.cod_ind,
+																	lprc.cod_elp
+														ORDER BY relp.cod_anu DESC,relp.cod_ses) as rownnumber
+									FROM RESULTAT_ELP relp
+									WHERE relp.cod_ELP=ece.COD_ELP_S2_LCC
+										AND relp.cod_ind = lprc.COD_IND
+										AND relp.cod_anu < lprc.COD_ANU
+										AND relp.COD_ADM=1
+										AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1)) my_relp2
+				WHERE ece.DAA_DEB_VAL_LCC<=lprc.COD_ANU
 					AND nvl(ece.DAA_FIN_VAL_LCC,lprc.COD_ANU)>=lprc.COD_ANU
-					AND relp.cod_ELP=ece.COD_ELP_S1_LCC
-					AND relp.cod_ind = lprc.COD_IND
-					AND relp.cod_anu < lprc.COD_ANU
-					AND relp.COD_ADM=1
-					AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1)
+					-- LCC obtenus le plus récemment
+					AND my_relp1.rownnumber=1
+					AND (nvl(my_relp2.rownnumber,1) = 1)
 			) ma_table
-		-- LCC obtenus le plus récemment
-		WHERE ma_table.rownnumber=1
 		;
 						
 	BEGIN

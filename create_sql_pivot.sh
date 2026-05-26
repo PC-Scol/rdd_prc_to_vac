@@ -454,6 +454,7 @@ DECLARE
 	COD_VRS_VDI_FILTRE_FORMATION varchar2(10) := '${COD_VRS_VDI_FILTRE}';
 	TYPE_ACQUIS_VAL varchar2(3) := '${TYPE_ACQUIS}';
 
+
 BEGIN
 
 	-- une ligne est ajoutée dans apprenant_coc si et seulement si une note est renseignée
@@ -541,6 +542,8 @@ BEGIN
 			resultat_session2 := null;
 			mention_honorifique_session2 := null;
 		ELSIF TYPE_ACQUIS_VAL = 'LCC' THEN
+			-- Par souci de simplicité, les notes/résultas/mentions de chaque session sont valués à NULL, comme pour les VAC
+			-- note et barème finaux sont déjà connus et valorisés dans NOT_VAA_VAL et BAR_NOT_VAA_VAL
 			note_session1	:= null;
 			bareme_session1 := null;
 			note_point_jury_session1 := null;
@@ -551,6 +554,7 @@ BEGIN
 			note_point_jury_session2 := null;
 			resultat_session2 := null;
 			mention_honorifique_session2 := null;
+
 		ELSE
 			RAISE_APPLICATION_ERROR(-20002, 'Type d''acquis inconnu!');
 		END IF;
