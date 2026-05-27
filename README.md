@@ -163,5 +163,4 @@ Selon les scripts utilisés, six fichiers différents peuvent être générés e
 ## Limitations
 L'outillage mis à disposition, dans sa version actuelle, ne prend pas en charge :
 * la reprise des credits ects
-* les PRC sur LCC
 * la reprise de la meilleure note pour les BUT/DUT
