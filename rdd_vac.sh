@@ -702,7 +702,8 @@ DECLARE
 				--			du temps de traitement est perdu car des lignes sont sélectionnées pour être ré-enlevées ensuite
 				AND EXISTS (
 					SELECT 1
-					FROM ins_adm_etp ins
+					FROM ins_adm_etp ins,
+						individu ind
 					WHERE ins.cod_dip=cod_dip_in
 					AND ins.cod_vrs_vdi=cod_vrs_vdi_in
 					AND ins.cod_etp = ice.cod_etp
@@ -710,7 +711,10 @@ DECLARE
 					AND ins.cod_anu = ice.cod_anu
 					AND ins.cod_ind = ice.cod_ind
 					AND ins.eta_iae='E'
-					AND ins.eta_pmt_iae='P'))
+					AND ins.eta_pmt_iae='P'
+					-- jointure sur individu pour exclure automatiquement les apprenants qui ont été supprimés
+					--   de la table apprenant et dont on ne pourr jamais récupérer le code apprenant
+					AND ins.cod_ind = ind.cod_ind))
 		-- 1. SELECTION DES PRC SUR NOTES/RÉSULTATS
 		-- ----------------------------------------
 		SELECT 'CAP' as type_acquis,
