@@ -832,7 +832,7 @@ DECLARE
 							WHEN my_relp1.not_elp is NULL and my_relp2.not_elp is NOT NULL THEN	TO_CHAR(my_relp2.bar_not_elp)
 						END bareme,
 						null point_jury, -- pour simplifier, les points jury sont directement intégrés à la note simulée
-						my_relp1.session_retenue,
+						null session_retenue,
 						my_relp1.annee_acquisition,
 						lprc.cod_cip
 				FROM liste_ice_prc lprc
