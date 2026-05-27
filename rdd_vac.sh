@@ -595,19 +595,20 @@ echo "  >>>   Debut Traitement de generation des cles VACs pour la(les) etape(s)
 # bouclage sur la liste des vets dans le fichier temporaire
 while read ligne
 do
+# "##" : supprime la plus longue correspondance depuis le début
+# "%%" : supprime la plus longue correspondance depuis la fin
+# "%"  : supprime la plus courte correspondance depuis la fin
+ligne_dip="${ligne%%>*}"
+COD_DIP_FIC="${ligne_dip%-*}"
+COD_VRS_VDI="${ligne_dip##*-}"
 
-ligne_dip=`echo $ligne | cut -f 1 -d ">"`
-ligne_etp=`echo $ligne | cut -f 2 -d ">"`
-
-COD_DIP_FIC=`echo $ligne_dip | cut -f 1 -d "-"`
-COD_VRS_VDI=`echo $ligne_dip | cut -f 2 -d "-"`
-
-COD_OBJ_FIC=`echo $ligne_etp | cut -f 1 -d "-"`
-COD_VRS_OBJ=`echo $ligne_etp | cut -f 2 -d "-"`
+ligne_etp="${ligne##*>}"
+COD_OBJ_FIC="${ligne_etp%-*}"
+COD_VRS_OBJ="${ligne_etp##*-}"
 
 echo -e "  >>>   Debut generation des cles vac pour l'etape :  $ligne  ">> $FIC_LOG
 echo "  >>>   Debut generation des cles vac pour l'etape :  $ligne  "
-echo "  >>>   Traitement de la VET :  ${COD_OBJ_FIC} - ${COD_VRS_OBJ} "
+echo "  >>>   Traitement de la VDI/VET :  ${COD_DIP_FIC} - ${COD_VRS_VDI} / ${COD_OBJ_FIC} - ${COD_VRS_OBJ} "
 ## --------------------------------------------
 # ETAPE 3 : TRAITEMENT DES VALEURS
 # --------------------------------------------
