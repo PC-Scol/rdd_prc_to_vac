@@ -389,7 +389,7 @@ echo "  >>>  Genération de la VAC pour module COC d'insertion  pour le pivot :$
 
 #recuperation des valeurs dans les clés
 
-IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA NOT_PNT_JUR_VAA SESSION_RETENUE ANNEE_ACQUISITION <<< "$sql_condition_string"
+IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA NOT_PNT_JUR_VAA SESSION_RETENUE ANNEE_ACQUISITION TYPE_ACQUIS <<< "$sql_condition_string"
 
 FILTRE_FORMATION="test_filtre_formation"
 result=$(${FILTRE_FORMATION} "$COD_ETP" "$COD_VRS_VET" "$DIR_FIC_ARCHIVE")
@@ -452,6 +452,8 @@ DECLARE
 	note_point_jury_session2 varchar2(10) := null;
 	COD_DIP_FILTRE_FILTRE_FORMATION varchar2(10) := '${COD_DIP_FILTRE}';
 	COD_VRS_VDI_FILTRE_FORMATION varchar2(10) := '${COD_VRS_VDI_FILTRE}';
+	TYPE_ACQUIS_VAL varchar2(3) := '${TYPE_ACQUIS}';
+
 
 BEGIN
 
@@ -459,6 +461,7 @@ BEGIN
 	IF NOT_VAA_VAL IS NOT NULL THEN
 	
 		--Récupération des valeurs pour créer les clés et les ordres SQL
+		-- Note: pourrait être passé directement en paramètre par rdd_vac.sh pour éviter ce select
 		SELECT cod_dip, cod_vrs_vdi, cod_etu
 		INTO COD_DIP_VAL, COD_VRS_VDI_VAL, COD_ETU_VAL
 		FROM (
@@ -481,47 +484,87 @@ BEGIN
 			RAISE_APPLICATION_ERROR(-20001, 'VDI ou version différente du filtre formation!');
 		END IF;
 
-		Select max(cod_ses)
-			into NUM_SESSION
-			from resultat_elp
-			where COD_ADM = 1
-			and cod_elp = COD_ELP_VAL
-			and COD_IND = COD_IND_VAL
-			and cod_anu = ANNEE_ACQUISITION_VAL;
-		
 		Select elp.cod_nel, elp.tem_cap_elp, elp.tem_con_elp, elp.dur_con_elp, elp.not_min_con_elp
 			into COD_NEL_VAL, tem_capitalise, tem_conservation, duree_conservation, note_minimale_conservation
 			from ELEMENT_PEDAGOGI elp
 			where cod_elp = COD_ELP_VAL;
 		
-		Select to_char(not_elp), to_char(bar_not_elp),to_char(not_pnt_jur_elp,'FM99990D099'),
-				CASE WHEN relp.cod_ses='1' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
-					WHEN relp.cod_ses='1' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
-				END,
-				cod_men
-		into note_session1, bareme_session1, note_point_jury_session1, resultat_session1, mention_honorifique_session1
-		from resultat_elp relp
-		where   cod_elp = COD_ELP_VAL
-			and COD_IND = COD_IND_VAL
-			and cod_ses in ('0','1')
-			and cod_adm = '1'
-			and cod_anu = ANNEE_ACQUISITION_VAL;
-
-		IF NUM_SESSION = 2
-		THEN
-			Select to_char(not_elp), to_char(bar_not_elp),to_char(not_pnt_jur_elp,'FM99990D099'),
-					CASE WHEN relp.cod_ses='2' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
-						WHEN relp.cod_ses='2' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
-					END,
-				cod_men
-			into note_session2, bareme_session2, note_point_jury_session2, resultat_session2, mention_honorifique_session2
-			from resultat_elp relp
-			where  cod_elp = COD_ELP_VAL
+		-- Calcul des valeurs à insérer selon le type d'acquis
+		-- 		- note_session1, bareme_session1, note_point_jury_session1, resultat_session1, mention_honorifique_session1
+		--		- note_session2, bareme_session2, note_point_jury_session2, resultat_session2, mention_honorifique_session2
+		IF TYPE_ACQUIS_VAL = 'CAP' THEN
+			Select max(cod_ses)
+				into NUM_SESSION
+				from resultat_elp
+				where COD_ADM = 1
+				and cod_elp = COD_ELP_VAL
 				and COD_IND = COD_IND_VAL
-				and cod_ses = '2'
+				and cod_anu = ANNEE_ACQUISITION_VAL;
+
+			Select to_char(not_elp), to_char(bar_not_elp),to_char(not_pnt_jur_elp,'FM99990D099'),
+					CASE WHEN relp.cod_ses='1' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
+						WHEN relp.cod_ses='1' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
+					END,
+					cod_men
+			into note_session1, bareme_session1, note_point_jury_session1, resultat_session1, mention_honorifique_session1
+			from resultat_elp relp
+			where   cod_elp = COD_ELP_VAL
+				and COD_IND = COD_IND_VAL
+				and cod_ses in ('0','1')
 				and cod_adm = '1'
 				and cod_anu = ANNEE_ACQUISITION_VAL;
+
+			IF NUM_SESSION = 2
+			THEN
+				Select to_char(not_elp), to_char(bar_not_elp),to_char(not_pnt_jur_elp,'FM99990D099'),
+						CASE WHEN relp.cod_ses='2' AND relp.COD_TRE IS NOT NULL AND relp.COD_TRE NOT IN ('ABI','ABJ') THEN relp.COD_TRE
+							WHEN relp.cod_ses='2' AND relp.NOT_SUB_ELP IS NOT NULL AND relp.NOT_SUB_ELP NOT IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
+						END,
+					cod_men
+				into note_session2, bareme_session2, note_point_jury_session2, resultat_session2, mention_honorifique_session2
+				from resultat_elp relp
+				where  cod_elp = COD_ELP_VAL
+					and COD_IND = COD_IND_VAL
+					and cod_ses = '2'
+					and cod_adm = '1'
+					and cod_anu = ANNEE_ACQUISITION_VAL;
+			END IF;
+
+		ELSIF TYPE_ACQUIS_VAL = 'VAC' THEN
+			note_session1	:= null;
+			bareme_session1 := null;
+			note_point_jury_session1 := null;
+			resultat_session1 := null;
+			mention_honorifique_session1 := null;
+			note_session2	:= null;
+			bareme_session2 := null;
+			note_point_jury_session2 := null;
+			resultat_session2 := null;
+			mention_honorifique_session2 := null;
+		ELSIF TYPE_ACQUIS_VAL = 'LCC' THEN
+			-- Par souci de simplicité, les notes/résultas/mentions de chaque session sont valués à NULL, comme pour les VAC
+			-- note et barème finaux sont déjà connus et valorisés dans NOT_VAA_VAL et BAR_NOT_VAA_VAL
+			note_session1	:= null;
+			bareme_session1 := null;
+			note_point_jury_session1 := null;
+			resultat_session1 := null;
+			mention_honorifique_session1 := null;
+			note_session2	:= null;
+			bareme_session2 := null;
+			note_point_jury_session2 := null;
+			resultat_session2 := null;
+			mention_honorifique_session2 := null;
+
+		ELSE
+			RAISE_APPLICATION_ERROR(-20002, 'Type d''acquis inconnu!');
 		END IF;
+
+		if nvl(SESSION_RETENUE_VAL,-1) = 1 then
+			code_mention := mention_honorifique_session1;
+		elsif nvl(SESSION_RETENUE_VAL,-1) = 2 then
+			code_mention := mention_honorifique_session2;
+		end if;
+
 
 		CLE_COC  := COD_IND_VAL || '-'||ANNEE_VAL || '-'|| COD_DIP_VAL ||'-'||COD_VRS_VDI_VAL||'-'||COD_ETP_VAL ||'-'|| COD_VRS_VET_VAL ||'-ELP-'|| COD_ELP_VAL;
 		code_filtre_formation := COD_DIP_VAL||'-'|| COD_VRS_VDI_VAL;
@@ -543,12 +586,7 @@ BEGIN
 		LINEBUFFER := LINEBUFFER || COD_IND_VAL||';';					-- "id_apprenant"
 		LINEBUFFER := LINEBUFFER || COD_ETU_VAL||';';					-- "code_apprenant"
 		LINEBUFFER := LINEBUFFER || COD_NEL_VAL||';';					-- "type_objet_formation"
-		if nvl(SESSION_RETENUE_VAL,-1) = 1 then							-- "code_mention"
-			code_mention := mention_honorifique_session1;
-		elsif nvl(SESSION_RETENUE_VAL,-1) = 2 then
-			code_mention := mention_honorifique_session2;
-		end if;
-		LINEBUFFER := LINEBUFFER || nvl(code_mention,'NULL')||';';
+		LINEBUFFER := LINEBUFFER || nvl(code_mention,'NULL')||';';		-- "code_mention"
 		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "grade_ects"
 		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "gpa"
 		LINEBUFFER := LINEBUFFER ||	nvl(NOT_VAA_VAL,'NULL')||';';		-- "note_retenue"
@@ -574,7 +612,6 @@ BEGIN
 				end if;
 
 		end if;
-
 		LINEBUFFER := LINEBUFFER || nvl(resultat_session1,'NULL')||';';	-- "resultat_session1"
 		LINEBUFFER := LINEBUFFER || nvl(resultat_session2,'NULL')||';';	-- "resultat_session2"
 		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "rang_final"
@@ -688,7 +725,7 @@ echo "  >>>  Genération de la VAC d'insertion (chc) pour le pivot :  ${sql_cond
 echo "  >>>  Genération de la VAC pour module CHC d'insertion  pour le pivot :${sql_condition_string}" >> $FIC_LOG
 
 #recuperation des valeurs dans les clés
-IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA NOT_PNT_JUR_VAA SESSION_RETENUE ANNEE_ACQUISITION <<< "$sql_condition_string"
+IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA NOT_PNT_JUR_VAA SESSION_RETENUE ANNEE_ACQUISITION TYPE_ACQUIS <<< "$sql_condition_string"
 
 
 FILTRE_FORMATION="test_filtre_formation"

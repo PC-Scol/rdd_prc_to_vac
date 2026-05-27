@@ -595,16 +595,20 @@ echo "  >>>   Debut Traitement de generation des cles VACs pour la(les) etape(s)
 # bouclage sur la liste des vets dans le fichier temporaire
 while read ligne
 do
+# "##" : supprime la plus longue correspondance depuis le début
+# "%%" : supprime la plus longue correspondance depuis la fin
+# "%"  : supprime la plus courte correspondance depuis la fin
+ligne_dip="${ligne%%>*}"
+COD_DIP_FIC="${ligne_dip%-*}"
+COD_VRS_VDI="${ligne_dip##*-}"
 
-ligne_etp=`echo $ligne | cut -f 2 -d ">"`
-
-
-COD_OBJ_FIC=`echo $ligne_etp | cut -f 1 -d "-"`
-COD_VRS_OBJ=`echo $ligne_etp | cut -f 2 -d "-"`
+ligne_etp="${ligne##*>}"
+COD_OBJ_FIC="${ligne_etp%-*}"
+COD_VRS_OBJ="${ligne_etp##*-}"
 
 echo -e "  >>>   Debut generation des cles vac pour l'etape :  $ligne  ">> $FIC_LOG
 echo "  >>>   Debut generation des cles vac pour l'etape :  $ligne  "
-echo "  >>>   Traitement de la VET :  ${COD_OBJ_FIC} - ${COD_VRS_OBJ} "
+echo "  >>>   Traitement de la VDI/VET :  ${COD_DIP_FIC} - ${COD_VRS_VDI} / ${COD_OBJ_FIC} - ${COD_VRS_OBJ} "
 ## --------------------------------------------
 # ETAPE 3 : TRAITEMENT DES VALEURS
 # --------------------------------------------
@@ -621,19 +625,23 @@ SET HEADING OFF
 SET FEEDBACK OFF
 SET TRIMSPOOL ON
 -- linesize :
---      cod_anu		4
---    + cod_ind		8
---    + cod_etp		6
---    + cod_vrs_vet	3
---    + cod_elp		8
---    +'SYSDATE'	7
---    + cod_cip_vet	4 (valeur la + grande entre taille cod_cip et NULL)=>
---    + note		9 (5chiffres + "," + 3décimales)
---    + bareme		5
---	  + ";"			9
---	  ===============
---					63 caractères => 70 par sécurité
-set linesize 70
+--      cod_anu				4
+--    + cod_ind				8
+--    + cod_etp				6
+--    + cod_vrs_vet			3
+--    + cod_elp				8
+--    +'SYSDATE'			7
+--    + cod_cip_vet			4 (valeur la + grande entre taille cod_cip et NULL)=> 4
+--    + note				9 (5chiffres + "," + 3décimales)
+--    + bareme				5
+--    + point_jury			9 (5chiffres + "," + 3décimales)
+--    + session_retenue		1
+--    + annee_acquisition	4
+--    + type_acquis			3
+--	  + ";"					13
+--	  ========================
+--							71 caractères => 75 par sécurité
+set linesize 75
 set pagesize 1
 VARIABLE ret_code NUMBER
 SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT} append
@@ -641,9 +649,11 @@ BEGIN
 
 DECLARE
 	--initialisation des variables
-	linebuffer		varchar2(70) := '';
+	linebuffer		varchar2(75) := '';
 	count_ide		number(8,0) := 0;
 
+	cod_dip_in		DIPLOME.cod_dip%TYPE := '${COD_DIP_FIC}';
+	cod_vrs_vdi_in	VERSION_DIPLOME.cod_vrs_vdi%TYPE := '${COD_VRS_VDI}';
 	cod_etp_in		ETAPE.cod_etp%TYPE := '${COD_OBJ_FIC}';
 	cod_vrs_vet_in	VERSION_ETAPE.cod_vrs_vet%TYPE := '${COD_VRS_OBJ}';
 	cod_anu_in		INS_ADM_ANU.cod_anu%TYPE :='${COD_ANU}';
@@ -659,6 +669,7 @@ DECLARE
 				ice.cod_ind,
 				ice.cod_elp,
 				ice.cod_cip,
+				ice.cod_lcc_ice,
 				elp.tem_cap_elp,
 				elp.tem_con_elp,
 				elp.not_min_con_elp,
@@ -691,16 +702,23 @@ DECLARE
 				--			du temps de traitement est perdu car des lignes sont sélectionnées pour être ré-enlevées ensuite
 				AND EXISTS (
 					SELECT 1
-					FROM ins_adm_etp ins
-					WHERE ins.cod_etp = ice.cod_etp
+					FROM ins_adm_etp ins,
+						individu ind
+					WHERE ins.cod_dip=cod_dip_in
+					AND ins.cod_vrs_vdi=cod_vrs_vdi_in
+					AND ins.cod_etp = ice.cod_etp
 					AND ins.cod_vrs_vet = ice.cod_vrs_vet
 					AND ins.cod_anu = ice.cod_anu
 					AND ins.cod_ind = ice.cod_ind
 					AND ins.eta_iae='E'
-					AND ins.eta_pmt_iae='P'))
+					AND ins.eta_pmt_iae='P'
+					-- jointure sur individu pour exclure automatiquement les apprenants qui ont été supprimés
+					--   de la table apprenant et dont on ne pourr jamais récupérer le code apprenant
+					AND ins.cod_ind = ind.cod_ind))
 		-- 1. SELECTION DES PRC SUR NOTES/RÉSULTATS
 		-- ----------------------------------------
-		SELECT ma_table.cod_anu,
+		SELECT 'CAP' as type_acquis,
+				ma_table.cod_anu,
 				ma_table.cod_etp,
 				ma_table.cod_vrs_vet,
 				ma_table.cod_ind,
@@ -749,10 +767,11 @@ DECLARE
 					) ma_table
 		-- Notes/resultats obtenus le plus recemment
 		WHERE ma_table.rownnumber=1
-		UNION
+		UNION ALL
 		-- 2. SELECTION DES PRC SUR VALIDATIONS D'ACQUIS ANTERIEURES
 		-- ---------------------------------------------------------
-		SELECT ma_table.cod_anu,
+		SELECT 'VAC' as type_acquis,
+				ma_table.cod_anu,
 				ma_table.cod_etp,
 				ma_table.cod_vrs_vet,
 				ma_table.cod_ind,
@@ -785,16 +804,92 @@ DECLARE
 					AND ide.cod_elp=lprc.cod_elp) ma_table
 		-- Validations d'acquis obtenues le plus récemment
 		WHERE ma_table.rownnumber=1
+		UNION ALL
 		-- 3. SELECTION DES PRC SUR LCC
 		-- ----------------------------
-		-- TODO
+		SELECT 'LCC' as type_acquis,
+				ma_table.cod_anu,
+				ma_table.cod_etp,
+				ma_table.cod_vrs_vet,
+				ma_table.cod_ind,
+				ma_table.cod_elp,
+				ma_table.note, ma_table.bareme, ma_table.point_jury,
+				ma_table.session_retenue,
+                ma_table.annee_acquisition,
+				ma_table.cod_cip
+		FROM (	SELECT lprc.cod_anu,
+						lprc.cod_etp,
+						lprc.cod_vrs_vet,
+						lprc.cod_ind,
+						lprc.cod_elp,	-- aménagement simulé sur ELP cible du LCC (source multiple non-gérée dans Pégase; SINON mettre "ece.COD_ELP_S1_LCC as cod_elp,")
+						CASE
+							WHEN my_relp1.not_elp is not null and my_relp2.not_elp is not NULL THEN
+								TO_CHAR(((ece.PDS_S1_LCC*(my_relp1.not_elp+nvl(my_relp1.not_pnt_jur_elp,0))/my_relp1.bar_not_elp)
+											+(ece.PDS_S2_LCC*(my_relp2.not_elp+nvl(my_relp2.not_pnt_jur_elp,0))/my_relp2.bar_not_elp))
+                                          /(ece.PDS_S1_LCC+ece.PDS_S2_LCC) * 20)
+							WHEN my_relp1.not_elp is NOT NULL and my_relp2.not_elp is NULL THEN	TO_CHAR(my_relp1.not_elp+nvl(my_relp1.not_pnt_jur_elp,0))
+							WHEN my_relp1.not_elp is NULL and my_relp2.not_elp is NOT NULL THEN	TO_CHAR(my_relp2.not_elp+nvl(my_relp2.not_pnt_jur_elp,0))
+						END note,
+						CASE
+							WHEN my_relp1.not_elp is not null and my_relp2.not_elp is not NULL THEN TO_CHAR(20)
+							WHEN my_relp1.not_elp is NOT NULL and my_relp2.not_elp is NULL THEN	TO_CHAR(my_relp1.bar_not_elp)
+							WHEN my_relp1.not_elp is NULL and my_relp2.not_elp is NOT NULL THEN	TO_CHAR(my_relp2.bar_not_elp)
+						END bareme,
+						null point_jury, -- pour simplifier, les points jury sont directement intégrés à la note simulée
+						null session_retenue,
+						my_relp1.annee_acquisition,
+						lprc.cod_cip
+				FROM liste_ice_prc lprc
+				JOIN ELP_CORRESPOND_ELP ece ON (lprc.COD_LCC_ICE IS NOT NULL AND ece.COD_LCC=lprc.COD_LCC_ICE)
+				-- récupération de la source 1 (il y en a toujours une)
+				CROSS APPLY (SELECT relp.not_elp, relp.bar_not_elp, relp.not_pnt_jur_elp,
+									to_char(CASE WHEN relp.cod_ses='0' THEN '1'
+												WHEN relp.cod_ses='2' AND (relp.tem_not_rpt_elp='O' OR relp.tem_res_rpt_elp='O') THEN '1'
+												ELSE relp.cod_ses END) session_retenue,
+									relp.COD_ANU as annee_acquisition,
+									-- Notes obtenues le plus récemment
+									row_number() OVER (PARTITION BY lprc.cod_etp,
+																	lprc.cod_vrs_vet,
+																	lprc.cod_ind,
+																	lprc.cod_elp
+														ORDER BY relp.cod_anu DESC,relp.cod_ses) as rownnumber
+									FROM RESULTAT_ELP relp
+									WHERE relp.cod_ELP=ece.COD_ELP_S1_LCC
+										AND relp.cod_ind = lprc.COD_IND
+										AND relp.cod_anu < lprc.COD_ANU
+										AND relp.COD_ADM=1
+										AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1)) my_relp1
+				-- récupération de la source 2 s'il y en a une
+				OUTER APPLY (SELECT relp.not_elp, relp.bar_not_elp, relp.not_pnt_jur_elp,
+									to_char(CASE WHEN relp.cod_ses='0' THEN '1'
+												WHEN relp.cod_ses='2' AND (relp.tem_not_rpt_elp='O' OR relp.tem_res_rpt_elp='O') THEN '1'
+												ELSE relp.cod_ses END) session_retenue,
+									relp.COD_ANU as annee_acquisition,
+									-- Notes obtenues le plus récemment
+									row_number() OVER (PARTITION BY lprc.cod_etp,
+																	lprc.cod_vrs_vet,
+																	lprc.cod_ind,
+																	lprc.cod_elp
+														ORDER BY relp.cod_anu DESC,relp.cod_ses) as rownnumber
+									FROM RESULTAT_ELP relp
+									WHERE relp.cod_ELP=ece.COD_ELP_S2_LCC
+										AND relp.cod_ind = lprc.COD_IND
+										AND relp.cod_anu < lprc.COD_ANU
+										AND relp.COD_ADM=1
+										AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1)) my_relp2
+				WHERE ece.DAA_DEB_VAL_LCC<=lprc.COD_ANU
+					AND nvl(ece.DAA_FIN_VAL_LCC,lprc.COD_ANU)>=lprc.COD_ANU
+					-- LCC obtenus le plus récemment
+					AND my_relp1.rownnumber=1
+					AND (nvl(my_relp2.rownnumber,1) = 1)
+			) ma_table
 		;
 						
 	BEGIN
 		-- RECHERCHE PAR PRC
 		FOR recherche_prc_rec IN recherche_prc_cur(cod_etp_in,cod_vrs_vet_in,cod_anu_in,transformation_conservation_capitalisation_in)
 		LOOP
-				linebuffer := ''||REPLACE(cod_anu_in,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_ind,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_etp,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_vrs_vet,'NULL',NULL)||';'||REPLACE(recherche_prc_rec.cod_elp,'','NULL')||';SYSDATE;'||REPLACE(recherche_prc_rec.cod_cip,'','NULL')||';' ||recherche_prc_rec.note|| ';' ||recherche_prc_rec.bareme ||';' ||recherche_prc_rec.point_jury ||';' ||recherche_prc_rec.session_retenue ||';' ||recherche_prc_rec.annee_acquisition ||';';
+				linebuffer := ''||REPLACE(cod_anu_in,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_ind,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_etp,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_vrs_vet,'NULL',NULL)||';'||REPLACE(recherche_prc_rec.cod_elp,'','NULL')||';SYSDATE;'||REPLACE(recherche_prc_rec.cod_cip,'','NULL')||';' ||recherche_prc_rec.note|| ';' ||recherche_prc_rec.bareme ||';' ||recherche_prc_rec.point_jury ||';' ||recherche_prc_rec.session_retenue ||';' ||recherche_prc_rec.annee_acquisition ||';' ||recherche_prc_rec.type_acquis ||';';
 				dbms_output.put_line(linebuffer);
 		END LOOP;
 	END;
