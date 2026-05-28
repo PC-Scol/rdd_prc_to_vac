@@ -160,6 +160,18 @@ Selon les scripts utilisés, six fichiers différents peuvent être générés e
 
 	12. Faire une injection normale des COC (avec l'outillage "RDD tools")
 
+## Particularités fonctionnelles
+### Simulation des acquis sur LCC
+Le principe de cet outil est de générer 1 aménagement Pégase pour 1 PRC Apogée.
+Lorsque la PRC concerne un acquis obtenu via LCC sur des sources multiples (il peut y en avoir jusqu'à deux dans Apogée) ayant chacune une note, la note à mettre dans l'aménagement simulé est calculée avec la moyenne pondérée des 2 notes sources, comme dans Apogée :
+```
+(	(Poids_source1*(note + points_jury_source1)/barème_source1)
+	+(Poids_source2*(note + points_jury_source2)/barème_source2)
+)
+	/ (Poids_source1+Poids_source2) * 20
+```
+Noter que dans ce cas, comme dans Apogée, le barème est forcé sur 20.
+
 ## Limitations
 L'outillage mis à disposition, dans sa version actuelle, ne prend pas en charge :
 * la reprise des credits ects
