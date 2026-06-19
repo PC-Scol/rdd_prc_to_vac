@@ -74,7 +74,6 @@ echo "    >>>     Code Version Objet : ${COD_VRS_OBJ}"
 echo "    >>>     Transformation des conservations en capitalisations : ${TRANSFORMATION_CONSERVATION_CAPITALISATION}"
 echo "    >>>     Dossier racine : ${DIR_FIC_ARCH}"
 echo "    >>>     Identifiant base de donnee : ${LOGIN_APOGEE}"
-echo "    >>>     Mot de passe base de donnee : ${MDP_APOGEE}"
 echo "    >>>     PDB : $PDB"
 echo "-------------------------------------------------"
 # -----------------------------------------
@@ -820,7 +819,7 @@ DECLARE
 		FROM (	SELECT lprc.cod_anu,
 						lprc.cod_etp,
 						lprc.cod_vrs_vet,
-						lprc.cod_ind,
+						my_relp1.cod_ind,
 						lprc.cod_elp,	-- aménagement simulé sur ELP cible du LCC (source multiple non-gérée dans Pégase; SINON mettre "ece.COD_ELP_S1_LCC as cod_elp,")
 						CASE
 							WHEN my_relp1.not_elp is not null and my_relp2.not_elp is not NULL THEN
@@ -842,7 +841,7 @@ DECLARE
 				FROM liste_ice_prc lprc
 				JOIN ELP_CORRESPOND_ELP ece ON (lprc.COD_LCC_ICE IS NOT NULL AND ece.COD_LCC=lprc.COD_LCC_ICE)
 				-- récupération de la source 1 (il y en a toujours une)
-				CROSS APPLY (SELECT relp.not_elp, relp.bar_not_elp, relp.not_pnt_jur_elp,
+				CROSS APPLY (SELECT relp.cod_ind, relp.not_elp, relp.bar_not_elp, relp.not_pnt_jur_elp,
 									to_char(CASE WHEN relp.cod_ses='0' THEN '1'
 												WHEN relp.cod_ses='2' AND (relp.tem_not_rpt_elp='O' OR relp.tem_res_rpt_elp='O') THEN '1'
 												ELSE relp.cod_ses END) session_retenue,
@@ -889,7 +888,7 @@ DECLARE
 		-- RECHERCHE PAR PRC
 		FOR recherche_prc_rec IN recherche_prc_cur(cod_etp_in,cod_vrs_vet_in,cod_anu_in,transformation_conservation_capitalisation_in)
 		LOOP
-				linebuffer := ''||REPLACE(cod_anu_in,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_ind,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_etp,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_vrs_vet,'NULL',NULL)||';'||REPLACE(recherche_prc_rec.cod_elp,'','NULL')||';SYSDATE;'||REPLACE(recherche_prc_rec.cod_cip,'','NULL')||';' ||recherche_prc_rec.note|| ';' ||recherche_prc_rec.bareme ||';' ||recherche_prc_rec.point_jury ||';' ||recherche_prc_rec.session_retenue ||';' ||recherche_prc_rec.annee_acquisition ||';' ||recherche_prc_rec.type_acquis ||';';
+				linebuffer := ''||REPLACE(cod_anu_in,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_ind,'',NULL)||';'||REPLACE(cod_etp_in,'',NULL)||';'||REPLACE(cod_vrs_vet_in,'NULL',NULL)||';'||REPLACE(recherche_prc_rec.cod_elp,'','NULL')||';SYSDATE;'||REPLACE(recherche_prc_rec.cod_cip,'','NULL')||';' ||recherche_prc_rec.note|| ';' ||recherche_prc_rec.bareme ||';' ||recherche_prc_rec.point_jury ||';' ||recherche_prc_rec.session_retenue ||';' ||recherche_prc_rec.annee_acquisition ||';' ||recherche_prc_rec.type_acquis ||';';
 				dbms_output.put_line(linebuffer);
 		END LOOP;
 	END;
