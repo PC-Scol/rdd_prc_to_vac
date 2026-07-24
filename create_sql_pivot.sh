@@ -578,7 +578,8 @@ BEGIN
 			AND relp.cod_tre        = tre1.cod_tre(+)
 			AND relp.NOT_SUB_ELP    = tre2.cod_tre(+);
 
-			-- credit ects de session 1
+			-- credit ects de session 1 
+			-- et session 0
 			CREDIT_ECTS_VAL_SESSION1 := CASE
 					WHEN  resultat_positif_negatif_session IS NOT NULL 
 						AND absence_retenue IS NULL
@@ -594,6 +595,9 @@ BEGIN
 
 			-- credit ects de session 2
 			CREDIT_ECTS_VAL_SESSION2 := CASE
+					--- cas si session à 0
+					-- cas si session si 1 et 2
+					-- si resultat dans la session 2 si pas d'absence aux deux sessions
 					WHEN  code_session_max > 0 
 						and  absence_retenue2 IS NULL
 						and (
@@ -607,6 +611,8 @@ BEGIN
 							resultat_positif_negatif_session2 is not null and resultat_positif_negatif_session2 = 1
 						 )
 						THEN CREDIT_ECTS_VAL
+					-- cas si session si 1 et 2
+					-- si resultat dans la session 1 si pas d'absence aux deux sessions
 					WHEN code_session_max > 0 
 						and  absence_retenue2 IS NULL
 						and absence_retenue IS NULL
@@ -619,6 +625,8 @@ BEGIN
 							resultat_positif_negatif_session is not null and resultat_positif_negatif_session = 1
 						   )
 						THEN CREDIT_ECTS_VAL
+					-- si resultat dans la si 1 et 2
+					-- si resultat dans la session 1 si pas d'absence à la première
 					when code_session_max = 0 
 						and absence_retenue IS NULL
 						and (
