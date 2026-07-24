@@ -646,7 +646,9 @@ BEGIN
 			note_point_jury_session2 := null;
 			resultat_session2 := null;
 			mention_honorifique_session2 := null;
-			credit_ects_val := null;
+			credit_ects_val_session1 := null;
+			credit_ects_val_session2 := null;
+
 		ELSIF TYPE_ACQUIS_VAL = 'LCC' THEN
 			-- Par souci de simplicité, les notes/résultas/mentions de chaque session sont valués à NULL, comme pour les VAC
 			-- note et barème finaux sont déjà connus et valorisés dans NOT_VAA_VAL et BAR_NOT_VAA_VAL
@@ -660,7 +662,8 @@ BEGIN
 			note_point_jury_session2 := null;
 			resultat_session2 := null;
 			mention_honorifique_session2 := null;
-			credit_ects_val := null;
+			credit_ects_val_session1 := null;
+			credit_ects_val_session2 := null;
 
 		ELSE
 			RAISE_APPLICATION_ERROR(-20002, 'Type d''acquis inconnu!');
