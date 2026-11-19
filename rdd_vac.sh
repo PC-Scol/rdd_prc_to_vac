@@ -932,7 +932,7 @@ echo -e "  >>>   Copie du fichier temporaire dans le dossier archive" >> $FIC_LO
 number=0
 number=`cat ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT} | wc -l`
 
-if [ $number -le 1 ] ;
+if [ $number -le 0 ] ;
 then
 	echo -e "     "
 	echo -e "  >>>   Pas de VAC TROUVEE pour ces parametres !!!"
