@@ -77,7 +77,6 @@ echo "  >>>   Fichier choisi Cle: ${fic_insert##*/}"
 echo "  >>>   Fichier choisi Filtre formation: ${fic_vet##*/}"
 echo "  >>>   PDB : $PDB	"
 echo "  >>>   Identifiant base de donnee : ${LOGIN_APOGEE} "
-echo "  >>>   Mot de passe base de donnee : ${MDP_APOGEE} "
 echo "  >>>   Activation prefix : ${PREFIXON} "
 echo "  >>>   Prefix VDI : ${PREFIX_VDI} "
 echo "  >>>   Prefix VET : ${PREFIX_VET} "
@@ -377,7 +376,6 @@ local ligne=$1
 local str_conx=$2
 
 sql_condition_string=${ligne}
-echo "test: ${sql_condition_string}"
 if [  -z ${sql_condition_string} ]
 then
 	exit
