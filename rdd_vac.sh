@@ -844,7 +844,8 @@ DECLARE
 				FROM liste_ice_prc lprc
 				JOIN ELP_CORRESPOND_ELP ece ON (lprc.COD_LCC_ICE IS NOT NULL AND ece.COD_LCC=lprc.COD_LCC_ICE)
 				-- récupération de la source 1 (il y en a toujours une)
-				CROSS APPLY (SELECT relp.cod_ind, relp.not_elp, relp.bar_not_elp, relp.not_pnt_jur_elp,
+				CROSS APPLY (SELECT res_lcc_1.cod_ind, res_lcc_1.not_elp, res_lcc_1.bar_not_elp,res_lcc_1.not_pnt_jur_elp,res_lcc_1.session_retenue,res_lcc_1.annee_acquisition
+							FROM (SELECT relp.cod_ind, relp.not_elp, relp.bar_not_elp, relp.not_pnt_jur_elp,
 									to_char(CASE WHEN relp.cod_ses='0' THEN '1'
 												WHEN relp.cod_ses='2' AND (relp.tem_not_rpt_elp='O' OR relp.tem_res_rpt_elp='O') THEN '1'
 												ELSE relp.cod_ses END) session_retenue,
@@ -852,17 +853,21 @@ DECLARE
 									-- Notes obtenues le plus récemment
 									row_number() OVER (PARTITION BY lprc.cod_etp,
 																	lprc.cod_vrs_vet,
-																	lprc.cod_ind,
-																	lprc.cod_elp
+																	relp.cod_ind,
+																	relp.cod_elp,
+																	relp.cod_anu
 														ORDER BY relp.cod_anu DESC,relp.cod_ses) as rownnumber
 									FROM RESULTAT_ELP relp
 									WHERE relp.cod_ELP=ece.COD_ELP_S1_LCC
 										AND relp.cod_ind = lprc.COD_IND
 										AND relp.cod_anu < lprc.COD_ANU
 										AND relp.COD_ADM=1
-										AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1)) my_relp1
+										AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1))res_lcc_1
+							-- LCC obtenus le plus récemment
+							WHERE res_lcc_1.rownnumber=1) my_relp1
 				-- récupération de la source 2 s'il y en a une
-				OUTER APPLY (SELECT relp.not_elp, relp.bar_not_elp, relp.not_pnt_jur_elp,
+				OUTER APPLY (SELECT res_lcc_2.not_elp, res_lcc_2.bar_not_elp, res_lcc_2.not_pnt_jur_elp, res_lcc_2.session_retenue,res_lcc_2.annee_acquisition
+							FROM	(SELECT relp.not_elp, relp.bar_not_elp, relp.not_pnt_jur_elp,
 									to_char(CASE WHEN relp.cod_ses='0' THEN '1'
 												WHEN relp.cod_ses='2' AND (relp.tem_not_rpt_elp='O' OR relp.tem_res_rpt_elp='O') THEN '1'
 												ELSE relp.cod_ses END) session_retenue,
@@ -870,20 +875,20 @@ DECLARE
 									-- Notes obtenues le plus récemment
 									row_number() OVER (PARTITION BY lprc.cod_etp,
 																	lprc.cod_vrs_vet,
-																	lprc.cod_ind,
-																	lprc.cod_elp
+																	relp.cod_ind,
+																	relp.cod_elp,
+																	relp.cod_anu
 														ORDER BY relp.cod_anu DESC,relp.cod_ses) as rownnumber
 									FROM RESULTAT_ELP relp
 									WHERE relp.cod_ELP=ece.COD_ELP_S2_LCC
 										AND relp.cod_ind = lprc.COD_IND
 										AND relp.cod_anu < lprc.COD_ANU
 										AND relp.COD_ADM=1
-										AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1)) my_relp2
+										AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1))res_lcc_2
+							-- LCC obtenus le plus récemment
+							WHERE (nvl(res_lcc_2.rownnumber,1) = 1) ) my_relp2
 				WHERE ece.DAA_DEB_VAL_LCC<=lprc.COD_ANU
 					AND nvl(ece.DAA_FIN_VAL_LCC,lprc.COD_ANU)>=lprc.COD_ANU
-					-- LCC obtenus le plus récemment
-					AND my_relp1.rownnumber=1
-					AND (nvl(my_relp2.rownnumber,1) = 1)
 			) ma_table
 		;
 						
