@@ -786,7 +786,8 @@ start=`date +%s`
 mapfile -t lines <  $fic_insert
 
 array_length=${#lines[@]}
-number_item=$((${array_length}/${num_threads}))
+# si le nombre de lignes à traiter est inférieur au nombre de threads, on ne crée qu'un thread par ligne
+number_item=$(( array_length / num_threads == 0 ? 1 : array_length / num_threads ))
 items_per_packet=$(printf "%.0f" "$number_item")
 
 
