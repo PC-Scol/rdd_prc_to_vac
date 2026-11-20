@@ -173,6 +173,4 @@ Lorsque la PRC concerne un acquis obtenu via LCC sur des sources multiples (il p
 Noter que dans ce cas, comme dans Apogée, le barème est forcé sur 20.
 
 ## Limitations
-L'outillage mis à disposition, dans sa version actuelle, ne prend pas en charge :
-* la reprise des credits ects
-* la reprise de la meilleure note pour les BUT/DUT
+L'outillage mis à disposition, dans sa version actuelle, ne prend pas en charge la reprise de la meilleure note pour les BUT/DUT
