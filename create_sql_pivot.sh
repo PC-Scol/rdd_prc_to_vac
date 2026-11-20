@@ -77,7 +77,6 @@ echo "  >>>   Fichier choisi Cle: ${fic_insert##*/}"
 echo "  >>>   Fichier choisi Filtre formation: ${fic_vet##*/}"
 echo "  >>>   PDB : $PDB	"
 echo "  >>>   Identifiant base de donnee : ${LOGIN_APOGEE} "
-echo "  >>>   Mot de passe base de donnee : ${MDP_APOGEE} "
 echo "  >>>   Activation prefix : ${PREFIXON} "
 echo "  >>>   Prefix VDI : ${PREFIX_VDI} "
 echo "  >>>   Prefix VET : ${PREFIX_VET} "
@@ -356,11 +355,21 @@ FIC_NAME_PIVOT_INSERT_CHC=insert_CHC_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.csv
 FIC_NAME_PIVOT_INSERT_COC=insert_COC_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.csv
 FIC_NAME_PIVOT_DELETE=delete_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.sql
 
-
 # Appel du menu
 confirm_menu
 
 sleep 1
+
+# Création du dossier de génération temporaire pour les fichiers de sortie
+if ! TMP_GEN_DIR=$(mktemp -d "${DIR_FIC_SORTIE}/.create_sql_pivot.XXXXXX"); then
+	echo "  >>> Impossible de creer le dossier temporaire de generation" >&2
+	exit 1
+fi
+# Suppression automatique du dossier de génération temporaire à la fin du script
+trap 'rm -rf -- "$TMP_GEN_DIR"' EXIT
+
+: > "${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC}"
+: > "${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC}"
 
 
 test_filtre_formation()
@@ -375,9 +384,9 @@ test_filtre_formation()
 process_coc() {
 local ligne=$1
 local str_conx=$2
+local spool_file=$3
 
 sql_condition_string=${ligne}
-echo "test: ${sql_condition_string}"
 if [  -z ${sql_condition_string} ]
 then
 	exit
@@ -389,7 +398,7 @@ echo "  >>>  Genération de la VAC pour module COC d'insertion  pour le pivot :$
 
 #recuperation des valeurs dans les clés
 
-IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA NOT_PNT_JUR_VAA SESSION_RETENUE ANNEE_ACQUISITION TYPE_ACQUIS <<< "$sql_condition_string"
+IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA NOT_PNT_JUR_VAA SESSION_RETENUE CREDIT_ECTS ANNEE_ACQUISITION TYPE_ACQUIS <<< "$sql_condition_string"
 
 FILTRE_FORMATION="test_filtre_formation"
 result=$(${FILTRE_FORMATION} "$COD_ETP" "$COD_VRS_VET" "$DIR_FIC_ARCHIVE")
@@ -407,7 +416,7 @@ SET FEEDBACK OFF
 SET TRIMSPOOL ON
 set linesize 1000
 set pagesize 1
-SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC} append
+SPOOL ${spool_file} append
 DECLARE
 	ANNEE_VAL varchar2(4) := '${ANNEE}';
 	COD_IND_VAL number(8,0) := '${COD_IND}';
@@ -453,7 +462,16 @@ DECLARE
 	COD_DIP_FILTRE_FILTRE_FORMATION varchar2(10) := '${COD_DIP_FILTRE}';
 	COD_VRS_VDI_FILTRE_FORMATION varchar2(10) := '${COD_VRS_VDI_FILTRE}';
 	TYPE_ACQUIS_VAL varchar2(3) := '${TYPE_ACQUIS}';
-
+	CREDIT_ECTS_VAL varchar2(10)  := '${CREDIT_ECTS}';
+	CREDIT_ECTS_VAL_SESSION1 varchar2(10)  := null;
+	CREDIT_ECTS_VAL_SESSION2 varchar2(10)  := null;
+	resultat_positif_negatif_session number(1,0) := null;
+	absence_retenue varchar2(10)  := null;
+	resultat_positif_negatif_session2 number(1,0) := null;
+	absence_retenue2 varchar2(10)  := null;
+	temoin_report_resultat_session2 varchar2(2)  := null;
+	temoin_report_note_session2 varchar2(2)  := null;
+	code_session_max number(2,0) := null;
 
 BEGIN
 
@@ -530,6 +548,110 @@ BEGIN
 					and cod_anu = ANNEE_ACQUISITION_VAL;
 			END IF;
 
+			
+			-- partie attribution credits ects 
+			SELECT
+				MAX(CASE WHEN relp.cod_ses IN (0,1) THEN
+						CASE WHEN tre1.cod_neg_tre IS NOT NULL THEN tre1.cod_neg_tre
+							WHEN tre2.cod_neg_tre IS NOT NULL THEN tre2.cod_neg_tre
+						END
+					END)                                                           AS resultat_positif_negatif_session,
+				MAX(CASE WHEN relp.cod_ses = 2 THEN
+						CASE WHEN tre1.cod_neg_tre IS NOT NULL THEN tre1.cod_neg_tre
+							WHEN tre2.cod_neg_tre IS NOT NULL THEN tre2.cod_neg_tre
+						END
+					END)                                                           AS resultat_positif_negatif_session2,
+				MAX(CASE WHEN relp.cod_ses = 1 AND relp.COD_TRE     IN ('ABI','ABJ') THEN relp.COD_TRE
+						WHEN relp.cod_ses = 1 AND relp.NOT_SUB_ELP IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
+						WHEN relp.cod_ses = 0 AND relp.COD_TRE     IN ('ABI','ABJ') THEN relp.COD_TRE
+						WHEN relp.cod_ses = 0 AND relp.NOT_SUB_ELP IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
+					END)                                                           AS absence_retenue,
+				MAX(CASE WHEN relp.cod_ses = 2 AND relp.COD_TRE     IN ('ABI','ABJ') THEN relp.COD_TRE
+						WHEN relp.cod_ses = 2 AND relp.NOT_SUB_ELP IN ('ABI','ABJ') THEN relp.NOT_SUB_ELP
+					END)                                                           AS absence_retenue2
+				, max(case when relp.cod_ses='2' then relp.tem_not_rpt_elp else 'N' end) as temoin_report_note_session2
+				, max(case when relp.cod_ses='2' then relp.tem_res_rpt_elp else 'N' end) as temoin_report_resultat_session2
+				, max(relp.cod_ses) code_session_max
+				
+			INTO
+				resultat_positif_negatif_session, resultat_positif_negatif_session2,
+				absence_retenue, absence_retenue2,  temoin_report_note_session2, temoin_report_resultat_session2, code_session_max
+			FROM resultat_elp relp
+				, TYP_RESULTAT tre1
+				, TYP_RESULTAT tre2
+			WHERE relp.cod_elp        = COD_ELP_VAL
+			AND relp.COD_IND        = COD_IND_VAL
+			AND relp.cod_ses        IN (0, 1, 2)
+			AND relp.cod_adm        = '1'
+			AND relp.cod_anu        = ANNEE_ACQUISITION_VAL
+			AND relp.cod_tre        = tre1.cod_tre(+)
+			AND relp.NOT_SUB_ELP    = tre2.cod_tre(+);
+
+			-- credit ects de session 1 
+			-- et session 0
+			CREDIT_ECTS_VAL_SESSION1 := CASE
+					WHEN  resultat_positif_negatif_session IS NOT NULL 
+						AND absence_retenue IS NULL
+						AND resultat_positif_negatif_session = 1
+						THEN CREDIT_ECTS_VAL
+					WHEN   absence_retenue IS NULL
+						AND resultat_positif_negatif_session IS NULL 
+						AND (note_session1 + NVL(note_point_jury_session1, 0)) >= (bareme_session1 / 2)
+						THEN CREDIT_ECTS_VAL
+						ELSE NULL
+				END;
+			
+
+			-- credit ects de session 2
+			CREDIT_ECTS_VAL_SESSION2 := CASE
+					--- cas si session à 0
+					-- cas si session si 1 et 2
+					-- si resultat dans la session 2 si pas d'absence aux deux sessions
+					WHEN  code_session_max > 0 
+						and  absence_retenue2 IS NULL
+						and (
+							(note_session2 is not null and temoin_report_note_session2 = 'N')
+							OR
+							(resultat_session2 is not null and temoin_report_resultat_session2='N')
+						)
+						AND (
+							(resultat_positif_negatif_session2 is null and (note_session2 + NVL(note_point_jury_session2, 0)) >= (bareme_session2 / 2))
+							OR
+							resultat_positif_negatif_session2 is not null and resultat_positif_negatif_session2 = 1
+						 )
+						THEN CREDIT_ECTS_VAL
+					-- cas si session si 1 et 2
+					-- si resultat dans la session 1 si pas d'absence aux deux sessions
+					WHEN code_session_max > 0 
+						and  absence_retenue2 IS NULL
+						and absence_retenue IS NULL
+						and (
+							(note_session1 is not null or resultat_session1 is not null)
+						)
+						AND (
+							(resultat_positif_negatif_session is null and (note_session1 + NVL(note_point_jury_session1, 0)) >= (bareme_session1 / 2))
+							OR
+							resultat_positif_negatif_session is not null and resultat_positif_negatif_session = 1
+						   )
+						THEN CREDIT_ECTS_VAL
+					-- si resultat dans la si 1 et 2
+					-- si resultat dans la session 1 si pas d'absence à la première
+					when code_session_max = 0 
+						and absence_retenue IS NULL
+						and (
+							(note_session1 is not null or resultat_session1 is not null)
+						)
+						AND (
+							(resultat_positif_negatif_session is null and (note_session1 + NVL(note_point_jury_session1, 0)) >= (bareme_session1 / 2))
+							OR
+							resultat_positif_negatif_session is not null and resultat_positif_negatif_session = 1
+						   )
+						THEN CREDIT_ECTS_VAL
+
+					ELSE NULL
+				END;
+			
+
 		ELSIF TYPE_ACQUIS_VAL = 'VAC' THEN
 			note_session1	:= null;
 			bareme_session1 := null;
@@ -541,6 +663,9 @@ BEGIN
 			note_point_jury_session2 := null;
 			resultat_session2 := null;
 			mention_honorifique_session2 := null;
+			credit_ects_val_session1 := null;
+			credit_ects_val_session2 := null;
+
 		ELSIF TYPE_ACQUIS_VAL = 'LCC' THEN
 			-- Par souci de simplicité, les notes/résultas/mentions de chaque session sont valués à NULL, comme pour les VAC
 			-- note et barème finaux sont déjà connus et valorisés dans NOT_VAA_VAL et BAR_NOT_VAA_VAL
@@ -554,6 +679,8 @@ BEGIN
 			note_point_jury_session2 := null;
 			resultat_session2 := null;
 			mention_honorifique_session2 := null;
+			credit_ects_val_session1 := null;
+			credit_ects_val_session2 := null;
 
 		ELSE
 			RAISE_APPLICATION_ERROR(-20002, 'Type d''acquis inconnu!');
@@ -595,7 +722,7 @@ BEGIN
 		LINEBUFFER := LINEBUFFER || nvl(note_session1,'NULL')||';';		-- "note_session1"
 		LINEBUFFER := LINEBUFFER || nvl(bareme_session1,'NULL')||';';	-- "bareme_note_session1"
 		LINEBUFFER := LINEBUFFER || nvl(note_point_jury_session1,'NULL')||';';	-- "point_jury_session1"
-		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "credit_ects_session1"
+		LINEBUFFER := LINEBUFFER || nvl(CREDIT_ECTS_VAL_SESSION1,'NULL')||';';			 -- "credit_ects_session1"
 		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "rang_session1"
 		LINEBUFFER := LINEBUFFER || nvl(note_session2,'NULL')||';';		-- "note_session2"
 		LINEBUFFER := LINEBUFFER ||nvl(bareme_session2,'NULL')||';';	-- "bareme_note_session2"
@@ -614,12 +741,11 @@ BEGIN
 		end if;
 		LINEBUFFER := LINEBUFFER || nvl(resultat_session1,'NULL')||';';	-- "resultat_session1"
 		LINEBUFFER := LINEBUFFER || nvl(resultat_session2,'NULL')||';';	-- "resultat_session2"
-		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "rang_final"
-		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "credit_ects_final"
+		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "rang_final"	
+		LINEBUFFER := LINEBUFFER || nvl(CREDIT_ECTS_VAL_SESSION2,'NULL') ||';';			-- "credit_ects_final"
 		LINEBUFFER := LINEBUFFER || 'T;';								-- "statut_deliberation_session1"
 		LINEBUFFER := LINEBUFFER || 'T;';								-- "statut_deliberation_session2_final"
-		LINEBUFFER := LINEBUFFER || nvl(SESSION_RETENUE_VAL,'NULL')||';';	-- "session_retenue"
-		
+		LINEBUFFER := LINEBUFFER || nvl(SESSION_RETENUE_VAL,'NULL')||';';	-- "session_retenue"		
 		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "absence_finale"
 		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "absence_session1"
 		LINEBUFFER := LINEBUFFER || 'NULL;';							-- "absence_session2"
@@ -671,33 +797,55 @@ start=`date +%s`
 mapfile -t lines <  $fic_insert
 
 array_length=${#lines[@]}
-number_item=$((${array_length}/${num_threads}))
+# détermination du nombre de lignes à traiter par thread
+#	= nombre de lignes / nombre de threads
+# 	cas particulier : si le nombre de lignes à traiter est inférieur au nombre de threads, on ne crée qu'un thread par ligne
+number_item=$(( array_length / num_threads == 0 ? 1 : array_length / num_threads ))
 items_per_packet=$(printf "%.0f" "$number_item")
 
+pids=()
+coc_output_files=()
+generation_failed=0
 
-
+# tant que i<nombre de lignes, on avance d'un packet de lignes à chaque itération, et on lance un worker pour traiter ce packet
 for ((i=0; i<${#lines[@]}; i+=$items_per_packet)); do
-    
-    packet=("${lines[@]:$i:$items_per_packet}")
-
-    
-    (
-        for item in "${packet[@]}"; do
-            process_coc "${item}" "${STR_CONX}"
+	packet=("${lines[@]:$i:$items_per_packet}")
+	worker_output="${TMP_GEN_DIR}/coc_${i}.csv"
+	coc_output_files+=("$worker_output")
+	
+	# démarrage worker en arrière-plan pour traiter un packet de lignes
+	# "( ) &" permet de lancer le worker en arrière-plan et de continuer l'exécution du script principal
+	(
+		worker_failed=0
+		#pour chaque ligne du packet, génération de la ligne COC correspondante pour la base pivot
+		for item in "${packet[@]}"; do
+			process_coc "${item}" "${STR_CONX}" "${worker_output}" || worker_failed=1
 		done
-    ) & 
-    pids+=($!)  # Store the process ID
+		exit "$worker_failed"
+    ) &
+	pids+=($!)  # Stockage du process ID pour pouvoir l'attendre plus tard et vérifier son succès ou échec
     
-    if [[ ${#pids[@]} -eq $num_threads ]]; then
-        wait -n
-        pids=("${pids[@]/$!/}")  
-    fi
+	# limite le nombre de tâches en parallèle à num_threads.
+	if [[ ${#pids[@]} -ge $num_threads ]]; then
+		# attend la fin du plus ancien processus lancé. Si celui-ci échoue, generation_failed passe à 1
+		wait "${pids[0]}" || generation_failed=1
+		#retire ce PID de la liste, pour pouvoir lancer une autre tâche ensuite
+		pids=("${pids[@]:1}")
+	fi
 
 done
 
+for pid in "${pids[@]}"; do
+	wait "$pid" || generation_failed=1
+done
 
-for pid in ${pids[*]}; do
-    wait $pid
+if (( generation_failed )); then
+	echo "  >>> Erreur pendant la generation COC" >&2
+	exit 1
+fi
+
+for worker_output in "${coc_output_files[@]}"; do
+	cat "$worker_output" >> "${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC}" || exit 1
 done
 
 end=`date +%s`
@@ -712,6 +860,7 @@ start_2=`date +%s`
 process_chc() {
 local ligne=$1
 local str_conx=$2
+local spool_file=$3
 
 sql_condition_string=${ligne}
 
@@ -725,7 +874,7 @@ echo "  >>>  Genération de la VAC d'insertion (chc) pour le pivot :  ${sql_cond
 echo "  >>>  Genération de la VAC pour module CHC d'insertion  pour le pivot :${sql_condition_string}" >> $FIC_LOG
 
 #recuperation des valeurs dans les clés
-IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA NOT_PNT_JUR_VAA SESSION_RETENUE ANNEE_ACQUISITION TYPE_ACQUIS <<< "$sql_condition_string"
+IFS=';' read ANNEE COD_IND COD_ETP COD_VRS_VET COD_ELP DAT_DEC_ELP_VAA COD_CIP NOT_VAA BAR_NOT_VAA NOT_PNT_JUR_VAA SESSION_RETENUE CREDIT_ECTS ANNEE_ACQUISITION TYPE_ACQUIS <<< "$sql_condition_string"
 
 
 FILTRE_FORMATION="test_filtre_formation"
@@ -744,7 +893,7 @@ SET FEEDBACK OFF
 SET TRIMSPOOL ON
 set linesize 4000
 set pagesize 1
-SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC} append
+SPOOL ${spool_file} append
 DECLARE
 	ANNEE_VAL varchar2(4) := '${ANNEE}';
 	COD_IND_VAL		number(8,0) := '${COD_IND}';
@@ -778,6 +927,8 @@ DECLARE
 	COD_DIP_FILTRE_FILTRE_FORMATION varchar2(10) := '${COD_DIP_FILTRE}';
 	COD_VRS_VDI_FILTRE_FORMATION varchar2(10) := '${COD_VRS_VDI_FILTRE}';
 	TYPE_AMENAGEMENT_VAL VARCHAR2(10) := null;
+	
+
 
 	-- curseur de creation du chemin
 	cursor create_chemin_cur
@@ -920,28 +1071,51 @@ FIN_SQL
 echo "  >> Debut Generation CHC"
 echo "  >> Debut Generation CHC" >> $FIC_LOG
 
+pids=()
+chc_output_files=()
+generation_failed=0
+
+# tant que i<nombre de lignes, on avance d'un packet de lignes à chaque itération, et on lance un worker pour traiter ce packet
 for ((i=0; i<${#lines[@]}; i+=$items_per_packet)); do
 
-    packet=("${lines[@]:$i:$items_per_packet}")
+	packet=("${lines[@]:$i:$items_per_packet}")
+	worker_output="${TMP_GEN_DIR}/chc_${i}.csv"
+	chc_output_files+=("$worker_output")
 
-
-    (
-        for item in "${packet[@]}"; do
-            process_chc "${item}" "${STR_CONX}"
+	# démarrage worker en arrière-plan pour traiter un packet de lignes
+	# "( ) &" permet de lancer le worker en arrière-plan et de continuer l'exécution du script principal
+	(
+		worker_failed=0
+		for item in "${packet[@]}"; do
+			#pour chaque ligne du packet, génération de la ligne de CHC correspondante pour la base pivot
+			process_chc "${item}" "${STR_CONX}" "${worker_output}" || worker_failed=1
 		done
-    )  &
-    pids+=($!)
+		exit "$worker_failed"
+	)  &
+	pids+=($!)  # Stockage du process ID pour pouvoir l'attendre plus tard et vérifier son succès ou échec
 
-    if [[ ${#pids[@]} -eq $num_threads ]]; then
-        wait -n
-        pids=("${pids[@]/$!/}")
-    fi
+	# limite le nombre de tâches en parallèle à num_threads.
+	if [[ ${#pids[@]} -ge $num_threads ]]; then
+		# attend la fin du plus ancien processus lancé. Si celui-ci échoue, generation_failed passe à 1
+		wait "${pids[0]}" || generation_failed=1
+		#retire ce PID de la liste, pour pouvoir lancer une autre tâche ensuite
+		pids=("${pids[@]:1}")
+	fi
 
 done
 
 
-for pid in ${pids[*]}; do
-    wait $pid
+for pid in "${pids[@]}"; do
+	wait "$pid" || generation_failed=1
+done
+
+if (( generation_failed )); then
+	echo "  >>> Erreur pendant la generation CHC" >&2
+	exit 1
+fi
+
+for worker_output in "${chc_output_files[@]}"; do
+	cat "$worker_output" >> "${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC}" || exit 1
 done
 
 sleep 1
@@ -952,6 +1126,10 @@ echo "  >> Fin Generation CHC"
 echo "  >> Fin Generation CHC" >> $FIC_LOG
 
 sleep 1
+
+#tri des fichiers pour facilier les comparaisons et les relectures par les usagers
+sort -o ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC} -u ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC}
+sort -o ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC} -u ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC}
 
 #ajout ligne entête
 #fichier COC

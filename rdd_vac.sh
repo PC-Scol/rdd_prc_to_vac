@@ -669,6 +669,7 @@ DECLARE
 				ice.cod_elp,
 				ice.cod_cip,
 				ice.cod_lcc_ice,
+				ice.NBR_CRD_ELP_INS,
 				elp.tem_cap_elp,
 				elp.tem_con_elp,
 				elp.not_min_con_elp,
@@ -696,7 +697,7 @@ DECLARE
 					AND ide.cod_elp=ice.cod_elp
 				)
 				--exclusions des apprenants sans inscription pour l'année
-				-- /!\ TODO : exclure aussi les apprenants qui ne sont pas dans les VDI du filtre en entrée
+				-- /!\ TODO  exclure aussi les apprenants qui ne sont pas dans les VDI du filtre en entrée
 				--		=> la fonctionnalité est opérationnelle car les lignes sont filtrées dans create_sql_pivot.sql mais
 				--			du temps de traitement est perdu car des lignes sont sélectionnées pour être ré-enlevées ensuite
 				AND EXISTS (
@@ -722,7 +723,7 @@ DECLARE
 				ma_table.cod_vrs_vet,
 				ma_table.cod_ind,
 				ma_table.cod_elp,
-				ma_table.note, ma_table.bareme, ma_table.point_jury,
+				ma_table.note, ma_table.bareme, ma_table.point_jury,ma_table.nombre_credits_preattribues,
                 ma_table.session_retenue,
                 ma_table.annee_acquisition,
 				ma_table.cod_cip
@@ -735,6 +736,7 @@ DECLARE
 						to_char(CASE WHEN relp.cod_ses='0' THEN '1'
 									WHEN relp.cod_ses='2' AND (relp.tem_not_rpt_elp='O' OR relp.tem_res_rpt_elp='O') THEN '1'
 									ELSE relp.cod_ses END) session_retenue,
+						lprc.NBR_CRD_ELP_INS as nombre_credits_preattribues,			
                         relp.cod_anu annee_acquisition,
 						-- SELECTION DES NOTES/RESULTATS OBTENUS LE PLUS RECEMMENT
 						row_number() OVER (PARTITION BY lprc.cod_etp,
@@ -749,7 +751,7 @@ DECLARE
 						AND relp.cod_ind =  lprc.cod_ind
 						AND relp.cod_anu < lprc.cod_anu
 						AND relp.cod_adm = 1
-						-- récupération du résultat :
+						-- récupération du résultat 
 						--  - si element capitalisable
 						--  - ou si conservable ET QUE transformation des conservations en capitalisation demandée ET QUE que les conditions de conservation sont remplies
 						AND ( lprc.tem_cap_elp='O'
@@ -775,7 +777,7 @@ DECLARE
 				ma_table.cod_vrs_vet,
 				ma_table.cod_ind,
 				ma_table.cod_elp,
-				ma_table.note, ma_table.bareme, ma_table.point_jury,
+				ma_table.note, ma_table.bareme, ma_table.point_jury,ma_table.nombre_credits_preattribues,
 				ma_table.session_retenue,
                 ma_table.annee_acquisition,
 				ma_table.cod_cip
@@ -784,7 +786,7 @@ DECLARE
 						lprc.cod_vrs_vet,
 						lprc.cod_ind,
 						lprc.cod_elp,
-						to_char(ide.NOT_VAA) note, to_char(ide.BAR_NOT_VAA) bareme, null point_jury,
+						to_char(ide.NOT_VAA) note, to_char(ide.BAR_NOT_VAA) bareme, null point_jury, lprc.NBR_CRD_ELP_INS as nombre_credits_preattribues,
 						null session_retenue,
 						ide.cod_anu annee_acquisition,
 						-- Validations d'acquis obtenues le plus récemment
@@ -812,7 +814,7 @@ DECLARE
 				ma_table.cod_vrs_vet,
 				ma_table.cod_ind,
 				ma_table.cod_elp,
-				ma_table.note, ma_table.bareme, ma_table.point_jury,
+				ma_table.note, ma_table.bareme, ma_table.point_jury,ma_table.nombre_credits_preattribues,
 				ma_table.session_retenue,
                 ma_table.annee_acquisition,
 				ma_table.cod_cip
@@ -836,12 +838,14 @@ DECLARE
 						END bareme,
 						null point_jury, -- pour simplifier, les points jury sont directement intégrés à la note simulée
 						null session_retenue,
+						lprc.NBR_CRD_ELP_INS as nombre_credits_preattribues,
 						my_relp1.annee_acquisition,
 						lprc.cod_cip
 				FROM liste_ice_prc lprc
 				JOIN ELP_CORRESPOND_ELP ece ON (lprc.COD_LCC_ICE IS NOT NULL AND ece.COD_LCC=lprc.COD_LCC_ICE)
 				-- récupération de la source 1 (il y en a toujours une)
-				CROSS APPLY (SELECT relp.cod_ind, relp.not_elp, relp.bar_not_elp, relp.not_pnt_jur_elp,
+				CROSS APPLY (SELECT res_lcc_1.cod_ind, res_lcc_1.not_elp, res_lcc_1.bar_not_elp,res_lcc_1.not_pnt_jur_elp,res_lcc_1.session_retenue,res_lcc_1.annee_acquisition
+							FROM (SELECT relp.cod_ind, relp.not_elp, relp.bar_not_elp, relp.not_pnt_jur_elp,
 									to_char(CASE WHEN relp.cod_ses='0' THEN '1'
 												WHEN relp.cod_ses='2' AND (relp.tem_not_rpt_elp='O' OR relp.tem_res_rpt_elp='O') THEN '1'
 												ELSE relp.cod_ses END) session_retenue,
@@ -849,17 +853,21 @@ DECLARE
 									-- Notes obtenues le plus récemment
 									row_number() OVER (PARTITION BY lprc.cod_etp,
 																	lprc.cod_vrs_vet,
-																	lprc.cod_ind,
-																	lprc.cod_elp
+																	relp.cod_ind,
+																	relp.cod_elp,
+																	relp.cod_anu
 														ORDER BY relp.cod_anu DESC,relp.cod_ses) as rownnumber
 									FROM RESULTAT_ELP relp
 									WHERE relp.cod_ELP=ece.COD_ELP_S1_LCC
 										AND relp.cod_ind = lprc.COD_IND
 										AND relp.cod_anu < lprc.COD_ANU
 										AND relp.COD_ADM=1
-										AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1)) my_relp1
+										AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1))res_lcc_1
+							-- LCC obtenus le plus récemment
+							WHERE res_lcc_1.rownnumber=1) my_relp1
 				-- récupération de la source 2 s'il y en a une
-				OUTER APPLY (SELECT relp.not_elp, relp.bar_not_elp, relp.not_pnt_jur_elp,
+				OUTER APPLY (SELECT res_lcc_2.not_elp, res_lcc_2.bar_not_elp, res_lcc_2.not_pnt_jur_elp, res_lcc_2.session_retenue,res_lcc_2.annee_acquisition
+							FROM	(SELECT relp.not_elp, relp.bar_not_elp, relp.not_pnt_jur_elp,
 									to_char(CASE WHEN relp.cod_ses='0' THEN '1'
 												WHEN relp.cod_ses='2' AND (relp.tem_not_rpt_elp='O' OR relp.tem_res_rpt_elp='O') THEN '1'
 												ELSE relp.cod_ses END) session_retenue,
@@ -867,20 +875,20 @@ DECLARE
 									-- Notes obtenues le plus récemment
 									row_number() OVER (PARTITION BY lprc.cod_etp,
 																	lprc.cod_vrs_vet,
-																	lprc.cod_ind,
-																	lprc.cod_elp
+																	relp.cod_ind,
+																	relp.cod_elp,
+																	relp.cod_anu
 														ORDER BY relp.cod_anu DESC,relp.cod_ses) as rownnumber
 									FROM RESULTAT_ELP relp
 									WHERE relp.cod_ELP=ece.COD_ELP_S2_LCC
 										AND relp.cod_ind = lprc.COD_IND
 										AND relp.cod_anu < lprc.COD_ANU
 										AND relp.COD_ADM=1
-										AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1)) my_relp2
+										AND EXISTS (select 1 FROM TYP_RESULTAT TRE WHERE TRE.COD_TRE=relp.COD_TRE AND TRE.COD_NEG_TRE=1))res_lcc_2
+							-- LCC obtenus le plus récemment
+							WHERE (nvl(res_lcc_2.rownnumber,1) = 1) ) my_relp2
 				WHERE ece.DAA_DEB_VAL_LCC<=lprc.COD_ANU
 					AND nvl(ece.DAA_FIN_VAL_LCC,lprc.COD_ANU)>=lprc.COD_ANU
-					-- LCC obtenus le plus récemment
-					AND my_relp1.rownnumber=1
-					AND (nvl(my_relp2.rownnumber,1) = 1)
 			) ma_table
 		;
 						
@@ -888,7 +896,7 @@ DECLARE
 		-- RECHERCHE PAR PRC
 		FOR recherche_prc_rec IN recherche_prc_cur(cod_etp_in,cod_vrs_vet_in,cod_anu_in,transformation_conservation_capitalisation_in)
 		LOOP
-				linebuffer := ''||REPLACE(cod_anu_in,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_ind,'',NULL)||';'||REPLACE(cod_etp_in,'',NULL)||';'||REPLACE(cod_vrs_vet_in,'NULL',NULL)||';'||REPLACE(recherche_prc_rec.cod_elp,'','NULL')||';SYSDATE;'||REPLACE(recherche_prc_rec.cod_cip,'','NULL')||';' ||recherche_prc_rec.note|| ';' ||recherche_prc_rec.bareme ||';' ||recherche_prc_rec.point_jury ||';' ||recherche_prc_rec.session_retenue ||';' ||recherche_prc_rec.annee_acquisition ||';' ||recherche_prc_rec.type_acquis ||';';
+				linebuffer := ''||REPLACE(cod_anu_in,'',NULL)||';'||REPLACE(recherche_prc_rec.cod_ind,'',NULL)||';'||REPLACE(cod_etp_in,'',NULL)||';'||REPLACE(cod_vrs_vet_in,'NULL',NULL)||';'||REPLACE(recherche_prc_rec.cod_elp,'','NULL')||';SYSDATE;'||REPLACE(recherche_prc_rec.cod_cip,'','NULL')||';' ||recherche_prc_rec.note|| ';' ||recherche_prc_rec.bareme ||';' ||recherche_prc_rec.point_jury ||';' ||recherche_prc_rec.session_retenue ||';' ||recherche_prc_rec.nombre_credits_preattribues ||';' ||recherche_prc_rec.annee_acquisition ||';' ||recherche_prc_rec.type_acquis ||';';
 				dbms_output.put_line(linebuffer);
 		END LOOP;
 	END;
@@ -929,7 +937,7 @@ echo -e "  >>>   Copie du fichier temporaire dans le dossier archive" >> $FIC_LO
 number=0
 number=`cat ${DIR_FIC_SORTIE}/${FIC_NAME_APOGEE_INSERT} | wc -l`
 
-if [ $number -le 1 ] ;
+if [ $number -le 0 ] ;
 then
 	echo -e "     "
 	echo -e "  >>>   Pas de VAC TROUVEE pour ces parametres !!!"
