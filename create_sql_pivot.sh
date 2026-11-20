@@ -355,11 +355,21 @@ FIC_NAME_PIVOT_INSERT_CHC=insert_CHC_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.csv
 FIC_NAME_PIVOT_INSERT_COC=insert_COC_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.csv
 FIC_NAME_PIVOT_DELETE=delete_vac_pivot_${COD_ANU}_${GEN_TIMESTAMP}.sql
 
-
 # Appel du menu
 confirm_menu
 
 sleep 1
+
+# Création du dossier de génération temporaire pour les fichiers de sortie
+if ! TMP_GEN_DIR=$(mktemp -d "${DIR_FIC_SORTIE}/.create_sql_pivot.XXXXXX"); then
+	echo "  >>> Impossible de creer le dossier temporaire de generation" >&2
+	exit 1
+fi
+# Suppression automatique du dossier de génération temporaire à la fin du script
+trap 'rm -rf -- "$TMP_GEN_DIR"' EXIT
+
+: > "${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC}"
+: > "${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC}"
 
 
 test_filtre_formation()
@@ -374,6 +384,7 @@ test_filtre_formation()
 process_coc() {
 local ligne=$1
 local str_conx=$2
+local spool_file=$3
 
 sql_condition_string=${ligne}
 if [  -z ${sql_condition_string} ]
@@ -405,7 +416,7 @@ SET FEEDBACK OFF
 SET TRIMSPOOL ON
 set linesize 1000
 set pagesize 1
-SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC} append
+SPOOL ${spool_file} append
 DECLARE
 	ANNEE_VAL varchar2(4) := '${ANNEE}';
 	COD_IND_VAL number(8,0) := '${COD_IND}';
@@ -786,34 +797,55 @@ start=`date +%s`
 mapfile -t lines <  $fic_insert
 
 array_length=${#lines[@]}
-# si le nombre de lignes à traiter est inférieur au nombre de threads, on ne crée qu'un thread par ligne
+# détermination du nombre de lignes à traiter par thread
+#	= nombre de lignes / nombre de threads
+# 	cas particulier : si le nombre de lignes à traiter est inférieur au nombre de threads, on ne crée qu'un thread par ligne
 number_item=$(( array_length / num_threads == 0 ? 1 : array_length / num_threads ))
 items_per_packet=$(printf "%.0f" "$number_item")
 
+pids=()
+coc_output_files=()
+generation_failed=0
 
-
+# tant que i<nombre de lignes, on avance d'un packet de lignes à chaque itération, et on lance un worker pour traiter ce packet
 for ((i=0; i<${#lines[@]}; i+=$items_per_packet)); do
-    
-    packet=("${lines[@]:$i:$items_per_packet}")
-
-    
-    (
-        for item in "${packet[@]}"; do
-            process_coc "${item}" "${STR_CONX}"
+	packet=("${lines[@]:$i:$items_per_packet}")
+	worker_output="${TMP_GEN_DIR}/coc_${i}.csv"
+	coc_output_files+=("$worker_output")
+	
+	# démarrage worker en arrière-plan pour traiter un packet de lignes
+	# "( ) &" permet de lancer le worker en arrière-plan et de continuer l'exécution du script principal
+	(
+		worker_failed=0
+		#pour chaque ligne du packet, génération de la ligne COC correspondante pour la base pivot
+		for item in "${packet[@]}"; do
+			process_coc "${item}" "${STR_CONX}" "${worker_output}" || worker_failed=1
 		done
-    ) & 
-    pids+=($!)  # Store the process ID
+		exit "$worker_failed"
+    ) &
+	pids+=($!)  # Stockage du process ID pour pouvoir l'attendre plus tard et vérifier son succès ou échec
     
-    if [[ ${#pids[@]} -eq $num_threads ]]; then
-        wait -n
-        pids=("${pids[@]/$!/}")  
-    fi
+	# limite le nombre de tâches en parallèle à num_threads.
+	if [[ ${#pids[@]} -ge $num_threads ]]; then
+		# attend la fin du plus ancien processus lancé. Si celui-ci échoue, generation_failed passe à 1
+		wait "${pids[0]}" || generation_failed=1
+		#retire ce PID de la liste, pour pouvoir lancer une autre tâche ensuite
+		pids=("${pids[@]:1}")
+	fi
 
 done
 
+for pid in "${pids[@]}"; do
+	wait "$pid" || generation_failed=1
+done
 
-for pid in ${pids[*]}; do
-    wait $pid
+if (( generation_failed )); then
+	echo "  >>> Erreur pendant la generation COC" >&2
+	exit 1
+fi
+
+for worker_output in "${coc_output_files[@]}"; do
+	cat "$worker_output" >> "${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC}" || exit 1
 done
 
 end=`date +%s`
@@ -828,6 +860,7 @@ start_2=`date +%s`
 process_chc() {
 local ligne=$1
 local str_conx=$2
+local spool_file=$3
 
 sql_condition_string=${ligne}
 
@@ -860,7 +893,7 @@ SET FEEDBACK OFF
 SET TRIMSPOOL ON
 set linesize 4000
 set pagesize 1
-SPOOL ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC} append
+SPOOL ${spool_file} append
 DECLARE
 	ANNEE_VAL varchar2(4) := '${ANNEE}';
 	COD_IND_VAL		number(8,0) := '${COD_IND}';
@@ -1038,28 +1071,51 @@ FIN_SQL
 echo "  >> Debut Generation CHC"
 echo "  >> Debut Generation CHC" >> $FIC_LOG
 
+pids=()
+chc_output_files=()
+generation_failed=0
+
+# tant que i<nombre de lignes, on avance d'un packet de lignes à chaque itération, et on lance un worker pour traiter ce packet
 for ((i=0; i<${#lines[@]}; i+=$items_per_packet)); do
 
-    packet=("${lines[@]:$i:$items_per_packet}")
+	packet=("${lines[@]:$i:$items_per_packet}")
+	worker_output="${TMP_GEN_DIR}/chc_${i}.csv"
+	chc_output_files+=("$worker_output")
 
-
-    (
-        for item in "${packet[@]}"; do
-            process_chc "${item}" "${STR_CONX}"
+	# démarrage worker en arrière-plan pour traiter un packet de lignes
+	# "( ) &" permet de lancer le worker en arrière-plan et de continuer l'exécution du script principal
+	(
+		worker_failed=0
+		for item in "${packet[@]}"; do
+			#pour chaque ligne du packet, génération de la ligne de CHC correspondante pour la base pivot
+			process_chc "${item}" "${STR_CONX}" "${worker_output}" || worker_failed=1
 		done
-    )  &
-    pids+=($!)
+		exit "$worker_failed"
+	)  &
+	pids+=($!)  # Stockage du process ID pour pouvoir l'attendre plus tard et vérifier son succès ou échec
 
-    if [[ ${#pids[@]} -eq $num_threads ]]; then
-        wait -n
-        pids=("${pids[@]/$!/}")
-    fi
+	# limite le nombre de tâches en parallèle à num_threads.
+	if [[ ${#pids[@]} -ge $num_threads ]]; then
+		# attend la fin du plus ancien processus lancé. Si celui-ci échoue, generation_failed passe à 1
+		wait "${pids[0]}" || generation_failed=1
+		#retire ce PID de la liste, pour pouvoir lancer une autre tâche ensuite
+		pids=("${pids[@]:1}")
+	fi
 
 done
 
 
-for pid in ${pids[*]}; do
-    wait $pid
+for pid in "${pids[@]}"; do
+	wait "$pid" || generation_failed=1
+done
+
+if (( generation_failed )); then
+	echo "  >>> Erreur pendant la generation CHC" >&2
+	exit 1
+fi
+
+for worker_output in "${chc_output_files[@]}"; do
+	cat "$worker_output" >> "${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC}" || exit 1
 done
 
 sleep 1
@@ -1070,6 +1126,10 @@ echo "  >> Fin Generation CHC"
 echo "  >> Fin Generation CHC" >> $FIC_LOG
 
 sleep 1
+
+#tri des fichiers pour facilier les comparaisons et les relectures par les usagers
+sort -o ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC} -u ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_COC}
+sort -o ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC} -u ${DIR_FIC_SORTIE}/${FIC_NAME_PIVOT_INSERT_CHC}
 
 #ajout ligne entête
 #fichier COC
